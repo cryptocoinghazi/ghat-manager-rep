@@ -49,12 +49,12 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/verify', async (req, res) => {
+const verifyToken = async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
+      return res.status(401).json({ error: 'No token provided', valid: false });
     }
 
     const token = authHeader.split(' ')[1];
@@ -64,13 +64,16 @@ router.get('/verify', async (req, res) => {
     const user = await db.get('SELECT id, username, role, full_name FROM users WHERE id = ? AND is_active = 1', [decoded.id]);
 
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ error: 'User not found', valid: false });
     }
 
-    res.json({ user });
+    res.json({ user, valid: true });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    res.status(401).json({ error: 'Invalid token', valid: false });
   }
-});
+};
+
+router.get('/verify', verifyToken);
+router.post('/verify', verifyToken);
 
 export default router;

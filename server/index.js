@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db.js';
+import { authenticateToken, requireAdmin } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +24,7 @@ app.use(morgan('dev'));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://ghat-manager.up.railway.app'] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000'],
   credentials: true
 }));
 app.use(express.json());
@@ -38,11 +39,13 @@ import settingsRoutes from './routes/settings.js';
 import reportsRoutes from './routes/reports.js';
 import authRoutes from './routes/auth.js';
 
-// API Routes
+// API Routes - Auth routes are public
 app.use('/api/auth', authRoutes);
-app.use('/api/receipts', receiptRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/reports', reportsRoutes);
+
+// Protected routes - require authentication
+app.use('/api/receipts', authenticateToken, receiptRoutes);
+app.use('/api/settings', authenticateToken, settingsRoutes);
+app.use('/api/reports', authenticateToken, requireAdmin, reportsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcrypt';
 import { getDB } from '../db.js';
 
 const router = express.Router();
@@ -268,29 +269,170 @@ router.post('/restore', async (req, res) => {
   }
 });
 
-// Add truck owner route (POST) that was missing
-router.post('/truck-owners', async (req, res) => {
+// =====================
+// USER MANAGEMENT ROUTES (Admin only)
+// =====================
+
+// Middleware to check admin role
+const checkAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+// Get all users
+router.get('/users', checkAdmin, async (req, res) => {
   try {
-    const { name, contact, address } = req.body;
+    const db = getDB();
+    const users = await db.all(
+      'SELECT id, username, full_name, role, is_active, created_at FROM users ORDER BY created_at DESC'
+    );
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Create new user
+router.post('/users', checkAdmin, async (req, res) => {
+  try {
+    const { username, password, full_name, role } = req.body;
     
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
+    const validRoles = ['admin', 'user'];
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role. Must be "admin" or "user"' });
     }
     
     const db = getDB();
+    
+    // Check if username already exists
+    const existingUser = await db.get('SELECT id FROM users WHERE username = ?', [username]);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+    
+    const passwordHash = await bcrypt.hash(password, 10);
+    
     const result = await db.run(
-      `INSERT INTO truck_owners (name, contact, address, is_active) 
-       VALUES (?, ?, ?, 1)`,
-      [name, contact || null, address || null]
+      `INSERT INTO users (username, password_hash, full_name, role) 
+       VALUES (?, ?, ?, ?)`,
+      [username, passwordHash, full_name || username, role || 'user']
     );
     
     res.json({ 
-      message: 'Truck owner created successfully',
-      id: result.lastID 
+      message: 'User created successfully',
+      id: result.lastID,
+      username,
+      full_name: full_name || username,
+      role: role || 'user'
     });
   } catch (error) {
-    console.error('Error creating truck owner:', error);
-    res.status(500).json({ error: 'Failed to create truck owner' });
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Update user
+router.put('/users/:id', checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { full_name, role, password, is_active } = req.body;
+    
+    const db = getDB();
+    
+    // Check if user exists
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Prevent deactivating the last admin
+    if (is_active === 0 && user.role === 'admin') {
+      const adminCount = await db.get('SELECT COUNT(*) as count FROM users WHERE role = ? AND is_active = 1', ['admin']);
+      if (adminCount.count <= 1) {
+        return res.status(400).json({ error: 'Cannot deactivate the last admin user' });
+      }
+    }
+    
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    
+    if (full_name !== undefined) {
+      updates.push('full_name = ?');
+      values.push(full_name);
+    }
+    if (role !== undefined) {
+      updates.push('role = ?');
+      values.push(role);
+    }
+    if (password !== undefined && password.length >= 6) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      updates.push('password_hash = ?');
+      values.push(passwordHash);
+    }
+    if (is_active !== undefined) {
+      updates.push('is_active = ?');
+      values.push(is_active);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No valid updates provided' });
+    }
+    
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+    
+    await db.run(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Delete user (soft delete)
+router.delete('/users/:id', checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const db = getDB();
+    
+    // Check if user exists
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Prevent deleting the last admin
+    if (user.role === 'admin') {
+      const adminCount = await db.get('SELECT COUNT(*) as count FROM users WHERE role = ? AND is_active = 1', ['admin']);
+      if (adminCount.count <= 1) {
+        return res.status(400).json({ error: 'Cannot delete the last admin user' });
+      }
+    }
+    
+    // Soft delete by setting is_active to 0
+    await db.run('UPDATE users SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 

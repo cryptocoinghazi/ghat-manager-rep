@@ -14,7 +14,8 @@ import {
   FiTrendingDown,
   FiRefreshCw,
   FiLogOut,
-  FiUser
+  FiUser,
+  FiUsers
 } from 'react-icons/fi';
 import { FaChartLine, FaCalendar } from 'react-icons/fa'; 
 import { GiTruck } from 'react-icons/gi';
@@ -193,12 +194,15 @@ const Layout = ({ user, onLogout }) => {
     return () => window.removeEventListener('receiptUpdated', handleReceiptUpdate);
   }, []);
 
-  const navigation = [
-    { name: 'Quick Receipt', href: '/receipt', icon: FiFileText, color: 'text-blue-600' },
-    { name: 'Daily Register', href: '/register', icon: FiDatabase, color: 'text-green-600' },
-    { name: 'Reports', href: '/reports', icon: FaChartLine, color: 'text-purple-600' },
-    { name: 'Settings', href: '/settings', icon: FiSettings, color: 'text-gray-600' },
+  const allNavigation = [
+    { name: 'Quick Receipt', href: '/receipt', icon: FiFileText, color: 'text-blue-600', roles: ['admin', 'user'] },
+    { name: 'Daily Register', href: '/register', icon: FiDatabase, color: 'text-green-600', roles: ['admin', 'user'] },
+    { name: 'Reports', href: '/reports', icon: FaChartLine, color: 'text-purple-600', roles: ['admin'] },
+    { name: 'User Management', href: '/users', icon: FiUsers, color: 'text-indigo-600', roles: ['admin'] },
+    { name: 'Settings', href: '/settings', icon: FiSettings, color: 'text-gray-600', roles: ['admin'] },
   ];
+
+  const navigation = allNavigation.filter(item => item.roles.includes(user?.role || 'user'));
 
   const statsData = [
     { 

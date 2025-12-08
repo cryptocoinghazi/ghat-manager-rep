@@ -8,6 +8,14 @@ import DailyRegister from './components/DailyRegister';
 import Settings from './components/Settings';
 import Reports from './components/Reports';
 import Login from './components/Login';
+import UserManagement from './components/UserManagement';
+
+const AdminRoute = ({ user, children }) => {
+  if (user?.role !== 'admin') {
+    return <Navigate to="/receipt" replace />;
+  }
+  return children;
+};
 
 axios.defaults.baseURL = import.meta.env.PROD 
   ? window.location.origin 
@@ -138,13 +146,24 @@ function App() {
               />
             } />
             <Route path="register" element={<DailyRegister />} />
-            <Route path="reports" element={<Reports />} />
+            <Route path="reports" element={
+              <AdminRoute user={user}>
+                <Reports />
+              </AdminRoute>
+            } />
             <Route path="settings" element={
-              <Settings 
-                settings={settings}
-                fetchSettings={fetchSettings}
-                user={user}
-              />
+              <AdminRoute user={user}>
+                <Settings 
+                  settings={settings}
+                  fetchSettings={fetchSettings}
+                  user={user}
+                />
+              </AdminRoute>
+            } />
+            <Route path="users" element={
+              <AdminRoute user={user}>
+                <UserManagement />
+              </AdminRoute>
             } />
           </Route>
         </Routes>
