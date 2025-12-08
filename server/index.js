@@ -21,12 +21,32 @@ app.use(helmet({
 }));
 app.use(compression());
 app.use(morgan('dev'));
+const allowedOrigins = [
+  'http://localhost:5000',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  process.env.RAILWAY_STATIC_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://ghat-manager.up.railway.app'] 
-    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5000'],
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || 
+        origin.endsWith('.railway.app') ||
+        process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,7 +72,24 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    railway: !!process.env.RAILWAY_ENVIRONMENT
+  });
+});
+
+// Admin info endpoint (for debugging)
+app.get('/api/admin/info', (req, res) => {
+  res.json({
+    app: 'Ghat Manager',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV,
+    database: 'SQLite',
+    railway: {
+      environment: process.env.RAILWAY_ENVIRONMENT,
+      serviceId: process.env.RAILWAY_SERVICE_ID,
+      projectId: process.env.RAILWAY_PROJECT_ID
+    }
   });
 });
 
@@ -95,8 +132,26 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 API Base URL: http://localhost:${PORT}/api`);
+  console.log(`🌐 Railway: ${process.env.RAILWAY_ENVIRONMENT || 'Not running on Railway'}`);
+  console.log(`🎯 API Base: http://localhost:${PORT}/api`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });

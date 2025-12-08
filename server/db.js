@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcrypt';
 
@@ -11,8 +12,18 @@ let db = null;
 
 export async function initializeDatabase() {
   try {
+    const dbDir = path.join(__dirname, 'database');
+    
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+      console.log('📁 Created database directory');
+    }
+    
+    const dbPath = process.env.DATABASE_URL || path.join(dbDir, 'ghatmanager.db');
+    console.log('🔗 Database path:', dbPath);
+    
     db = await open({
-      filename: path.join(__dirname, 'database', 'ghatmanager.db'),
+      filename: dbPath,
       driver: sqlite3.Database
     });
 
