@@ -1,0 +1,374 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: ChatGPT <bot@example.com>
+Date: Thu, 12 Dec 2025 00:00:00 +0000
+Subject: [PATCH] Add Authentication, User Model, JWT, Protected Routes
+
+---
+ server/auth/authController.js | 67 +++++++++++++++++++++++++++++++
+ server/auth/authMiddleware.js | 55 +++++++++++++++++++++++++
+ server/auth/authRoutes.js     | 15 +++++++
+ server/models/user.js         | 53 ++++++++++++++++++++++++
+ server/db.js                  | 20 ++++++++++
+ server/index.js               | 18 +++++++--
+ client/src/auth/Login.jsx     | 69 +++++++++++++++++++++++++++++++
+ client/src/auth/authService.js| 52 ++++++++++++++++++++++++
+ client/src/protected/ProtectedRoute.jsx | 23 ++++++++++
+ client/src/App.jsx            | 85 ++++++++++++++++++++++++++++++++++-
+ 10 files changed, 450 insertions(+), 7 deletions(-)
+
+diff --git a/server/auth/authController.js b/server/auth/authController.js
+new file mode 100644
+index 0000000..aaaaaaaa
+--- /dev/null
++++ b/server/auth/authController.js
+@@
++import bcrypt from "bcrypt";
++import jwt from "jsonwebtoken";
++import dotenv from "dotenv";
++import { findUserByUsername } from "../models/user.js";
++
++dotenv.config();
++const SECRET = process.env.JWT_SECRET || "SUPER_SECRET_TOKEN";
++
++export async function login(req, res) {
++  try {
++    const { username, password } = req.body;
++
++    if (!username || !password) {
++      return res.status(400).json({ message: "username & password required" });
++    }
++
++    const user = await findUserByUsername(username);
++    if (!user) {
++      return res.status(401).json({ message: "Invalid credentials" });
++    }
++
++    const match = await bcrypt.compare(password, user.password);
++    if (!match) {
++      return res.status(401).json({ message: "Invalid credentials" });
++    }
++
++    const token = jwt.sign(
++      { id: user.id, role: user.role },
++      SECRET,
++      { expiresIn: "1d" }
++    );
++
++    return res.json({ token, role: user.role });
++  } catch (err) {
++    console.error("LOGIN ERROR:", err);
++    return res.status(500).json({ message: "Server error" });
++  }
++}
+
+diff --git a/server/auth/authMiddleware.js b/server/auth/authMiddleware.js
+new file mode 100644
+index 0000000..bbbbbbbb
+--- /dev/null
++++ b/server/auth/authMiddleware.js
+@@
++import jwt from "jsonwebtoken";
++import dotenv from "dotenv";
++
++dotenv.config();
++const SECRET = process.env.JWT_SECRET || "SUPER_SECRET_TOKEN";
++
++export function verifyToken(req, res, next) {
++  const header = req.headers.authorization;
++
++  if (!header) {
++    return res.status(401).json({ message: "No token provided" });
++  }
++
++  const token = header.split(" ")[1];
++
++  try {
++    const decoded = jwt.verify(token, SECRET);
++    req.user = decoded;
++    next();
++  } catch (err) {
++    return res.status(401).json({ message: "Invalid token" });
++  }
++}
++
++export function requireRole(role) {
++  return (req, res, next) => {
++    if (!req.user || req.user.role !== role) {
++      return res.status(403).json({ message: "Forbidden" });
++    }
++    next();
++  };
++}
+
+diff --git a/server/auth/authRoutes.js b/server/auth/authRoutes.js
+new file mode 100644
+index 0000000..cccccccc
+--- /dev/null
++++ b/server/auth/authRoutes.js
+@@
++import express from "express";
++import { login } from "./authController.js";
++
++const router = express.Router();
++
++router.post("/login", login);
++
++export default router;
+
+diff --git a/server/models/user.js b/server/models/user.js
+new file mode 100644
+index 0000000..dddddddd
+--- /dev/null
++++ b/server/models/user.js
+@@
++import { getDB } from "../db.js";
++
++export async function ensureUserTable() {
++  const db = getDB();
++  await db.exec(`
++    CREATE TABLE IF NOT EXISTS users (
++      id INTEGER PRIMARY KEY AUTOINCREMENT,
++      username TEXT UNIQUE NOT NULL,
++      password TEXT NOT NULL,
++      role TEXT NOT NULL DEFAULT 'user'
++    );
++  `);
++}
++
++export async function findUserByUsername(username) {
++  const db = getDB();
++  return db.get("SELECT * FROM users WHERE username = ?", [username]);
++}
++
++export async function createUser({ username, password, role }) {
++  const db = getDB();
++  const result = await db.run(
++    "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
++    [username, password, role]
++  );
++  return result.lastID;
++}
+
+diff --git a/server/db.js b/server/db.js
+index e1e1e1e..f2f2f2f 100644
+--- a/server/db.js
++++ b/server/db.js
+@@
+ import { open } from "sqlite";
+ import sqlite3 from "sqlite3";
++import bcrypt from "bcrypt";
++import { ensureUserTable, findUserByUsername, createUser } from "./models/user.js";
+ 
+ export async function initializeDatabase() {
+   const db = await open({
+     filename: "./database/ghatmanager.db",
+     driver: sqlite3.Database,
+   });
+@@
++  await ensureUserTable();
++
++  const exists = await findUserByUsername("admin");
++  if (!exists) {
++    const password = await bcrypt.hash("admin123", 10);
++    await createUser({ username: "admin", password, role: "admin" });
++    console.log("✓ Default admin created (admin/admin123)");
++  }
+ 
+   return db;
+ }
+
+diff --git a/server/index.js b/server/index.js
+index 0101010..2222222 100644
+--- a/server/index.js
++++ b/server/index.js
+@@
+ import receiptsRouter from "./routes/receipts.js";
+ import reportsRouter from "./routes/reports.js";
+ import settingsRouter from "./routes/settings.js";
++import authRoutes from "./auth/authRoutes.js";
++import { verifyToken, requireRole } from "./auth/authMiddleware.js";
+ 
+ app.use(express.json());
+ 
+ app.use("/api/auth", authRoutes);
+-app.use("/api/receipts", receiptsRouter);
+-app.use("/api/reports", reportsRouter);
+-app.use("/api/settings", settingsRouter);
++app.use("/api/receipts", verifyToken, receiptsRouter);
++app.use("/api/reports", verifyToken, reportsRouter);
++app.use("/api/settings", verifyToken, requireRole("admin"), settingsRouter);
+
+diff --git a/client/src/auth/Login.jsx b/client/src/auth/Login.jsx
+new file mode 100644
+index 0000000..eeeeeeee
+--- /dev/null
++++ b/client/src/auth/Login.jsx
+@@
++import React, { useState } from "react";
++import { login } from "./authService.js";
++
++export default function Login() {
++  const [username, setUsername] = useState("");
++  const [password, setPassword] = useState("");
++  const [error, setError] = useState("");
++
++  async function submit(e) {
++    e.preventDefault();
++    const res = await login(username, password);
++    if (!res.ok) {
++      setError("Invalid credentials");
++      return;
++    }
++    window.location.href = "/";
++  }
++
++  return (
++    <div className="flex justify-center items-center h-screen bg-gray-200">
++      <form onSubmit={submit} className="bg-white p-6 rounded shadow-lg w-80">
++        <h2 className="text-xl font-bold mb-4">Login</h2>
++        {error && <p className="text-red-500">{error}</p>}
++        <input
++          className="border p-2 w-full mb-3"
++          placeholder="Username"
++          onChange={(e) => setUsername(e.target.value)}
++        />
++        <input
++          className="border p-2 w-full mb-3"
++          type="password"
++          placeholder="Password"
++          onChange={(e) => setPassword(e.target.value)}
++        />
++        <button className="bg-blue-600 text-white w-full p-2 rounded">
++          Login
++        </button>
++      </form>
++    </div>
++  );
++}
+
+diff --git a/client/src/auth/authService.js b/client/src/auth/authService.js
+new file mode 100644
+index 0000000..ffffffff
+--- /dev/null
++++ b/client/src/auth/authService.js
+@@
++import axios from "axios";
++
++export async function login(username, password) {
++  try {
++    const res = await axios.post(`/api/auth/login`, { username, password });
++
++    if (res.data.token) {
++      localStorage.setItem("token", res.data.token);
++      localStorage.setItem("role", res.data.role);
++      axios.defaults.headers.common["Authorization"] =
++        "Bearer " + res.data.token;
++      return { ok: true };
++    }
++    return { ok: false };
++  } catch {
++    return { ok: false };
++  }
++}
++
++export function logout() {
++  localStorage.clear();
++  window.location.href = "/login";
++}
++
++export function loadToken() {
++  const token = localStorage.getItem("token");
++  if (token) {
++    axios.defaults.headers.common["Authorization"] = "Bearer " + token;
++  }
++}
+
+diff --git a/client/src/protected/ProtectedRoute.jsx b/client/src/protected/ProtectedRoute.jsx
+new file mode 100644
+index 0000000..abababab
+--- /dev/null
++++ b/client/src/protected/ProtectedRoute.jsx
+@@
++import React from "react";
++import { Navigate } from "react-router-dom";
++
++export default function ProtectedRoute({ children, roles }) {
++  const token = localStorage.getItem("token");
++  const role = localStorage.getItem("role");
++
++  if (!token) return <Navigate to="/login" replace />;
++
++  if (roles && !roles.includes(role)) {
++    return <div className="p-6 text-red-600">Access Denied</div>;
++  }
++
++  return children;
++}
+
+diff --git a/client/src/App.jsx b/client/src/App.jsx
+index acacaca..cdcdcdc 100644
+--- a/client/src/App.jsx
++++ b/client/src/App.jsx
+@@
+-import { BrowserRouter, Routes, Route } from "react-router-dom";
++import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
++import Login from "./auth/Login.jsx";
++import ProtectedRoute from "./protected/ProtectedRoute.jsx";
++import { loadToken } from "./auth/authService.js";
+ 
++loadToken();
+ 
+ import Layout from "./components/Layout.jsx";
+ import ReceiptForm from "./components/ReceiptForm.jsx";
+ import DailyRegister from "./components/DailyRegister.jsx";
+ import Reports from "./components/Reports.jsx";
+@@
+     <BrowserRouter>
+       <Routes>
++        <Route path="/login" element={<Login />} />
++
++        <Route
++          path="/"
++          element={
++            <ProtectedRoute roles={["admin", "user"]}>
++              <Layout><ReceiptForm /></Layout>
++            </ProtectedRoute>
++          }
++        />
++
++        <Route
++          path="/daily"
++          element={
++            <ProtectedRoute roles={["admin", "user"]}>
++              <Layout><DailyRegister /></Layout>
++            </ProtectedRoute>
++          }
++        />
++
++        <Route
++          path="/reports"
++          element={
++            <ProtectedRoute roles={["admin"]}>
++              <Layout><Reports /></Layout>
++            </ProtectedRoute>
++          }
++        />
++
++        <Route
++          path="/settings"
++          element={
++            <ProtectedRoute roles={["admin"]}>
++              <Layout><Settings /></Layout>
++            </ProtectedRoute>
++          }
++        />
++
++        <Route path="*" element={<Navigate to="/" replace />} />
+       </Routes>
+     </BrowserRouter>
+   );
+ }
+ 
+ export default App;
+--
+2.34.1
