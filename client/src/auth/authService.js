@@ -1,8 +1,13 @@
 import axios from 'axios';
 
 const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')) {
-    return '/api';
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://ghat-manager-rep.onrender.com/api';
+    }
+    if (window.location.hostname.includes('railway.app')) {
+      return '/api';
+    }
   }
   if (import.meta.env.PROD) {
     return window.location.origin + '/api';
@@ -13,10 +18,11 @@ const getApiBaseUrl = () => {
 const API_BASE_URL = getApiBaseUrl();
 
 console.log('API Base URL:', API_BASE_URL);
+console.log('Current URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -39,10 +45,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('Response error:', {
+      message: error.message,
+      url: error.config?.url,
+      status: error.response?.status
+    });
+    
     if (error.response?.status === 401) {
-      console.log('Session expired, logging out...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('role');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -63,6 +75,8 @@ export const authService = {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('role', response.data.user.role);
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         
         console.log('Login successful');
         return {
@@ -94,6 +108,7 @@ export const authService = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('role');
+    delete api.defaults.headers.common['Authorization'];
     window.location.href = '/login';
   },
 
@@ -129,4 +144,5 @@ if (token) {
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
+export { api };
 export default authService;

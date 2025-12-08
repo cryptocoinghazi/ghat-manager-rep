@@ -25,8 +25,10 @@ const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
   'http://localhost:5173',
+  'https://ghat-manager-rep.onrender.com',
   process.env.FRONTEND_URL,
-  process.env.RAILWAY_STATIC_URL
+  process.env.RAILWAY_STATIC_URL,
+  process.env.RENDER_EXTERNAL_URL
 ].filter(Boolean);
 
 app.use(cors({
@@ -35,6 +37,7 @@ app.use(cors({
     
     if (allowedOrigins.includes(origin) || 
         origin.endsWith('.railway.app') ||
+        origin.endsWith('.onrender.com') ||
         process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
@@ -74,7 +77,22 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
-    railway: !!process.env.RAILWAY_ENVIRONMENT
+    railway: !!process.env.RAILWAY_ENVIRONMENT,
+    render: !!process.env.RENDER
+  });
+});
+
+// Test endpoint for debugging
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: 'Backend API is working!',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    render: !!process.env.RENDER,
+    railway: !!process.env.RAILWAY_ENVIRONMENT,
+    service: process.env.RENDER_SERVICE_NAME || process.env.RAILWAY_SERVICE_ID || 'Local',
+    database: 'SQLite',
+    cors: 'Enabled'
   });
 });
 
@@ -89,6 +107,11 @@ app.get('/api/admin/info', (req, res) => {
       environment: process.env.RAILWAY_ENVIRONMENT,
       serviceId: process.env.RAILWAY_SERVICE_ID,
       projectId: process.env.RAILWAY_PROJECT_ID
+    },
+    render: {
+      isRender: !!process.env.RENDER,
+      serviceName: process.env.RENDER_SERVICE_NAME,
+      externalUrl: process.env.RENDER_EXTERNAL_URL
     }
   });
 });
@@ -135,8 +158,11 @@ app.use((req, res) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Railway: ${process.env.RAILWAY_ENVIRONMENT || 'Not running on Railway'}`);
+  console.log(`🌐 Railway: ${process.env.RAILWAY_ENVIRONMENT || 'Not on Railway'}`);
+  console.log(`🌍 Render: ${process.env.RENDER_SERVICE_NAME || 'Not on Render'}`);
   console.log(`🎯 API Base: http://localhost:${PORT}/api`);
+  console.log(`🔗 External URL: ${process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || 'Not configured'}`);
+  console.log(`👤 Default Users: admin/admin123, user/user123`);
 });
 
 // Graceful shutdown
