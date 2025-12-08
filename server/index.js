@@ -25,7 +25,10 @@ const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://ghat-manager-rep.onrender.com',
+    'https://ghat-manager-rep.onrender.com',    // Your backend
+  'https://ghat-manager-rep-1.onrender.com',  // Your frontend - ADD THIS
+  'https://*.onrender.com',                   // Allow all Render subdomains
+  process.env.FRONTEND_URL
   process.env.FRONTEND_URL,
   process.env.RAILWAY_STATIC_URL,
   process.env.RENDER_EXTERNAL_URL
