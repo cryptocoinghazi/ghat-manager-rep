@@ -19,7 +19,7 @@ export async function initializeDatabase() {
       console.log('📁 Created database directory');
     }
     
-    const dbPath = process.env.DATABASE_URL || path.join(dbDir, 'ghatmanager.db');
+    const dbPath = path.join(dbDir, 'ghatmanager.db');
     console.log('🔗 Database path:', dbPath);
     
     db = await open({
