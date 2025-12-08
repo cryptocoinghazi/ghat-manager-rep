@@ -4,10 +4,11 @@
 Ghat Manager is a web-based billing and receipt management system for sand mining businesses. It helps manage truck receipts, track payments, generate reports, and maintain records of truck owners and transactions.
 
 ## Current State
-The application has been successfully set up in the Replit environment with:
+The application is configured for local development AND cloud deployment:
 - **Frontend**: React + Vite on port 5000
 - **Backend**: Express.js server on port 3000
-- **Database**: PostgreSQL (Replit-managed)
+- **Database**: SQLite (local file-based)
+- **Cloud Deployment**: Ready for Railway AND Render
 - **Status**: Fully operational
 
 ## Project Structure
@@ -34,7 +35,10 @@ The application has been successfully set up in the Replit environment with:
 │   ├── server.js           # API endpoints with auth protection
 │   └── package.json
 ├── package.json            # Root package.json with scripts
-└── railway.json            # Original deployment config
+├── railway.json            # Railway deployment config
+├── nixpacks.toml           # Railway build configuration
+├── render.yaml             # Render deployment config
+└── DEPLOYMENT.md           # Deployment guide
 
 ```
 
@@ -62,6 +66,12 @@ The application has been successfully set up in the Replit environment with:
    - User creation with password hashing using bcrypt
    - User Management page at `/users` route (admin only)
    - API endpoints for user CRUD operations at `/api/settings/users`
+11. **Cloud Deployment Configuration**
+   - Railway deployment with railway.json and nixpacks.toml
+   - Render deployment with render.yaml
+   - Smart API URL detection for different environments
+   - CORS configured for Railway and Render domains
+   - Production-ready with graceful shutdown handlers
 
 ## Features
 - **Authentication**: JWT-based login with role-based access control (admin/user roles)
