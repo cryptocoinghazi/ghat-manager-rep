@@ -1,0 +1,1529 @@
+// Replit Agent Script for Ghat Manager Railway Deployment
+// Copy this entire script and paste it into Replit AI agent
+
+const fs = require('fs');
+const path = require('path');
+
+console.log('🚀 Starting Ghat Manager Railway Deployment Setup...\n');
+
+// Create all necessary files and directories
+const filesToCreate = {
+  // Railway Configuration
+  'railway.json': `{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd server && npm install",
+    "startCommand": "cd server && npm start",
+    "zeroConfig": false
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 60
+  }
+}`,
+
+  'nixpacks.toml': `[phases.setup]
+cmds = [
+  "cd server && npm ci --only=production",
+  "cd client && npm ci --only=production"
+]
+
+[phases.build]
+cmds = [
+  "cd client && npm run build"
+]
+
+[phases.install]
+cmds = [
+  "mkdir -p database"
+]
+
+[start]
+cmd = "cd server && node index.js"`,
+
+  // Server Configuration
+  'server/.env': `JWT_SECRET=your_super_secret_jwt_key_2024_change_in_production
+PORT=3000
+NODE_ENV=production
+FRONTEND_URL=https://your-app-name.railway.app`,
+
+  // Updated server/db.js
+  'server/db.js': `import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import bcrypt from 'bcrypt';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db = null;
+
+export async function initializeDatabase() {
+  try {
+    // Railway uses ephemeral storage, so we need to ensure database directory exists
+    const dbDir = path.join(__dirname, 'database');
+    
+    // Create database directory if it doesn't exist
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+      console.log('📁 Created database directory');
+    }
+    
+    const dbPath = process.env.DATABASE_URL || path.join(dbDir, 'ghatmanager.db');
+    
+    console.log('🔗 Database path:', dbPath);
+    
+    db = await open({
+      filename: dbPath,
+      driver: sqlite3.Database
+    });
+
+    console.log('✅ Database connection established');
+
+    // Create users table
+    await db.exec(\`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    \`);
+
+    // Create receipts table
+    await db.exec(\`
+      CREATE TABLE IF NOT EXISTS receipts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        receipt_number TEXT UNIQUE,
+        customer_name TEXT NOT NULL,
+        amount REAL NOT NULL,
+        payment_method TEXT,
+        description TEXT,
+        date DATE DEFAULT CURRENT_DATE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    \`);
+
+    console.log('✅ Tables checked/created');
+
+    // Create default admin user
+    const adminExists = await db.get("SELECT * FROM users WHERE username = 'admin'");
+    if (!adminExists) {
+      try {
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        const result = await db.run(
+          "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
+          ['admin', hashedPassword, 'admin']
+        );
+        console.log('✅ Admin user created');
+        console.log('   👤 Username: admin');
+        console.log('   🔑 Password: admin123');
+        console.log('   👑 Role: admin');
+      } catch (err) {
+        console.error('❌ Error creating admin:', err.message);
+      }
+    }
+
+    // Create default regular user
+    const userExists = await db.get("SELECT * FROM users WHERE username = 'user'");
+    if (!userExists) {
+      try {
+        const hashedPassword = await bcrypt.hash('user123', 10);
+        const result = await db.run(
+          "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
+          ['user', hashedPassword, 'user']
+        );
+        console.log('✅ Regular user created');
+        console.log('   👤 Username: user');
+        console.log('   🔑 Password: user123');
+        console.log('   👤 Role: user');
+      } catch (err) {
+        console.error('❌ Error creating user:', err.message);
+      }
+    }
+
+    // List all users for verification
+    const users = await db.all("SELECT id, username, role FROM users");
+    console.log('📋 Total users:', users.length);
+    users.forEach(user => {
+      console.log(\`   👤 \${user.username} (\${user.role})\`);
+    });
+
+    return db;
+  } catch (error) {
+    console.error('🔥 Database initialization error:', error);
+    
+    // Fallback: Try in-memory database
+    try {
+      console.log('🔄 Attempting in-memory database fallback...');
+      db = await open({
+        filename: ':memory:',
+        driver: sqlite3.Database
+      });
+      
+      // Create tables in memory
+      await db.exec(\`
+        CREATE TABLE users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'user'
+        )
+      \`);
+      
+      await db.exec(\`
+        CREATE TABLE receipts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          receipt_number TEXT UNIQUE,
+          customer_name TEXT NOT NULL,
+          amount REAL NOT NULL,
+          payment_method TEXT,
+          description TEXT,
+          date DATE DEFAULT CURRENT_DATE
+        )
+      \`);
+      
+      // Create default users
+      const hashedAdmin = await bcrypt.hash('admin123', 10);
+      const hashedUser = await bcrypt.hash('user123', 10);
+      
+      await db.run(
+        "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?), (?, ?, ?)",
+        ['admin', hashedAdmin, 'admin', 'user', hashedUser, 'user']
+      );
+      
+      console.log('⚠️ Using in-memory database (data will be lost on restart)');
+      return db;
+    } catch (fallbackError) {
+      console.error('🔥 Fallback database failed:', fallbackError);
+      throw error;
+    }
+  }
+}
+
+export function getDB() {
+  if (!db) {
+    throw new Error('Database not initialized. Call initializeDatabase first.');
+  }
+  return db;
+}`,
+
+  // Updated server/index.js
+  'server/index.js': `import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { initializeDatabase } from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Import routes
+import authRoutes from './routes/auth.js';
+import receiptRoutes from './routes/receipts.js';
+import settingsRoutes from './routes/settings.js';
+import reportsRoutes from './routes/reports.js';
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware configuration for production
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(compression());
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:5000',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+  process.env.RAILWAY_STATIC_URL,
+  'https://*.railway.app'
+].filter(Boolean);
+
+console.log('🌐 Allowed origins:', allowedOrigins);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || 
+        allowedOrigins.some(allowed => origin.endsWith(allowed.replace('*.', ''))) ||
+        process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+app.options('*', cors()); // Enable pre-flight for all routes
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Database initialization
+initializeDatabase()
+  .then(() => console.log('✅ Database initialized successfully'))
+  .catch(err => {
+    console.error('❌ Database initialization failed:', err);
+    process.exit(1);
+  });
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/receipts', receiptRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/reports', reportsRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    railway: !!process.env.RAILWAY_ENVIRONMENT,
+    memory: process.memoryUsage()
+  });
+});
+
+// Admin info endpoint (for debugging)
+app.get('/api/admin/info', (req, res) => {
+  res.json({
+    app: 'Ghat Manager',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV,
+    database: 'SQLite',
+    railway: {
+      environment: process.env.RAILWAY_ENVIRONMENT,
+      serviceId: process.env.RAILWAY_SERVICE_ID,
+      projectId: process.env.RAILWAY_PROJECT_ID
+    }
+  });
+});
+
+// Serve static files from React build in production
+if (process.env.NODE_ENV === 'production') {
+  const clientPath = path.join(__dirname, '../client/dist');
+  console.log('📁 Serving static files from:', clientPath);
+  
+  app.use(express.static(clientPath, {
+    maxAge: '1y',
+    etag: true
+  }));
+  
+  // Handle SPA routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientPath, 'index.html'));
+  });
+} else {
+  // Development route
+  app.get('/', (req, res) => {
+    res.json({ 
+      message: 'Ghat Manager API Server',
+      version: '1.0.0',
+      environment: 'development',
+      endpoints: [
+        '/api/auth/login',
+        '/api/auth/register',
+        '/api/receipts',
+        '/api/settings',
+        '/api/reports',
+        '/api/health',
+        '/api/admin/info'
+      ],
+      docs: 'Add /api before all endpoints'
+    });
+  });
+}
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Server Error:', err);
+  res.status(err.status || 500).json({ 
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Not Found',
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Start server
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(\`
+🚀 Server running on port \${PORT}
+📁 Environment: \${process.env.NODE_ENV || 'development'}
+🌐 Railway Environment: \${process.env.RAILWAY_ENVIRONMENT || 'Not running on Railway'}
+🔗 Local URL: http://localhost:\${PORT}
+🔗 Network URL: http://0.0.0.0:\${PORT}
+🎯 API Base: http://localhost:\${PORT}/api
+  \`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});`,
+
+  // Authentication files
+  'server/routes/auth.js': `import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { getDB } from '../db.js';
+
+const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
+
+// ✅ LOGIN ROUTE
+router.post('/login', async (req, res) => {
+  console.log('🔐 Login attempt:', { 
+    username: req.body.username,
+    ip: req.ip,
+    time: new Date().toISOString()
+  });
+  
+  try {
+    const { username, password } = req.body;
+    
+    // Validate input
+    if (!username || !password) {
+      console.log('❌ Missing credentials');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
+    }
+
+    const db = getDB();
+    
+    // Find user
+    const user = await db.get(
+      'SELECT * FROM users WHERE username = ?', 
+      [username]
+    );
+    
+    if (!user) {
+      console.log('❌ User not found:', username);
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+    }
+
+    console.log('✅ User found:', { 
+      id: user.id, 
+      username: user.username, 
+      role: user.role 
+    });
+
+    // Compare password
+    const validPassword = await bcrypt.compare(password, user.password);
+    
+    if (!validPassword) {
+      console.log('❌ Invalid password for user:', username);
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    console.log('✅ Login successful for:', user.username);
+    
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('🔥 Login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during login' 
+    });
+  }
+});
+
+// ✅ VERIFY TOKEN ROUTE
+router.post('/verify', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        valid: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    const db = getDB();
+    const user = await db.get(
+      'SELECT id, username, role FROM users WHERE id = ?', 
+      [decoded.id]
+    );
+    
+    if (!user) {
+      return res.status(401).json({ 
+        valid: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({ 
+      valid: true, 
+      user 
+    });
+  } catch (error) {
+    console.error('Token verification error:', error.message);
+    res.status(401).json({ 
+      valid: false, 
+      message: 'Invalid or expired token' 
+    });
+  }
+});
+
+// ✅ REGISTER ROUTE
+router.post('/register', async (req, res) => {
+  try {
+    const { username, password, role = 'user' } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
+    }
+
+    const db = getDB();
+    
+    // Check if user exists
+    const existingUser = await db.get(
+      'SELECT * FROM users WHERE username = ?', 
+      [username]
+    );
+    
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User already exists' 
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Insert new user
+    const result = await db.run(
+      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+      [username, hashedPassword, role]
+    );
+
+    console.log('✅ New user registered:', { id: result.lastID, username, role });
+    
+    // Generate token for auto-login
+    const token = jwt.sign(
+      { id: result.lastID, username, role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: result.lastID,
+        username,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during registration' 
+    });
+  }
+});
+
+export default router;`,
+
+  'server/auth/authMiddleware.js': `import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
+
+// Middleware to verify JWT token
+export const authenticate = (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Access denied. No token provided.' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Middleware to check if user has specific role
+export const authorize = (role) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (req.user.role !== role) {
+      return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
+    }
+
+    next();
+  };
+};`,
+
+  // Client files
+  'client/src/auth/authService.js': `import axios from 'axios';
+
+// Determine API URL based on environment
+const getApiBaseUrl = () => {
+  // In production (Railway), use relative URL
+  if (window.location.hostname.includes('railway.app')) {
+    return '/api';
+  }
+  // In development, use localhost
+  return 'http://localhost:3000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+console.log('🔗 API Base URL:', API_BASE_URL);
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = \`Bearer \${token}\`;
+    }
+    return config;
+  },
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.log('Session expired, logging out...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth functions
+export const authService = {
+  // Login
+  async login(username, password) {
+    try {
+      console.log('🔐 Attempting login to:', API_BASE_URL);
+      
+      const response = await api.post('/auth/login', { 
+        username: username.trim(),
+        password 
+      });
+      
+      if (response.data.success && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('role', response.data.user.role);
+        
+        console.log('✅ Login successful');
+        return {
+          success: true,
+          user: response.data.user
+        };
+      }
+      return { 
+        success: false, 
+        message: response.data.message || 'Login failed' 
+      };
+    } catch (error) {
+      console.error('❌ Login error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 
+                error.message || 
+                'Connection error. Please check if server is running.' 
+      };
+    }
+  },
+
+  // Logout
+  logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
+    window.location.href = '/login';
+  },
+
+  // Get current user
+  getCurrentUser() {
+    const userStr = localStorage.getItem('user');
+    try {
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // Get token
+  getToken() {
+    return localStorage.getItem('token');
+  },
+
+  // Check if user is authenticated
+  isAuthenticated() {
+    return !!this.getToken();
+  },
+
+  // Check if user is admin
+  isAdmin() {
+    const user = this.getCurrentUser();
+    return user?.role === 'admin';
+  },
+
+  // Get API instance
+  getAPI() {
+    return api;
+  }
+};
+
+// Initialize auth header on load
+const token = authService.getToken();
+if (token) {
+  api.defaults.headers.common['Authorization'] = \`Bearer \${token}\`;
+}
+
+export default authService;`,
+
+  'client/src/auth/Login.jsx': `import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from './authService';
+
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await authService.login(username, password);
+      
+      if (result.success) {
+        navigate('/');
+      } else {
+        setError(result.message || 'Login failed');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-md w-full mx-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800">Ghat Manager</h2>
+            <p className="text-gray-600 mt-2">Sign in to your account</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                placeholder="Enter username"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                placeholder="Enter password"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800 font-medium">Demo Credentials:</p>
+              <div className="mt-1 text-xs text-blue-700 space-y-1">
+                <p><span className="font-semibold">Admin:</span> username = "admin", password = "admin123"</p>
+                <p><span className="font-semibold">User:</span> username = "user", password = "user123"</p>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </span>
+              ) : 'Sign In'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;`,
+
+  'client/src/protected/ProtectedRoute.jsx': `import React, { useState, useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { authService } from '../auth/authService';
+
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const [isValidating, setIsValidating] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const validateAuth = async () => {
+      const authenticated = authService.isAuthenticated();
+      
+      if (!authenticated) {
+        setIsValidating(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+      
+      // Check role permissions
+      const userRole = localStorage.getItem('role');
+      if (allowedRoles.length === 0 || allowedRoles.includes(userRole)) {
+        setHasPermission(true);
+      } else {
+        setHasPermission(false);
+      }
+      
+      setIsValidating(false);
+    };
+
+    validateAuth();
+  }, [allowedRoles, location.pathname]);
+
+  if (isValidating) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verifying authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    // Redirect to login page with return url
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!hasPermission && allowedRoles.length > 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-8">You don't have permission to access this page.</p>
+          <button
+            onClick={() => window.history.back()}
+            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+};
+
+export default ProtectedRoute;`,
+
+  // Update existing files
+  'client/src/App.jsx': `import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { authService } from './auth/authService';
+
+// Components
+import Login from './auth/Login';
+import ProtectedRoute from './protected/ProtectedRoute';
+import ReceiptForm from './components/ReceiptForm';
+import DailyRegister from './components/DailyRegister';
+import Settings from './components/Settings';
+import Reports from './components/Reports';
+import Layout from './components/Layout';
+
+function App() {
+  // Check authentication on app load
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && window.location.pathname === '/login') {
+      window.location.href = '/';
+    }
+  }, []);
+
+  return (
+    <Router>
+      <Routes>
+        {/* Public route */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'user']}>
+              <>
+                <Layout />
+                <div className="container mx-auto px-4 py-8">
+                  <ReceiptForm />
+                </div>
+              </>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/daily-register"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'user']}>
+              <>
+                <Layout />
+                <div className="container mx-auto px-4 py-8">
+                  <DailyRegister />
+                </div>
+              </>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <>
+                <Layout />
+                <div className="container mx-auto px-4 py-8">
+                  <Reports />
+                </div>
+              </>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <>
+                <Layout />
+                <div className="container mx-auto px-4 py-8">
+                  <Settings />
+                </div>
+              </>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;`,
+
+  // Documentation
+  'DEPLOYMENT.md': `# 🚀 Ghat Manager - Railway Deployment Guide
+
+## Prerequisites
+- Railway account (https://railway.app)
+- GitHub repository with your code
+- Railway CLI (optional, for advanced users)
+
+## Step 1: Prepare Your Repository
+
+Make sure all changes are committed and pushed:
+
+\`\`\`bash
+git add .
+git commit -m "Add Railway deployment configuration"
+git push origin main
+\`\`\`
+
+## Step 2: Deploy on Railway
+
+### Option A: Using Railway Web Dashboard (Recommended)
+
+1. **Go to Railway.app** and sign in
+2. Click **"New Project"**
+3. Select **"Deploy from GitHub repo"**
+4. Choose your repository: \`cryptocoinghazi/ghat-manager-rep\`
+5. Railway will automatically detect the configuration and deploy
+
+### Option B: Using Railway CLI
+
+\`\`\`bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login to Railway
+railway login
+
+# Initialize project
+railway init
+
+# Link to existing project or create new
+railway link
+
+# Deploy
+railway up
+\`\`\`
+
+## Step 3: Configure Environment Variables
+
+After deployment, add these environment variables in Railway Dashboard:
+
+### Required Variables:
+1. **JWT_SECRET** - Generate a strong secret:
+   \`\`\`bash
+   openssl rand -base64 32
+   \`\`\`
+   Or use: \`your_super_secret_jwt_key_change_in_production_2024\`
+
+### Optional Variables:
+- **NODE_ENV** = "production" (recommended)
+- **PORT** = 3000 (default)
+- **FRONTEND_URL** = Your Railway URL (for CORS)
+
+## Step 4: Verify Deployment
+
+### Test Your Deployment:
+
+1. **Check health endpoint:**
+   \`\`\`
+   https://your-project-name.railway.app/api/health
+   \`\`\`
+
+2. **Test login endpoint:**
+   \`\`\`bash
+   curl -X POST https://your-project-name.railway.app/api/auth/login \\
+     -H "Content-Type: application/json" \\
+     -d '{"username":"admin","password":"admin123"}'
+   \`\`\`
+
+3. **View admin info:**
+   \`\`\`
+   https://your-project-name.railway.app/api/admin/info
+   \`\`\`
+
+## Step 5: Access Your Application
+
+1. **Default URL:** Railway will provide a URL like:
+   \`\`\`
+   https://ghat-manager-production.up.railway.app
+   \`\`\`
+
+2. **Default Credentials:**
+   - 👑 **Admin:** \`admin\` / \`admin123\`
+   - 👤 **User:** \`user\` / \`user123\`
+
+   ⚠️ **IMPORTANT:** Change these passwords immediately after first login!
+
+## Step 6: Configure Custom Domain (Optional)
+
+1. Go to your project in Railway
+2. Click **"Settings"** → **"Domains"**
+3. Add your custom domain
+4. Configure DNS as instructed
+
+## Troubleshooting
+
+### 1. Application Won't Start
+- Check logs: \`railway logs\` or in Railway dashboard
+- Verify environment variables are set
+- Ensure port 3000 is available
+
+### 2. Database Errors
+- The app will fall back to in-memory database if needed
+- For production, consider using Railway PostgreSQL add-on
+
+### 3. CORS Errors
+- Set \`FRONTEND_URL\` environment variable
+- Check allowed origins in server configuration
+
+### 4. Build Failures
+- Check Node.js version (requires >= 18)
+- Verify all dependencies are installed
+- Check build logs in Railway
+
+## Monitoring
+
+1. **Logs:** View real-time logs in Railway dashboard
+2. **Metrics:** Monitor CPU, memory, and network usage
+3. **Health Checks:** Automatic at \`/api/health\`
+
+## Security Checklist
+
+✅ **Immediate Actions:**
+1. Change default admin password
+2. Set strong JWT_SECRET
+3. Review user permissions
+
+✅ **Recommended Actions:**
+1. Enable automatic backups
+2. Set up monitoring alerts
+3. Regular dependency updates
+
+## Support
+
+For issues:
+1. Check Railway documentation: https://docs.railway.app
+2. View application logs in Railway
+3. Test API endpoints directly
+
+## Features Deployed
+
+✅ **Authentication System:**
+- JWT-based login/logout
+- Role-based access (Admin/User)
+- Protected API endpoints
+
+✅ **Production Ready:**
+- Health checks
+- CORS configuration
+- Static file serving
+- Error handling
+
+✅ **Database:**
+- SQLite with persistent storage
+- Auto-creation of default users
+- Fallback to in-memory database
+
+## Quick Commands
+
+\`\`\`bash
+# View logs
+railway logs
+
+# View environment variables
+railway vars
+
+# Redeploy
+railway up
+
+# Open in browser
+railway open
+\`\`\`
+
+## Need Help?
+
+1. Check Railway status: https://status.railway.app
+2. Railway Discord: https://discord.gg/railway
+3. Documentation: https://docs.railway.app
+
+Happy deploying! 🚀`,
+
+  // Update existing route files
+  'server/routes/receipts.js': `import express from 'express';
+import { getDB } from '../db.js';
+import { authenticate, authorize } from '../auth/authMiddleware.js';
+
+const router = express.Router();
+
+// Apply authentication to all receipt routes
+router.use(authenticate);
+
+// GET all receipts
+router.get('/', async (req, res) => {
+  try {
+    const db = getDB();
+    
+    // If user is admin, show all receipts
+    // If user is regular user, only show receipts they created
+    let query = "SELECT * FROM receipts";
+    let params = [];
+    
+    if (req.user.role !== 'admin') {
+      // In a real app, you'd have a created_by column
+      // For now, just return all receipts
+      query += " ORDER BY date DESC LIMIT 100";
+    } else {
+      query += " ORDER BY date DESC";
+    }
+    
+    const receipts = await db.all(query, params);
+    res.json(receipts);
+  } catch (error) {
+    console.error('Error fetching receipts:', error);
+    res.status(500).json({ error: 'Error fetching receipts' });
+  }
+});
+
+// POST create receipt (accessible to all authenticated users)
+router.post('/', async (req, res) => {
+  try {
+    const db = getDB();
+    const { customer_name, amount, payment_method, description, date } = req.body;
+    
+    // Generate receipt number
+    const receiptNumber = 'RCPT' + Date.now().toString().slice(-8);
+    
+    const result = await db.run(
+      \`INSERT INTO receipts 
+       (receipt_number, customer_name, amount, payment_method, description, date) 
+       VALUES (?, ?, ?, ?, ?, ?)\`,
+      [receiptNumber, customer_name, amount, payment_method, description, date || new Date().toISOString().split('T')[0]]
+    );
+    
+    res.status(201).json({
+      id: result.lastID,
+      receipt_number: receiptNumber,
+      customer_name,
+      amount,
+      payment_method,
+      description,
+      date: date || new Date().toISOString().split('T')[0],
+      created_by: req.user.username
+    });
+  } catch (error) {
+    console.error('Error creating receipt:', error);
+    res.status(500).json({ error: 'Error creating receipt' });
+  }
+});
+
+// DELETE receipt (admin only)
+router.delete('/:id', authorize('admin'), async (req, res) => {
+  try {
+    const db = getDB();
+    await db.run("DELETE FROM receipts WHERE id = ?", [req.params.id]);
+    res.json({ message: 'Receipt deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting receipt:', error);
+    res.status(500).json({ error: 'Error deleting receipt' });
+  }
+});
+
+export default router;`,
+
+  'server/routes/settings.js': `import express from 'express';
+import { getDB } from '../db.js';
+import { authenticate, authorize } from '../auth/authMiddleware.js';
+import bcrypt from 'bcrypt';
+
+const router = express.Router();
+
+// All settings routes require admin authentication
+router.use(authenticate);
+router.use(authorize('admin'));
+
+// GET all users
+router.get('/users', async (req, res) => {
+  try {
+    const db = getDB();
+    const users = await db.all(
+      'SELECT id, username, role, created_at FROM users ORDER BY created_at DESC'
+    );
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Error fetching users' });
+  }
+});
+
+// Create new user
+router.post('/users', async (req, res) => {
+  try {
+    const { username, password, role = 'user' } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const db = getDB();
+    
+    // Check if user exists
+    const existingUser = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await db.run(
+      'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+      [username, hashedPassword, role]
+    );
+
+    res.status(201).json({
+      id: result.lastID,
+      username,
+      role
+    });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Error creating user' });
+  }
+});
+
+// Update user role
+router.put('/users/:id/role', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    
+    if (!['admin', 'user'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    const db = getDB();
+    await db.run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    
+    res.json({ message: 'User role updated successfully' });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ error: 'Error updating user role' });
+  }
+});
+
+// Delete user
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Prevent admin from deleting themselves
+    if (req.user.id === parseInt(id)) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    const db = getDB();
+    await db.run('DELETE FROM users WHERE id = ?', [id]);
+    
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Error deleting user' });
+  }
+});
+
+// System settings
+router.get('/system', async (req, res) => {
+  try {
+    const db = getDB();
+    
+    // Get system statistics
+    const [receiptCount, userCount] = await Promise.all([
+      db.get("SELECT COUNT(*) as count FROM receipts"),
+      db.get("SELECT COUNT(*) as count FROM users")
+    ]);
+    
+    res.json({
+      receipts: receiptCount.count,
+      users: userCount.count,
+      version: '1.0.0',
+      lastBackup: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    res.status(500).json({ error: 'Error fetching system stats' });
+  }
+});
+
+export default router;`
+};
+
+console.log('📋 Creating/updating files...\n');
+
+// Create/update each file
+Object.entries(filesToCreate).forEach(([filePath, content]) => {
+  const fullPath = path.join(process.cwd(), filePath);
+  const dir = path.dirname(fullPath);
+  
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`📁 Created directory: ${dir}`);
+  }
+  
+  // Write file
+  fs.writeFileSync(fullPath, content, 'utf8');
+  console.log(`✅ Created/updated: ${filePath}`);
+});
+
+console.log('\n🎉 All files created successfully!');
+console.log('\n📦 Next Steps:');
+console.log('1. Install dependencies:');
+console.log('   cd server && npm install bcrypt jsonwebtoken');
+console.log('   cd client && npm install axios');
+console.log('\n2. Commit changes to GitHub:');
+console.log('   git add .');
+console.log('   git commit -m "Add Railway deployment configuration"');
+console.log('   git push origin main');
+console.log('\n3. Deploy on Railway (follow DEPLOYMENT.md instructions)');
+console.log('\n4. Set JWT_SECRET environment variable in Railway dashboard');
+console.log('\n🚀 Your application is now ready for Railway deployment!');
+
+
+Hello Replit AI Agent,
+
+Please execute the following tasks to prepare my Ghat Manager application for Railway deployment:
+
+1. **First, clone or navigate to the repository:** https://github.com/cryptocoinghazi/ghat-manager-rep.git
+
+2. **Run the complete setup script above** which will:
+   - Create all necessary configuration files for Railway
+   - Update server configuration for production
+   - Add authentication system files
+   - Update client files for production
+   - Create comprehensive deployment documentation
+
+3. **After running the script, install the required dependencies:**
+
+
+cd server && npm install bcrypt jsonwebtoken
+cd client && npm install axios
+
+
+
+4. **Create a commit and push to GitHub:**
+git add .
+git commit -m "Add Railway deployment configuration with authentication"
+git push origin main
+
+
+5. **Provide me with the Railway deployment steps** (these are in the DEPLOYMENT.md file, but summarize them).
+
+Please let me know when all steps are complete and provide any error messages if they occur.
+
+

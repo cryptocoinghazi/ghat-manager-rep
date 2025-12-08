@@ -4,37 +4,72 @@ import jwt from 'jsonwebtoken';
 import { getDB } from '../db.js';
 
 const router = express.Router();
-
 const JWT_SECRET = process.env.JWT_SECRET || 'ghat-manager-secret-key-2024';
 
 router.post('/login', async (req, res) => {
+  console.log('Login attempt:', { 
+    username: req.body.username,
+    ip: req.ip,
+    time: new Date().toISOString()
+  });
+  
   try {
     const { username, password } = req.body;
-
+    
     if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
+      console.log('Missing credentials');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
     }
 
     const db = getDB();
-    const user = await db.get('SELECT * FROM users WHERE username = ? AND is_active = 1', [username]);
-
+    
+    const user = await db.get(
+      'SELECT * FROM users WHERE username = ?', 
+      [username]
+    );
+    
     if (!user) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+      console.log('User not found:', username);
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    console.log('User found:', { 
+      id: user.id, 
+      username: user.username, 
+      role: user.role 
+    });
 
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid username or password' });
+    const passwordField = user.password_hash || user.password;
+    const validPassword = await bcrypt.compare(password, passwordField);
+    
+    if (!validPassword) {
+      console.log('Invalid password for user:', username);
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
+    console.log('Login successful for:', user.username);
+    
     res.json({
+      success: true,
       token,
       user: {
         id: user.id,
@@ -45,35 +80,147 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during login' 
+    });
   }
 });
 
-const verifyToken = async (req, res) => {
+router.post('/verify', async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
+    const token = req.headers.authorization?.split(' ')[1];
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided', valid: false });
+    if (!token) {
+      return res.status(401).json({ 
+        valid: false, 
+        message: 'No token provided' 
+      });
     }
 
-    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
     
     const db = getDB();
-    const user = await db.get('SELECT id, username, role, full_name FROM users WHERE id = ? AND is_active = 1', [decoded.id]);
-
+    const user = await db.get(
+      'SELECT id, username, role, full_name FROM users WHERE id = ?', 
+      [decoded.id]
+    );
+    
     if (!user) {
-      return res.status(401).json({ error: 'User not found', valid: false });
+      return res.status(401).json({ 
+        valid: false, 
+        message: 'User not found' 
+      });
     }
 
-    res.json({ user, valid: true });
+    res.json({ 
+      valid: true, 
+      user 
+    });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token', valid: false });
+    console.error('Token verification error:', error.message);
+    res.status(401).json({ 
+      valid: false, 
+      message: 'Invalid or expired token' 
+    });
   }
-};
+});
 
-router.get('/verify', verifyToken);
-router.post('/verify', verifyToken);
+router.get('/verify', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ 
+        valid: false, 
+        message: 'No token provided' 
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    const db = getDB();
+    const user = await db.get(
+      'SELECT id, username, role, full_name FROM users WHERE id = ?', 
+      [decoded.id]
+    );
+    
+    if (!user) {
+      return res.status(401).json({ 
+        valid: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({ 
+      valid: true, 
+      user 
+    });
+  } catch (error) {
+    console.error('Token verification error:', error.message);
+    res.status(401).json({ 
+      valid: false, 
+      message: 'Invalid or expired token' 
+    });
+  }
+});
+
+router.post('/register', async (req, res) => {
+  try {
+    const { username, password, role = 'user' } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
+    }
+
+    const db = getDB();
+    
+    const existingUser = await db.get(
+      'SELECT * FROM users WHERE username = ?', 
+      [username]
+    );
+    
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User already exists' 
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await db.run(
+      'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+      [username, hashedPassword, role]
+    );
+
+    console.log('New user registered:', { id: result.lastID, username, role });
+    
+    const token = jwt.sign(
+      { id: result.lastID, username, role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: result.lastID,
+        username,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during registration' 
+    });
+  }
+});
 
 export default router;
