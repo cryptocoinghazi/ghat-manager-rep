@@ -40,7 +40,7 @@ The application has been successfully set up in the Replit environment with:
 
 ## Recent Changes (December 8, 2025)
 1. Created Express.js backend server with all required API endpoints
-2. Set up PostgreSQL database with tables for settings, truck_owners, receipts, and users
+2. Set up SQLite database with tables for settings, truck_owners, receipts, and users
 3. Configured Vite to use port 5000 with host 0.0.0.0 for Replit proxy support
 4. Added allowedHosts: true to Vite config for Replit iframe compatibility
 5. Updated axios configuration to use relative URLs for API proxy
@@ -51,22 +51,36 @@ The application has been successfully set up in the Replit environment with:
    - JWT tokens stored in localStorage with 24-hour expiration
    - All API endpoints protected with authentication middleware
    - Admin-only routes for settings updates, backup/restore, and user management
+9. **Implemented Role-Based Access Control (RBAC)**
+   - Users can only access "Quick Receipt" and "Daily Register"
+   - Admins have access to all features (Reports, Settings, User Management)
+   - Frontend route protection with AdminRoute component
+   - Backend middleware enforces authorization
+10. **Added User Management System**
+   - Admin-only interface to create, edit, and delete users
+   - User role assignment (admin/user)
+   - User creation with password hashing using bcrypt
+   - User Management page at `/users` route (admin only)
+   - API endpoints for user CRUD operations at `/api/settings/users`
 
 ## Features
 - **Authentication**: JWT-based login with role-based access control (admin/user roles)
+- **Role-Based Navigation**: Different menu items for users vs admins
 - **Receipt Management**: Create and manage gate passes for sand trucks
-- **Daily Register**: View and edit daily transactions
-- **Reports**: Generate credit reports, monthly summaries, and financial reports
-- **Settings**: Manage company information and truck owners
-- **User Management**: Admin-only feature to create/delete users
+- **Daily Register**: View and edit daily transactions (available to all users)
+- **Reports**: Generate credit reports, monthly summaries, and financial reports (admin only)
+- **Settings**: Manage company information and truck owners (admin only)
+- **User Management**: Admin-only feature to create, edit, and delete users
 - **Backup/Restore**: Export and import data (admin-only)
+- **Local Database**: SQLite database for local development/deployment
 
 ## Technology Stack
 - **Frontend**: React 18, Vite, Tailwind CSS, Recharts, jsPDF
 - **Backend**: Express.js, Node.js
-- **Database**: PostgreSQL
+- **Database**: SQLite (for local development and deployment)
 - **Authentication**: JWT (jsonwebtoken), bcrypt for password hashing
-- **Additional**: axios, date-fns, react-router-dom
+- **Additional**: axios, date-fns, react-router-dom, react-hot-toast (notifications)
+- **Database Management**: sqlite, sqlite3 (Node.js driver)
 
 ## API Endpoints
 All endpoints except `/api/auth/*` require JWT authentication via `Authorization: Bearer <token>` header.
@@ -77,8 +91,9 @@ All endpoints except `/api/auth/*` require JWT authentication via `Authorization
 
 ### User Management (Admin only)
 - GET `/api/settings/users` - List all users
-- POST `/api/settings/users` - Create new user
-- DELETE `/api/settings/users/:id` - Delete user
+- POST `/api/settings/users` - Create new user (requires: username, password, role)
+- PUT `/api/settings/users/:id` - Update user (full_name, role, password, is_active)
+- DELETE `/api/settings/users/:id` - Delete/deactivate user
 
 ### Settings
 - GET `/api/settings` - Fetch all settings (authenticated)
@@ -160,6 +175,20 @@ The application runs automatically via the configured workflow. Both frontend an
 - All API calls from frontend use relative paths to work with Vite proxy
 - Database is automatically initialized on server start
 
+## Navigation Structure (Role-Based)
+
+### Regular User (role: 'user')
+- Quick Receipt (create receipts)
+- Daily Register (view daily transactions)
+
+### Admin User (role: 'admin')
+- Quick Receipt (create receipts)
+- Daily Register (view daily transactions)
+- Reports (view credit reports, monthly summaries, financial reports)
+- User Management (create, edit, delete users)
+- Settings (manage company info, truck owners, backup/restore)
+
 ## User Preferences
-- No specific coding style preferences set yet
-- Using existing project structure and conventions
+- SQLite database for local development and deployment
+- Role-based access control with frontend and backend enforcement
+- Users have limited access by default, admins have full access
