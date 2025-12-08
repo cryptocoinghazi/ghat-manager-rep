@@ -96,15 +96,7 @@ const Login = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 text-center">
-            <span className="font-semibold">Default Credentials:</span>
-            <br />
-            Admin: admin / admin123
-            <br />
-            User: user / user123
-          </p>
-        </div>
+     
       </div>
     </div>
   );
