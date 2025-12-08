@@ -1,14 +1,8 @@
 import axios from 'axios';
 
 const configureAxios = () => {
-  // Configure API base URL
-  if (import.meta.env.PROD) {
-    // Production: use same origin
-    axios.defaults.baseURL = window.location.origin;
-  } else {
-    // Development: connect to backend on port 3000
-    axios.defaults.baseURL = 'http://localhost:3000';
-  }
+  // Always use relative URLs - Vite proxy handles dev, same origin handles prod
+  axios.defaults.baseURL = '';
 
   // Restore token from localStorage if it exists
   const token = localStorage.getItem('token');
