@@ -1,0 +1,352 @@
+ST http://localhost:5000/api/auth/login 404 (Not Found)
+handleSubmit	@	Login.jsx:22
+
+Login.jsx:32 Login error: 
+AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+code
+: 
+"ERR_BAD_REQUEST"
+config
+: 
+adapter
+: 
+(3) ['xhr', 'http', 'fetch']
+allowAbsoluteUrls
+: 
+true
+baseURL
+: 
+""
+data
+: 
+"{\"username\":\"user\",\"password\":\"user123\"}"
+env
+: 
+{FormData: ƒ, Blob: ƒ}
+headers
+: 
+AxiosHeaders {Accept: 'application/json, text/plain, */*', Content-Type: 'application/json'}
+maxBodyLength
+: 
+-1
+maxContentLength
+: 
+-1
+method
+: 
+"post"
+timeout
+: 
+0
+transformRequest
+: 
+[ƒ]
+transformResponse
+: 
+[ƒ]
+transitional
+: 
+{silentJSONParsing: true, forcedJSONParsing: true, clarifyTimeoutError: false}
+url
+: 
+"/api/auth/login"
+validateStatus
+: 
+ƒ validateStatus(status)
+xsrfCookieName
+: 
+"XSRF-TOKEN"
+xsrfHeaderName
+: 
+"X-XSRF-TOKEN"
+[[Prototype]]
+: 
+Object
+constructor
+: 
+ƒ Object()
+hasOwnProperty
+: 
+ƒ hasOwnProperty()
+isPrototypeOf
+: 
+ƒ isPrototypeOf()
+propertyIsEnumerable
+: 
+ƒ propertyIsEnumerable()
+toLocaleString
+: 
+ƒ toLocaleString()
+toString
+: 
+ƒ toString()
+valueOf
+: 
+ƒ valueOf()
+__defineGetter__
+: 
+ƒ __defineGetter__()
+__defineSetter__
+: 
+ƒ __defineSetter__()
+__lookupGetter__
+: 
+ƒ __lookupGetter__()
+__lookupSetter__
+: 
+ƒ __lookupSetter__()
+__proto__
+: 
+(...)
+get __proto__
+: 
+ƒ __proto__()
+set __proto__
+: 
+ƒ __proto__()
+message
+: 
+"Request failed with status code 404"
+name
+: 
+"AxiosError"
+request
+: 
+XMLHttpRequest
+onabort
+: 
+ƒ handleAbort()
+onerror
+: 
+ƒ handleError(event)
+onload
+: 
+null
+onloadend
+: 
+ƒ onloadend()
+onloadstart
+: 
+null
+onprogress
+: 
+null
+onreadystatechange
+: 
+null
+ontimeout
+: 
+ƒ handleTimeout()
+readyState
+: 
+4
+response
+: 
+"{\"error\":\"Not Found\"}"
+responseText
+: 
+"{\"error\":\"Not Found\"}"
+responseType
+: 
+""
+responseURL
+: 
+"http://localhost:5000/api/auth/login"
+responseXML
+: 
+null
+status
+: 
+404
+statusText
+: 
+"Not Found"
+timeout
+: 
+0
+upload
+: 
+XMLHttpRequestUpload {onloadstart: null, onprogress: null, onabort: null, onerror: null, onload: null, …}
+withCredentials
+: 
+false
+[[Prototype]]
+: 
+XMLHttpRequest
+response
+: 
+config
+: 
+{transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}
+data
+: 
+{error: 'Not Found'}
+headers
+: 
+AxiosHeaders {access-control-allow-credentials: 'true', access-control-allow-origin: 'http://localhost:5000', connection: 'close', content-length: '21', content-type: 'application/json; charset=utf-8', …}
+request
+: 
+XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}
+status
+: 
+404
+statusText
+: 
+"Not Found"
+[[Prototype]]
+: 
+Object
+constructor
+: 
+ƒ Object()
+hasOwnProperty
+: 
+ƒ hasOwnProperty()
+isPrototypeOf
+: 
+ƒ isPrototypeOf()
+propertyIsEnumerable
+: 
+ƒ propertyIsEnumerable()
+toLocaleString
+: 
+ƒ toLocaleString()
+toString
+: 
+ƒ toString()
+valueOf
+: 
+ƒ valueOf()
+__defineGetter__
+: 
+ƒ __defineGetter__()
+__defineSetter__
+: 
+ƒ __defineSetter__()
+__lookupGetter__
+: 
+ƒ __lookupGetter__()
+__lookupSetter__
+: 
+ƒ __lookupSetter__()
+__proto__
+: 
+(...)
+get __proto__
+: 
+ƒ __proto__()
+set __proto__
+: 
+ƒ __proto__()
+status
+: 
+404
+stack
+: 
+"AxiosError: Request failed with status code 404\n    at settle (http://localhost:5000/node_modules/.vite/deps/axios.js?v=9dbca4e9:1268:12)\n    at XMLHttpRequest.onloadend (http://localhost:5000/node_modules/.vite/deps/axios.js?v=9dbca4e9:1619:7)\n    at Axios.request (http://localhost:5000/node_modules/.vite/deps/axios.js?v=9dbca4e9:2236:41)\n    at async handleSubmit (http://localhost:5000/src/components/Login.jsx:35:24)"
+[[Prototype]]
+: 
+Error
+constructor
+: 
+ƒ AxiosError(message, code, config, request, response)
+from
+: 
+(error, code, config, request, response, customProps) => {…}
+ECONNABORTED
+: 
+"ECONNABORTED"
+ERR_BAD_OPTION
+: 
+"ERR_BAD_OPTION"
+ERR_BAD_OPTION_VALUE
+: 
+"ERR_BAD_OPTION_VALUE"
+ERR_BAD_REQUEST
+: 
+"ERR_BAD_REQUEST"
+ERR_BAD_RESPONSE
+: 
+"ERR_BAD_RESPONSE"
+ERR_CANCELED
+: 
+"ERR_CANCELED"
+ERR_DEPRECATED
+: 
+"ERR_DEPRECATED"
+ERR_FR_TOO_MANY_REDIRECTS
+: 
+"ERR_FR_TOO_MANY_REDIRECTS"
+ERR_INVALID_URL
+: 
+"ERR_INVALID_URL"
+ERR_NETWORK
+: 
+"ERR_NETWORK"
+ERR_NOT_SUPPORT
+: 
+"ERR_NOT_SUPPORT"
+ETIMEDOUT
+: 
+"ETIMEDOUT"
+length
+: 
+5
+name
+: 
+"AxiosError"
+prototype
+: 
+Error {isAxiosError: true, toJSON: ƒ}
+super
+: 
+{name: 'Error', message: '', toString: ƒ}
+arguments
+: 
+(...)
+caller
+: 
+(...)
+[[FunctionLocation]]
+: 
+axios.js?v=9dbca4e9:404
+[[Prototype]]
+: 
+ƒ ()
+[[Scopes]]
+: 
+Scopes[2]
+toJSON
+: 
+ƒ toJSON()
+length
+: 
+0
+name
+: 
+"toJSON"
+prototype
+: 
+{}
+arguments
+: 
+(...)
+caller
+: 
+(...)
+[[FunctionLocation]]
+: 
+axios.js?v=9dbca4e9:422
+[[Prototype]]
+: 
+ƒ ()
+[[Scopes]]
+: 
+Scopes[2]
+isAxiosError
+: 
+true
+[[Prototype]]
+: 
+Object
+handleSubmit	@	Login.jsx:32

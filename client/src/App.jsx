@@ -17,13 +17,7 @@ const AdminRoute = ({ user, children }) => {
   return children;
 };
 
-// Configure axios for API requests
-if (import.meta.env.PROD) {
-  axios.defaults.baseURL = window.location.origin;
-} else {
-  // In development, use the API server URL
-  axios.defaults.baseURL = 'http://localhost:3000';
-}
+// Axios is configured in main.jsx via axiosConfig.js
 
 function App() {
   const [settings, setSettings] = useState({});
