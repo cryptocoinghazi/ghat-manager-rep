@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,9 @@ export async function initializeDatabase() {
     
     // Initialize default settings
     await initializeSettings();
+    
+    // Initialize default users
+    await initializeUsers();
     
     return db;
   } catch (error) {
@@ -89,6 +93,20 @@ async function createTables() {
     )
   `);
 
+  // Create users table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      full_name TEXT,
+      role TEXT DEFAULT 'user',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Create indexes for performance
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_receipts_date ON receipts(date_time);
@@ -120,6 +138,26 @@ async function initializeSettings() {
   }
 
   console.log('✅ Default settings initialized');
+}
+
+async function initializeUsers() {
+  const defaultUsers = [
+    { username: 'admin', password: 'admin123', full_name: 'Administrator', role: 'admin' },
+    { username: 'user', password: 'user123', full_name: 'Standard User', role: 'user' }
+  ];
+
+  for (const user of defaultUsers) {
+    const existingUser = await db.get('SELECT id FROM users WHERE username = ?', [user.username]);
+    if (!existingUser) {
+      const passwordHash = await bcrypt.hash(user.password, 10);
+      await db.run(`
+        INSERT INTO users (username, password_hash, full_name, role) 
+        VALUES (?, ?, ?, ?)
+      `, [user.username, passwordHash, user.full_name, user.role]);
+    }
+  }
+
+  console.log('✅ Default users initialized');
 }
 
 export function getDB() {

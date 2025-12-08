@@ -35,12 +35,14 @@ initializeDatabase().catch(console.error);
 // Import routes
 import receiptRoutes from './routes/receipts.js';
 import settingsRoutes from './routes/settings.js';
-import reportsRoutes from './routes/reports.js'; // Fixed: remove the duplicate line above
+import reportsRoutes from './routes/reports.js';
+import authRoutes from './routes/auth.js';
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/settings', settingsRoutes);
-app.use('/api/reports', reportsRoutes); // Fixed: use the imported variable
+app.use('/api/reports', reportsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
