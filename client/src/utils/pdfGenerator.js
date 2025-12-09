@@ -109,17 +109,17 @@ export function generatePDF(receiptData, settings = {}) {
 
     y += 7;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('Material Cost:', 15, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Rs ${materialCost.toFixed(2)}`, 60, y);
+   // doc.setFont('helvetica', 'bold');
+   // doc.text('Material Cost:', 15, y);
+    //doc.setFont('helvetica', 'normal');
+   // doc.text(`Rs ${materialCost.toFixed(2)}`, 60, y);
 
-    y += 7;
+  //  y += 7;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('Loading Charge:', 15, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Rs ${loadingCharge.toFixed(2)}`, 60, y);
+   // doc.setFont('helvetica', 'bold');
+    //doc.text('Loading Charge:', 15, y);
+    //doc.setFont('helvetica', 'normal');
+   // doc.text(`Rs ${loadingCharge.toFixed(2)}`, 60, y);
 
     y += 10;
 
@@ -147,20 +147,20 @@ export function generatePDF(receiptData, settings = {}) {
     doc.setFont('helvetica', 'normal');
     doc.text(`Rs ${cashPaid.toFixed(2)}`, 45, y);
 
-    y += 7;
+  //  y += 7;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('Credit Amount:', 15, y);
+   // doc.setFont('helvetica', 'bold');
+   // doc.text('Credit Amount:', 15, y);
 
-    doc.setFont('helvetica', 'normal');
+   // doc.setFont('helvetica', 'normal');
 
-    if (creditAmount > 0) {
-      doc.setTextColor(255, 0, 0);
-    }
+   // if (creditAmount > 0) {
+     // doc.setTextColor(255, 0, 0);
+   // }
 
-    doc.text(`Rs ${creditAmount.toFixed(2)}`, 45, y);
+   // doc.text(`Rs ${creditAmount.toFixed(2)}`, 45, y);
 
-    doc.setTextColor(0, 0, 0);
+   // doc.setTextColor(0, 0, 0);
     y += 10;
 
     // ===========================
