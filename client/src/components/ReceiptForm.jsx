@@ -207,6 +207,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     setFormData(prev => ({
       ...prev,
       truck_owner: ownerName,
+      vehicle_number: ownerInfo?.vehicle_number || '',
       rate: rateToApply.toString()
     }));
   };
@@ -226,12 +227,14 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
         setFormData(prev => ({
           ...prev,
+          vehicle_number: ownerInfo.vehicle_number || '',
           rate: partnerRate.toString()
         }));
       } else if (ownerInfo) {
         // Apply regular rate
         setFormData(prev => ({
           ...prev,
+          vehicle_number: ownerInfo.vehicle_number || '',
           rate: (flatSettings.default_rate || '1200').toString()
         }));
       }

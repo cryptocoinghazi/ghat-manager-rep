@@ -10,7 +10,7 @@ const Settings = ({ settings, fetchSettings }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [backupData, setBackupData] = useState(null);
   const [truckOwners, setTruckOwners] = useState([]);
-  const [newOwner, setNewOwner] = useState({ name: '', contact: '', address: '' });
+  const [newOwner, setNewOwner] = useState({ name: '', contact: '', address: '', vehicle_number: '' });
 
   // Initialize formData with settings.flat (since backend now returns { flat, categorized })
   useEffect(() => {
@@ -143,11 +143,16 @@ const Settings = ({ settings, fetchSettings }) => {
       toast.error('Owner name is required');
       return;
     }
+    
+    if (!newOwner.vehicle_number.trim()) {
+      toast.error('Vehicle number is required');
+      return;
+    }
 
     try {
       await axios.post('/api/settings/truck-owners', newOwner);
       toast.success('Truck owner added successfully!');
-      setNewOwner({ name: '', contact: '', address: '' });
+      setNewOwner({ name: '', contact: '', address: '', vehicle_number: '' });
       await fetchTruckOwners();
     } catch (error) {
       console.error('Error adding truck owner:', error);
@@ -510,7 +515,7 @@ const Settings = ({ settings, fetchSettings }) => {
             {/* Add new owner */}
             <div className="card p-6 mb-6">
               <h4 className="font-semibold text-gray-900 mb-4">Add New Truck Owner</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Owner Name *
@@ -521,6 +526,18 @@ const Settings = ({ settings, fetchSettings }) => {
                     onChange={(e) => setNewOwner({...newOwner, name: e.target.value})}
                     className="input-field"
                     placeholder="Enter owner name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vehicle Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={newOwner.vehicle_number}
+                    onChange={(e) => setNewOwner({...newOwner, vehicle_number: e.target.value})}
+                    className="input-field"
+                    placeholder="e.g., MH-31-XXXX"
                   />
                 </div>
                 <div>
@@ -567,6 +584,7 @@ const Settings = ({ settings, fetchSettings }) => {
                     <thead>
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Number</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                       </tr>
@@ -575,6 +593,7 @@ const Settings = ({ settings, fetchSettings }) => {
                       {truckOwners.map((owner) => (
                         <tr key={owner.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{owner.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.vehicle_number || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.contact || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.address || '-'}</td>
                         </tr>
