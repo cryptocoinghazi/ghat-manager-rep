@@ -150,17 +150,17 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   };
 
   // NEW: Create new truck owner
-  const createNewTruckOwner = async (ownerName) => {
+  const createNewTruckOwner = async (ownerName, vehicleNumber) => {
     try {
       setIsAddingNewOwner(true);
       
-      const response = await axios.post('/api/truck-owners', {
+      const response = await axios.post('/api/settings/truck-owners', {
         name: ownerName,
-        is_partner: false, // Always false for new auto-created owners
-        status: 'active'
+        vehicle_number: (vehicleNumber || '').toUpperCase(),
+        is_partner: false
       });
       
-      if (response.data) {
+      if (response.data?.owner) {
         toast.success(`New owner "${ownerName}" added successfully`);
         
         // Refresh truck owners list
@@ -168,7 +168,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
           await fetchTruckOwners();
         }
         
-        return response.data;
+        return response.data.owner;
       }
     } catch (error) {
       console.error('Error creating truck owner:', error);
@@ -381,7 +381,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       // If owner doesn't exist, create it
       if (!ownerExists) {
         toast.loading(`Adding new owner: ${formData.truck_owner}...`);
-        const newOwner = await createNewTruckOwner(formData.truck_owner);
+        const newOwner = await createNewTruckOwner(formData.truck_owner, formData.vehicle_number);
         
         if (newOwner) {
           finalOwnerInfo = newOwner;
@@ -560,7 +560,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       type="button"
                       onClick={() => {
                         if (formData.truck_owner && !truckOwners?.some(o => o.name === formData.truck_owner)) {
-                          createNewTruckOwner(formData.truck_owner);
+                          createNewTruckOwner(formData.truck_owner, formData.vehicle_number);
                         }
                       }}
                       className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-200 transition-colors"
