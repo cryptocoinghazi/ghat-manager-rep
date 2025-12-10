@@ -403,12 +403,12 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         loading_charge: parseFloat(formData.loading_charge || 0),
         cash_paid: parseFloat(formData.cash_paid || 0),
         notes: formData.notes || '',
-        date_time: now.toISOString(),
-        is_partner: finalOwnerInfo?.is_partner || false,
-        rate_overridden: isRateOverridden,
-        original_rate: originalRate || parseFloat(formData.rate),
-        new_owner_created: !ownerExists // Track if we created a new owner
+        date_time: now.toISOString()
       };
+
+      if (isRateOverridden) {
+        receiptData.applied_rate = parseFloat(formData.rate);
+      }
 
       console.log('Saving receipt:', receiptData);
       
@@ -576,14 +576,14 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       {ownerSuggestions.map(owner => (
                         <div
                           key={owner.id}
-                          onClick={() => handleQuickFill(owner.name)}
+                          onClick={() => { handleQuickFill(owner.name); setOwnerSuggestions([]); }}
                           className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between"
                         >
                           <div>
                             <div className="font-medium">{owner.name}</div>
                             <div className="text-sm text-gray-500">{owner.vehicle_number}</div>
                           </div>
-                          {owner.is_partner && (
+                          {Boolean(owner.is_partner) && (
                             <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
                               Partner
                             </span>
@@ -614,7 +614,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedOwnerInfo?.id === owner.id ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
                       >
                         {owner.name}
-                        {owner.is_partner && (
+                        {Boolean(owner.is_partner) && (
                           <span className="ml-1 text-xs text-green-600">(P)</span>
                         )}
                       </button>
@@ -647,7 +647,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     {vehicleSuggestions.map(owner => (
                       <div
                         key={owner.id}
-                        onClick={() => handleQuickFill(owner.name)}
+                        onClick={() => { handleQuickFill(owner.name); setVehicleSuggestions([]); }}
                         className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                       >
                         <div className="font-medium">{owner.vehicle_number}</div>

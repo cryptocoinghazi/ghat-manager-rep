@@ -150,9 +150,19 @@ router.post('/', async (req, res) => {
       loading_charge, cash_paid, notes, date_time, owner_type, applied_rate
     });
 
+    // Basic validation
+    if (!truck_owner || !vehicle_number) {
+      return res.status(400).json({ error: 'Truck owner and vehicle number are required' });
+    }
+    const qtyVal = parseFloat(brass_qty);
+    const rateVal = parseFloat(rate);
+    if (!qtyVal || qtyVal <= 0 || !rateVal || rateVal <= 0) {
+      return res.status(400).json({ error: 'Valid brass quantity and rate are required' });
+    }
+
     // Check if owner is a partner and determine rate
     let finalOwnerType = owner_type || 'regular';
-    let finalRate = parseFloat(rate);
+    let finalRate = rateVal;
     let finalAppliedRate = applied_rate;
     
     // If owner_type not provided, check the truck_owners table
@@ -191,6 +201,17 @@ router.post('/', async (req, res) => {
     console.log('Using timestamp for storage:', timestamp);
     console.log('Owner type:', finalOwnerType, 'Applied rate:', finalAppliedRate);
 
+    // Ensure unique receipt number
+    let finalReceiptNo = receipt_no;
+    if (!finalReceiptNo) {
+      finalReceiptNo = await generateReceiptNumber(db);
+    } else {
+      const existing = await db.get('SELECT id FROM receipts WHERE receipt_no = ?', [finalReceiptNo]);
+      if (existing) {
+        finalReceiptNo = await generateReceiptNumber(db);
+      }
+    }
+
     // Insert receipt with owner_type and applied_rate
     const result = await db.run(
       `INSERT INTO receipts (
@@ -199,7 +220,7 @@ router.post('/', async (req, res) => {
         payment_status, owner_type, applied_rate, notes, date_time
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        receipt_no,
+        finalReceiptNo,
         truck_owner,
         vehicle_number,
         brass_qty,
