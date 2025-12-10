@@ -130,6 +130,7 @@ router.post('/batch-update', async (req, res) => {
 router.get('/truck-owners', async (req, res) => {
   try {
     const db = getDB();
+    const { is_partner } = req.query;
     
     // Check if table exists
     const tableExists = await db.get(
@@ -140,9 +141,17 @@ router.get('/truck-owners', async (req, res) => {
       return res.json([]); // Return empty array if table doesn't exist
     }
     
-    const owners = await db.all(
-      'SELECT * FROM truck_owners WHERE is_active = 1 ORDER BY name'
-    );
+    let query = 'SELECT * FROM truck_owners WHERE is_active = 1';
+    const params = [];
+    
+    if (is_partner !== undefined) {
+      query += ' AND is_partner = ?';
+      params.push(is_partner === 'true' || is_partner === '1' ? 1 : 0);
+    }
+    
+    query += ' ORDER BY name';
+    
+    const owners = await db.all(query, params);
     res.json(owners);
   } catch (error) {
     console.error('Error fetching truck owners:', error);
@@ -150,29 +159,201 @@ router.get('/truck-owners', async (req, res) => {
   }
 });
 
+// Get single truck owner by name
+router.get('/truck-owners/by-name/:name', async (req, res) => {
+  try {
+    const db = getDB();
+    const { name } = req.params;
+    
+    const owner = await db.get(
+      'SELECT * FROM truck_owners WHERE name = ? AND is_active = 1',
+      [name]
+    );
+    
+    if (!owner) {
+      return res.json(null);
+    }
+    
+    res.json(owner);
+  } catch (error) {
+    console.error('Error fetching truck owner:', error);
+    res.status(500).json({ error: 'Failed to fetch truck owner' });
+  }
+});
+
 // Create or update truck owner
 router.post('/truck-owners', async (req, res) => {
   try {
-    const { name, contact, address } = req.body;
+    const { name, contact, address, phone, is_partner, partner_rate } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
     
     const db = getDB();
-    const result = await db.run(
-      `INSERT OR REPLACE INTO truck_owners (name, contact, address, is_active) 
-       VALUES (?, ?, ?, 1)`,
-      [name, contact || null, address || null]
-    );
     
-    res.json({ 
-      message: 'Truck owner saved successfully',
-      id: result.lastID 
-    });
+    // Check if owner already exists
+    const existing = await db.get('SELECT id FROM truck_owners WHERE name = ?', [name]);
+    
+    if (existing) {
+      // Update existing owner
+      await db.run(
+        `UPDATE truck_owners SET 
+          phone = COALESCE(?, phone),
+          address = COALESCE(?, address),
+          is_partner = COALESCE(?, is_partner),
+          partner_rate = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE name = ?`,
+        [phone || contact || null, address || null, is_partner ? 1 : 0, partner_rate || null, name]
+      );
+      
+      const updated = await db.get('SELECT * FROM truck_owners WHERE name = ?', [name]);
+      res.json({ 
+        message: 'Truck owner updated successfully',
+        owner: updated
+      });
+    } else {
+      // Create new owner
+      const result = await db.run(
+        `INSERT INTO truck_owners (name, phone, address, is_partner, partner_rate, is_active) 
+         VALUES (?, ?, ?, ?, ?, 1)`,
+        [name, phone || contact || null, address || null, is_partner ? 1 : 0, partner_rate || null]
+      );
+      
+      const newOwner = await db.get('SELECT * FROM truck_owners WHERE id = ?', [result.lastID]);
+      res.json({ 
+        message: 'Truck owner created successfully',
+        owner: newOwner
+      });
+    }
   } catch (error) {
     console.error('Error saving truck owner:', error);
     res.status(500).json({ error: 'Failed to save truck owner' });
+  }
+});
+
+// Update truck owner by ID
+router.put('/truck-owners/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, address, is_partner, partner_rate } = req.body;
+    
+    const db = getDB();
+    
+    const existing = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+    
+    await db.run(
+      `UPDATE truck_owners SET 
+        name = COALESCE(?, name),
+        phone = ?,
+        address = ?,
+        is_partner = ?,
+        partner_rate = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [name, phone || null, address || null, is_partner ? 1 : 0, partner_rate || null, id]
+    );
+    
+    const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    res.json({ 
+      message: 'Truck owner updated successfully',
+      owner: updated
+    });
+  } catch (error) {
+    console.error('Error updating truck owner:', error);
+    res.status(500).json({ error: 'Failed to update truck owner' });
+  }
+});
+
+// Toggle partner status
+router.put('/truck-owners/:id/toggle-partner', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_partner, partner_rate } = req.body;
+    
+    const db = getDB();
+    
+    const existing = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+    
+    await db.run(
+      `UPDATE truck_owners SET 
+        is_partner = ?,
+        partner_rate = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`,
+      [is_partner ? 1 : 0, partner_rate || null, id]
+    );
+    
+    const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    res.json({ 
+      message: `Truck owner ${is_partner ? 'marked as partner' : 'marked as regular'}`,
+      owner: updated
+    });
+  } catch (error) {
+    console.error('Error toggling partner status:', error);
+    res.status(500).json({ error: 'Failed to toggle partner status' });
+  }
+});
+
+// Get partner stats
+router.get('/partner-stats', async (req, res) => {
+  try {
+    const db = getDB();
+    
+    // Get partner count
+    const partnerCount = await db.get(
+      'SELECT COUNT(*) as count FROM truck_owners WHERE is_partner = 1 AND is_active = 1'
+    );
+    
+    // Get regular count
+    const regularCount = await db.get(
+      'SELECT COUNT(*) as count FROM truck_owners WHERE is_partner = 0 AND is_active = 1'
+    );
+    
+    // Get partner transactions summary
+    const partnerTransactions = await db.get(`
+      SELECT 
+        COUNT(*) as transactions,
+        SUM(total_amount) as total_amount,
+        SUM(brass_qty) as total_brass
+      FROM receipts 
+      WHERE owner_type = 'partner' AND is_active = 1
+    `);
+    
+    // Get regular transactions summary
+    const regularTransactions = await db.get(`
+      SELECT 
+        COUNT(*) as transactions,
+        SUM(total_amount) as total_amount,
+        SUM(brass_qty) as total_brass
+      FROM receipts 
+      WHERE owner_type = 'regular' AND is_active = 1
+    `);
+    
+    res.json({
+      partners: {
+        count: partnerCount?.count || 0,
+        transactions: partnerTransactions?.transactions || 0,
+        totalAmount: partnerTransactions?.total_amount || 0,
+        totalBrass: partnerTransactions?.total_brass || 0
+      },
+      regular: {
+        count: regularCount?.count || 0,
+        transactions: regularTransactions?.transactions || 0,
+        totalAmount: regularTransactions?.total_amount || 0,
+        totalBrass: regularTransactions?.total_brass || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching partner stats:', error);
+    res.status(500).json({ error: 'Failed to fetch partner stats' });
   }
 });
 

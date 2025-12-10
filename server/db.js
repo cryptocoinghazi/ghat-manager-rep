@@ -61,12 +61,22 @@ async function createTables() {
       credit_amount DECIMAL(10,2) DEFAULT 0,
       total_amount DECIMAL(10,2) NOT NULL,
       payment_status TEXT DEFAULT 'pending',
+      owner_type TEXT DEFAULT 'regular',
+      applied_rate DECIMAL(10,2) DEFAULT NULL,
       notes TEXT,
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: Add owner_type and applied_rate columns if missing
+  try {
+    await db.exec(`ALTER TABLE receipts ADD COLUMN owner_type TEXT DEFAULT 'regular'`);
+  } catch (e) { /* column exists */ }
+  try {
+    await db.exec(`ALTER TABLE receipts ADD COLUMN applied_rate DECIMAL(10,2) DEFAULT NULL`);
+  } catch (e) { /* column exists */ }
 
   // Create truck_owners table
   await db.exec(`
@@ -77,9 +87,27 @@ async function createTables() {
       address TEXT,
       credit_limit DECIMAL(10,2) DEFAULT 0,
       payment_type TEXT DEFAULT 'cash',
-      is_active INTEGER DEFAULT 1
+      is_partner INTEGER DEFAULT 0,
+      partner_rate DECIMAL(10,2) DEFAULT NULL,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: Add partner columns if missing
+  try {
+    await db.exec(`ALTER TABLE truck_owners ADD COLUMN is_partner INTEGER DEFAULT 0`);
+  } catch (e) { /* column exists */ }
+  try {
+    await db.exec(`ALTER TABLE truck_owners ADD COLUMN partner_rate DECIMAL(10,2) DEFAULT NULL`);
+  } catch (e) { /* column exists */ }
+  try {
+    await db.exec(`ALTER TABLE truck_owners ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+  } catch (e) { /* column exists */ }
+  try {
+    await db.exec(`ALTER TABLE truck_owners ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+  } catch (e) { /* column exists */ }
 
   // Create settings table
   await db.exec(`
@@ -204,6 +232,7 @@ async function initializeSettings() {
     { key: 'quarry_name', value: 'Mukindpur Sand Quarry', category: 'company' },
     { key: 'quarry_address', value: 'Mukindpur, District Office', category: 'company' },
     { key: 'default_rate', value: '1200', category: 'financial' },
+    { key: 'default_partner_rate', value: '1000', category: 'financial' },
     { key: 'loading_charge', value: '150', category: 'financial' },
     { key: 'receipt_prefix', value: 'GM', category: 'receipt' },
     { key: 'receipt_start', value: '9001', category: 'receipt' },

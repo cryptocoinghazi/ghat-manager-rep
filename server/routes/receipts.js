@@ -60,6 +60,13 @@ router.get('/', async (req, res) => {
       params.push(paymentStatus);
     }
 
+    // Filter by owner_type (partner/regular)
+    const { ownerType } = req.query;
+    if (ownerType) {
+      query += ` AND owner_type = ?`;
+      params.push(ownerType);
+    }
+
     // Order by latest first
     query += ` ORDER BY date_time DESC`;
 
@@ -120,7 +127,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new receipt - FIXED: Normalize timestamp
+// Create new receipt - FIXED: Normalize timestamp + Partner rates
 router.post('/', async (req, res) => {
   try {
     const db = getDB();
@@ -133,16 +140,40 @@ router.post('/', async (req, res) => {
       loading_charge,
       cash_paid,
       notes,
-      date_time
+      date_time,
+      owner_type,
+      applied_rate
     } = req.body;
 
     console.log('Creating receipt with data:', {
       receipt_no, truck_owner, vehicle_number, brass_qty, rate,
-      loading_charge, cash_paid, notes, date_time
+      loading_charge, cash_paid, notes, date_time, owner_type, applied_rate
     });
 
+    // Check if owner is a partner and determine rate
+    let finalOwnerType = owner_type || 'regular';
+    let finalRate = parseFloat(rate);
+    let finalAppliedRate = applied_rate;
+    
+    // If owner_type not provided, check the truck_owners table
+    if (!owner_type) {
+      const ownerRecord = await db.get(
+        'SELECT * FROM truck_owners WHERE name = ? AND is_active = 1',
+        [truck_owner]
+      );
+      
+      if (ownerRecord && ownerRecord.is_partner) {
+        finalOwnerType = 'partner';
+        // Use partner's specific rate if set, otherwise use provided rate
+        if (ownerRecord.partner_rate && !applied_rate) {
+          finalRate = parseFloat(ownerRecord.partner_rate);
+          finalAppliedRate = ownerRecord.partner_rate;
+        }
+      }
+    }
+
     // Calculate amounts
-    const totalMaterialCost = parseFloat(brass_qty) * parseFloat(rate);
+    const totalMaterialCost = parseFloat(brass_qty) * finalRate;
     const totalAmount = totalMaterialCost + parseFloat(loading_charge || 0);
     const cashPaidValue = parseFloat(cash_paid || 0);
     const creditAmount = totalAmount - cashPaidValue;
@@ -158,36 +189,47 @@ router.post('/', async (req, res) => {
     }
     
     console.log('Using timestamp for storage:', timestamp);
+    console.log('Owner type:', finalOwnerType, 'Applied rate:', finalAppliedRate);
 
-    // Insert receipt
+    // Insert receipt with owner_type and applied_rate
     const result = await db.run(
       `INSERT INTO receipts (
         receipt_no, truck_owner, vehicle_number, brass_qty, rate,
         loading_charge, cash_paid, credit_amount, total_amount,
-        payment_status, notes, date_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        payment_status, owner_type, applied_rate, notes, date_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         receipt_no,
         truck_owner,
         vehicle_number,
         brass_qty,
-        rate,
+        finalRate,
         loading_charge || 0,
         cash_paid || 0,
         creditAmount,
         totalAmount,
         paymentStatus,
+        finalOwnerType,
+        finalAppliedRate || finalRate,
         notes || '',
         timestamp
       ]
     );
 
-    // Update truck owner if exists, else create
-    await db.run(
-      `INSERT OR REPLACE INTO truck_owners (name, payment_type) 
-       VALUES (?, ?)`,
-      [truck_owner, cashPaidValue >= totalAmount ? 'cash' : 'mixed']
-    );
+    // Update truck owner if exists, else create (preserving partner status)
+    const existingOwner = await db.get('SELECT * FROM truck_owners WHERE name = ?', [truck_owner]);
+    if (existingOwner) {
+      await db.run(
+        `UPDATE truck_owners SET payment_type = ?, updated_at = CURRENT_TIMESTAMP WHERE name = ?`,
+        [cashPaidValue >= totalAmount ? 'cash' : 'mixed', truck_owner]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO truck_owners (name, payment_type, is_partner, is_active) 
+         VALUES (?, ?, 0, 1)`,
+        [truck_owner, cashPaidValue >= totalAmount ? 'cash' : 'mixed']
+      );
+    }
 
     const newReceipt = await db.get(
       'SELECT * FROM receipts WHERE id = ?',

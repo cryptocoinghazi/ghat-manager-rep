@@ -32,6 +32,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const [newOwner, setNewOwner] = useState('');
   const [errors, setErrors] = useState({});
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [selectedOwnerInfo, setSelectedOwnerInfo] = useState(null);
 
   // Calculate values when form changes
   useEffect(() => {
@@ -172,11 +173,66 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   };
 
-  const handleQuickFill = (ownerName) => {
+  const handleQuickFill = async (ownerName) => {
     setFormData(prev => ({
       ...prev,
       truck_owner: ownerName
     }));
+    
+    // Fetch owner info to check if partner and apply rate
+    try {
+      const response = await axios.get(`/api/settings/truck-owners/by-name/${encodeURIComponent(ownerName)}`);
+      const ownerInfo = response.data;
+      setSelectedOwnerInfo(ownerInfo);
+      
+      if (ownerInfo && ownerInfo.is_partner) {
+        // Apply partner rate
+        const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate;
+        setFormData(prev => ({
+          ...prev,
+          truck_owner: ownerName,
+          rate: partnerRate.toString()
+        }));
+      } else {
+        // Apply regular rate
+        setFormData(prev => ({
+          ...prev,
+          truck_owner: ownerName,
+          rate: flatSettings.default_rate || '1200'
+        }));
+        setSelectedOwnerInfo(ownerInfo);
+      }
+    } catch (error) {
+      console.error('Error fetching owner info:', error);
+      setSelectedOwnerInfo(null);
+    }
+  };
+  
+  // Check owner when truck_owner field changes manually
+  const handleOwnerChange = async (e) => {
+    const ownerName = e.target.value;
+    handleInputChange(e);
+    
+    // Debounce the API call
+    if (ownerName.length > 2) {
+      try {
+        const response = await axios.get(`/api/settings/truck-owners/by-name/${encodeURIComponent(ownerName)}`);
+        const ownerInfo = response.data;
+        setSelectedOwnerInfo(ownerInfo);
+        
+        if (ownerInfo && ownerInfo.is_partner) {
+          const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate;
+          setFormData(prev => ({
+            ...prev,
+            rate: partnerRate.toString()
+          }));
+        }
+      } catch (error) {
+        setSelectedOwnerInfo(null);
+      }
+    } else {
+      setSelectedOwnerInfo(null);
+    }
   };
 
   const handleAddNewOwner = async () => {
@@ -346,14 +402,21 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 </label>
                 <div className="relative">
                   <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      name="truck_owner"
-                      value={formData.truck_owner}
-                      onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                      placeholder="Enter owner name"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        name="truck_owner"
+                        value={formData.truck_owner}
+                        onChange={handleOwnerChange}
+                        className={`w-full px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${selectedOwnerInfo?.is_partner ? 'pr-20' : ''}`}
+                        placeholder="Enter owner name"
+                      />
+                      {selectedOwnerInfo?.is_partner && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                          Partner
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => setShowNewOwnerModal(true)}
                       className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center space-x-2 whitespace-nowrap"

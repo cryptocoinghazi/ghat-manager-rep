@@ -200,6 +200,7 @@ const Layout = ({ user, onLogout }) => {
     { name: 'Daily Register', href: '/register', icon: FiDatabase, color: 'text-green-600', roles: ['admin', 'user'] },
     { name: 'Expenses', href: '/expenses', icon: FiDollarSign, color: 'text-red-600', roles: ['admin', 'user'] },
     { name: 'Reports', href: '/reports', icon: FaChartLine, color: 'text-purple-600', roles: ['admin'] },
+    { name: 'Partners', href: '/partners', icon: FiUsers, color: 'text-green-600', roles: ['admin'] },
     { name: 'User Management', href: '/users', icon: FiUsers, color: 'text-indigo-600', roles: ['admin'] },
     { name: 'Settings', href: '/settings', icon: FiSettings, color: 'text-gray-600', roles: ['admin'] },
   ];

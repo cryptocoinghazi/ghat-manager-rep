@@ -11,6 +11,7 @@ import Reports from './components/Reports';
 import Login from './components/Login';
 import UserManagement from './components/UserManagement';
 import ExpenseManager from './components/ExpenseManager';
+import PartnerManagement from './components/PartnerManagement';
 
 const AdminRoute = ({ user, children }) => {
   if (user?.role !== 'admin') {
@@ -165,6 +166,11 @@ function App() {
             <Route path="users" element={
               <AdminRoute user={user}>
                 <UserManagement />
+              </AdminRoute>
+            } />
+            <Route path="partners" element={
+              <AdminRoute user={user}>
+                <PartnerManagement />
               </AdminRoute>
             } />
           </Route>

@@ -125,6 +125,7 @@ const Settings = ({ settings, fetchSettings }) => {
         quarry_name: 'Mukindpur Sand Quarry',
         quarry_address: 'Mukindpur, District Office',
         default_rate: '1200',
+        default_partner_rate: '1000',
         loading_charge: '150',
         receipt_prefix: 'GM',
         receipt_start: '9001',
@@ -298,7 +299,24 @@ const Settings = ({ settings, fetchSettings }) => {
                   min="0"
                   step="1"
                 />
-                <p className="mt-1 text-sm text-gray-500">Default price per unit</p>
+                <p className="mt-1 text-sm text-gray-500">Default price for regular customers</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Partner Rate per {formData.unit || 'Brass'} *
+                </label>
+                <input
+                  type="number"
+                  name="default_partner_rate"
+                  value={formData.default_partner_rate || ''}
+                  onChange={handleInputChange}
+                  className="input-field"
+                  placeholder="Enter partner rate"
+                  min="0"
+                  step="1"
+                />
+                <p className="mt-1 text-sm text-gray-500">Discounted price for partner customers</p>
               </div>
               
               <div>

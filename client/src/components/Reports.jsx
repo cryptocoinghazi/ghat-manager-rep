@@ -62,7 +62,8 @@ const Reports = () => {
     monthly: null,
     financial: null,
     client: null,
-    expense: null
+    expense: null,
+    partnerRoyalty: null
   });
 
   // Format time to IST
@@ -162,6 +163,16 @@ const Reports = () => {
             }
           });
           setReportsData(prev => ({ ...prev, expense: response.data }));
+          break;
+          
+        case 'partnerRoyalty':
+          response = await axios.get('/api/reports/partner-royalty', {
+            params: {
+              startDate: dateRange.startDate,
+              endDate: dateRange.endDate
+            }
+          });
+          setReportsData(prev => ({ ...prev, partnerRoyalty: response.data }));
           break;
           
         default:
@@ -941,6 +952,183 @@ const Reports = () => {
     );
   };
 
+  // Render Partner Royalty Report
+  const renderPartnerRoyaltyReport = () => {
+    if (!reportsData.partnerRoyalty) return null;
+    
+    const { partnerSummary, regularSummary, partnerTotals, regularTotals, royalty, period } = reportsData.partnerRoyalty;
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Partner Royalty Report</h3>
+            <p className="text-sm text-gray-500">
+              From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
+            </p>
+          </div>
+        </div>
+
+        {/* Royalty Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-600">Partner Trips</p>
+                <p className="text-2xl font-bold text-green-700">{partnerTotals?.trips || 0}</p>
+                <p className="text-xs text-green-600">{partnerTotals?.brass?.toFixed(2) || 0} Brass</p>
+              </div>
+              <FiUsers className="h-8 w-8 text-green-400" />
+            </div>
+          </div>
+          
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600">Regular Trips</p>
+                <p className="text-2xl font-bold text-blue-700">{regularTotals?.trips || 0}</p>
+                <p className="text-xs text-blue-600">{regularTotals?.brass?.toFixed(2) || 0} Brass</p>
+              </div>
+              <FiTruck className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-600">Rate Difference</p>
+                <p className="text-2xl font-bold text-purple-700">{formatCurrency(royalty?.rateDifference || 0)}</p>
+                <p className="text-xs text-purple-600">per Brass</p>
+              </div>
+              <FiTrendingDown className="h-8 w-8 text-purple-400" />
+            </div>
+          </div>
+          
+          <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-600 font-semibold">Partner Royalty</p>
+                <p className="text-2xl font-bold text-orange-700">{formatCurrency(royalty?.royaltyAmount || 0)}</p>
+                <p className="text-xs text-orange-600">Total Savings</p>
+              </div>
+              <FaRupeeSign className="h-8 w-8 text-orange-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Rate Comparison */}
+        <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+          <h4 className="text-md font-semibold text-gray-900 mb-4">Rate Comparison</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-blue-600">Regular Rate</p>
+              <p className="text-xl font-bold text-blue-700">{formatCurrency(royalty?.regularRate || 0)}/Brass</p>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-green-600">Partner Rate</p>
+              <p className="text-xl font-bold text-green-700">{formatCurrency(royalty?.partnerRate || 0)}/Brass</p>
+            </div>
+            <div className="bg-orange-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-orange-600">Partner Discount</p>
+              <p className="text-xl font-bold text-orange-700">{formatCurrency(royalty?.rateDifference || 0)}/Brass</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Partner Summary Table */}
+        {partnerSummary && partnerSummary.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-green-50">
+              <h4 className="text-md font-semibold text-green-800">Partner Owners</h4>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trips</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Rate</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash Paid</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {partnerSummary.map((owner, index) => (
+                    <tr key={index} className="hover:bg-green-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <div className="flex items-center">
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full mr-2">Partner</span>
+                          {owner.truck_owner}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_trips}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_brass?.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(owner.avg_rate)}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(owner.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-green-600">{formatCurrency(owner.total_cash)}</td>
+                      <td className="px-4 py-3 text-sm text-red-600">{formatCurrency(owner.total_credit)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Regular Summary Table */}
+        {regularSummary && regularSummary.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-blue-50">
+              <h4 className="text-md font-semibold text-blue-800">Regular Owners</h4>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trips</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Rate</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash Paid</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {regularSummary.slice(0, 10).map((owner, index) => (
+                    <tr key={index} className="hover:bg-blue-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <div className="flex items-center">
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full mr-2">Regular</span>
+                          {owner.truck_owner}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_trips}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_brass?.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(owner.avg_rate)}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(owner.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-green-600">{formatCurrency(owner.total_cash)}</td>
+                      <td className="px-4 py-3 text-sm text-red-600">{formatCurrency(owner.total_credit)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {(!partnerSummary || partnerSummary.length === 0) && (!regularSummary || regularSummary.length === 0) && (
+          <div className="text-center py-12">
+            <FiUsers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">No transaction data found for selected date range</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -970,7 +1158,8 @@ const Reports = () => {
               { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
               { id: 'financial', label: 'Financial Summary', icon: FiDollarSign },
               { id: 'client', label: 'Client Report', icon: FiUsers },
-              { id: 'expense', label: 'Expense Report', icon: FiTrendingDown }
+              { id: 'expense', label: 'Expense Report', icon: FiTrendingDown },
+              { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1061,6 +1250,7 @@ const Reports = () => {
               {activeReport === 'financial' && renderFinancialSummary()}
               {activeReport === 'client' && renderClientReport()}
               {activeReport === 'expense' && renderExpenseReport()}
+              {activeReport === 'partnerRoyalty' && renderPartnerRoyaltyReport()}
             </>
           )}
         </div>

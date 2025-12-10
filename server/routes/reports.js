@@ -3,6 +3,126 @@ import { getDB } from '../db.js';
 
 const router = express.Router();
 
+// Get partner royalty report
+router.get('/partner-royalty', async (req, res) => {
+  try {
+    const db = getDB();
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
+    const end = endDate || new Date().toISOString().split('T')[0];
+    
+    // Get partner-wise summary
+    const partnerSummary = await db.all(`
+      SELECT 
+        r.truck_owner,
+        t.is_partner,
+        t.partner_rate,
+        COUNT(*) as total_trips,
+        SUM(r.brass_qty) as total_brass,
+        SUM(r.total_amount) as total_amount,
+        SUM(r.cash_paid) as total_cash,
+        SUM(r.credit_amount) as total_credit,
+        AVG(r.rate) as avg_rate,
+        r.owner_type
+      FROM receipts r
+      LEFT JOIN truck_owners t ON r.truck_owner = t.name
+      WHERE date(r.date_time) BETWEEN date(?) AND date(?)
+        AND r.is_active = 1
+      GROUP BY r.truck_owner
+      ORDER BY total_amount DESC
+    `, [start, end]);
+    
+    // Get partner totals
+    const partnerTotals = await db.get(`
+      SELECT 
+        COUNT(*) as total_trips,
+        SUM(brass_qty) as total_brass,
+        SUM(total_amount) as total_amount,
+        SUM(cash_paid) as total_cash,
+        SUM(credit_amount) as total_credit
+      FROM receipts
+      WHERE date(date_time) BETWEEN date(?) AND date(?)
+        AND owner_type = 'partner'
+        AND is_active = 1
+    `, [start, end]);
+    
+    // Get regular totals
+    const regularTotals = await db.get(`
+      SELECT 
+        COUNT(*) as total_trips,
+        SUM(brass_qty) as total_brass,
+        SUM(total_amount) as total_amount,
+        SUM(cash_paid) as total_cash,
+        SUM(credit_amount) as total_credit
+      FROM receipts
+      WHERE date(date_time) BETWEEN date(?) AND date(?)
+        AND (owner_type = 'regular' OR owner_type IS NULL)
+        AND is_active = 1
+    `, [start, end]);
+    
+    // Calculate royalty (difference between regular and partner rates)
+    // Get settings for default rates
+    const defaultRate = await db.get("SELECT value FROM settings WHERE key = 'default_rate'");
+    const defaultPartnerRate = await db.get("SELECT value FROM settings WHERE key = 'default_partner_rate'");
+    
+    const regularRate = parseFloat(defaultRate?.value) || 1200;
+    const partnerRate = parseFloat(defaultPartnerRate?.value) || 1000;
+    const rateDifference = regularRate - partnerRate;
+    
+    // Calculate potential royalty from partner transactions
+    const partnerBrass = parseFloat(partnerTotals?.total_brass) || 0;
+    const royaltyAmount = partnerBrass * rateDifference;
+    
+    // Get daily breakdown
+    const dailyBreakdown = await db.all(`
+      SELECT 
+        date(date_time) as date,
+        owner_type,
+        COUNT(*) as trips,
+        SUM(brass_qty) as brass,
+        SUM(total_amount) as amount
+      FROM receipts
+      WHERE date(date_time) BETWEEN date(?) AND date(?)
+        AND is_active = 1
+      GROUP BY date(date_time), owner_type
+      ORDER BY date DESC
+    `, [start, end]);
+    
+    res.json({
+      period: { startDate: start, endDate: end },
+      partnerSummary: partnerSummary.filter(p => p.owner_type === 'partner' || p.is_partner),
+      regularSummary: partnerSummary.filter(p => p.owner_type !== 'partner' && !p.is_partner),
+      allOwners: partnerSummary,
+      partnerTotals: {
+        trips: partnerTotals?.total_trips || 0,
+        brass: partnerTotals?.total_brass || 0,
+        amount: partnerTotals?.total_amount || 0,
+        cash: partnerTotals?.total_cash || 0,
+        credit: partnerTotals?.total_credit || 0
+      },
+      regularTotals: {
+        trips: regularTotals?.total_trips || 0,
+        brass: regularTotals?.total_brass || 0,
+        amount: regularTotals?.total_amount || 0,
+        cash: regularTotals?.total_cash || 0,
+        credit: regularTotals?.total_credit || 0
+      },
+      royalty: {
+        regularRate,
+        partnerRate,
+        rateDifference,
+        partnerBrass,
+        royaltyAmount
+      },
+      dailyBreakdown
+    });
+  } catch (error) {
+    console.error('Error generating partner royalty report:', error);
+    res.status(500).json({ error: 'Failed to generate partner royalty report' });
+  }
+});
+
 // Get credit report
 router.get('/credit-report', async (req, res) => {
   try {
