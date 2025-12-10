@@ -220,6 +220,38 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       rate: rateToApply.toString()
     }));
   };
+
+  // Handle vehicle number changes - auto-suggest truck owners
+  const handleVehicleNumberChange = (e) => {
+    const vehicleNumber = e.target.value;
+    handleInputChange(e);
+    
+    if (vehicleNumber.length > 0) {
+      // Find owner by vehicle number
+      const ownerInfo = truckOwners?.find(owner => 
+        owner.vehicle_number && owner.vehicle_number.toLowerCase().includes(vehicleNumber.toLowerCase())
+      );
+      
+      if (ownerInfo) {
+        setSelectedOwnerInfo(ownerInfo);
+        let rateToApply = flatSettings.default_rate || '1200';
+        
+        if (ownerInfo.is_partner) {
+          rateToApply = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          truck_owner: ownerInfo.name,
+          rate: rateToApply.toString()
+        }));
+      } else {
+        setSelectedOwnerInfo(null);
+      }
+    } else {
+      setSelectedOwnerInfo(null);
+    }
+  };
   
   // Check owner when truck_owner field changes manually
   const handleOwnerChange = (e) => {
@@ -456,7 +488,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               </div>
 
               {/* Vehicle Number */}
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Vehicle Number *
                   {errors.vehicle_number && (
@@ -467,11 +499,40 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   type="text"
                   name="vehicle_number"
                   value={formData.vehicle_number}
-                  onChange={handleInputChange}
+                  onChange={handleVehicleNumberChange}
                   className={`w-full px-3 py-2 border ${errors.vehicle_number ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="MH-31-XXXX"
                   style={{ textTransform: 'uppercase' }}
                 />
+                
+                {/* Vehicle number suggestions dropdown */}
+                {formData.vehicle_number && truckOwners.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {truckOwners
+                      .filter(owner => 
+                        owner.vehicle_number && owner.vehicle_number.toLowerCase().includes(formData.vehicle_number.toLowerCase())
+                      )
+                      .slice(0, 5)
+                      .map(owner => (
+                        <div
+                          key={owner.id}
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              vehicle_number: owner.vehicle_number,
+                              truck_owner: owner.name
+                            }));
+                            handleQuickFill(owner.name);
+                          }}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="font-medium">{owner.vehicle_number}</div>
+                          <div className="text-sm text-gray-600">{owner.name}</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
               </div>
 
               {/* Brass Quantity */}
