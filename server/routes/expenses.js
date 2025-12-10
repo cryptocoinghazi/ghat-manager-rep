@@ -85,7 +85,94 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// Get single expense
+// Daily expense report - MUST be before /:id route
+router.get('/reports/daily', async (req, res) => {
+  try {
+    const db = getDB();
+    const { date } = req.query;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    
+    const expenses = await db.all(
+      `SELECT * FROM expenses WHERE date = ? ORDER BY category, amount DESC`,
+      [targetDate]
+    );
+    
+    const summary = await db.all(
+      `SELECT category, COUNT(*) as count, SUM(amount) as total
+       FROM expenses WHERE date = ? GROUP BY category`,
+      [targetDate]
+    );
+    
+    const totalAmount = summary.reduce((sum, item) => sum + (item.total || 0), 0);
+    
+    res.json({
+      date: targetDate,
+      expenses,
+      summary: {
+        totalCount: expenses.length,
+        totalAmount,
+        categoryBreakdown: summary
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching daily report:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Monthly expense report - MUST be before /:id route
+router.get('/reports/monthly', async (req, res) => {
+  try {
+    const db = getDB();
+    const { year, month } = req.query;
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    
+    const targetYear = year || currentYear;
+    const targetMonth = month || currentMonth;
+    
+    const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+    const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-31`;
+    
+    const expenses = await db.all(
+      `SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date, category`,
+      [startDate, endDate]
+    );
+    
+    const dailyTotals = await db.all(
+      `SELECT date, COUNT(*) as count, SUM(amount) as total
+       FROM expenses WHERE date BETWEEN ? AND ? GROUP BY date ORDER BY date`,
+      [startDate, endDate]
+    );
+    
+    const categoryTotals = await db.all(
+      `SELECT category, SUM(amount) as total
+       FROM expenses WHERE date BETWEEN ? AND ? GROUP BY category ORDER BY total DESC`,
+      [startDate, endDate]
+    );
+    
+    const monthlyTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    res.json({
+      period: `${targetYear}-${String(targetMonth).padStart(2, '0')}`,
+      expenses,
+      summary: {
+        monthlyTotal,
+        totalExpenses: expenses.length,
+        dailyTotals,
+        categoryTotals,
+        averageDaily: dailyTotals.length > 0 ? monthlyTotal / dailyTotals.length : 0,
+        startDate,
+        endDate
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching monthly report:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single expense - MUST be after all specific routes
 router.get('/:id', async (req, res) => {
   try {
     const db = getDB();
@@ -184,93 +271,6 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting expense:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Daily expense report
-router.get('/reports/daily', async (req, res) => {
-  try {
-    const db = getDB();
-    const { date } = req.query;
-    const targetDate = date || new Date().toISOString().split('T')[0];
-    
-    const expenses = await db.all(
-      `SELECT * FROM expenses WHERE date = ? ORDER BY category, amount DESC`,
-      [targetDate]
-    );
-    
-    const summary = await db.all(
-      `SELECT category, COUNT(*) as count, SUM(amount) as total
-       FROM expenses WHERE date = ? GROUP BY category`,
-      [targetDate]
-    );
-    
-    const totalAmount = summary.reduce((sum, item) => sum + (item.total || 0), 0);
-    
-    res.json({
-      date: targetDate,
-      expenses,
-      summary: {
-        totalCount: expenses.length,
-        totalAmount,
-        categoryBreakdown: summary
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching daily report:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Monthly expense report
-router.get('/reports/monthly', async (req, res) => {
-  try {
-    const db = getDB();
-    const { year, month } = req.query;
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    
-    const targetYear = year || currentYear;
-    const targetMonth = month || currentMonth;
-    
-    const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
-    const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-31`;
-    
-    const expenses = await db.all(
-      `SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date, category`,
-      [startDate, endDate]
-    );
-    
-    const dailyTotals = await db.all(
-      `SELECT date, COUNT(*) as count, SUM(amount) as total
-       FROM expenses WHERE date BETWEEN ? AND ? GROUP BY date ORDER BY date`,
-      [startDate, endDate]
-    );
-    
-    const categoryTotals = await db.all(
-      `SELECT category, SUM(amount) as total
-       FROM expenses WHERE date BETWEEN ? AND ? GROUP BY category ORDER BY total DESC`,
-      [startDate, endDate]
-    );
-    
-    const monthlyTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    
-    res.json({
-      period: `${targetYear}-${String(targetMonth).padStart(2, '0')}`,
-      expenses,
-      summary: {
-        monthlyTotal,
-        totalExpenses: expenses.length,
-        dailyTotals,
-        categoryTotals,
-        averageDaily: dailyTotals.length > 0 ? monthlyTotal / dailyTotals.length : 0,
-        startDate,
-        endDate
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching monthly report:', error);
     res.status(500).json({ error: error.message });
   }
 });
