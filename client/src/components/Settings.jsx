@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield } from 'react-icons/fi';
+import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2 } from 'react-icons/fi';
 import { FaDollarSign } from 'react-icons/fa';
 
 const Settings = ({ settings, fetchSettings }) => {
@@ -157,6 +157,19 @@ const Settings = ({ settings, fetchSettings }) => {
     } catch (error) {
       console.error('Error adding truck owner:', error);
       toast.error(error.response?.data?.error || 'Failed to add truck owner');
+    }
+  };
+
+  const handleDeleteTruckOwner = async (ownerId, ownerName) => {
+    if (window.confirm(`Are you sure you want to delete ${ownerName}?`)) {
+      try {
+        await axios.delete(`/api/settings/truck-owners/${ownerId}`);
+        toast.success('Truck owner deleted successfully!');
+        await fetchTruckOwners();
+      } catch (error) {
+        console.error('Error deleting truck owner:', error);
+        toast.error(error.response?.data?.error || 'Failed to delete truck owner');
+      }
     }
   };
 
@@ -587,6 +600,7 @@ const Settings = ({ settings, fetchSettings }) => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Number</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -596,6 +610,15 @@ const Settings = ({ settings, fetchSettings }) => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.vehicle_number || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.contact || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.address || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleDeleteTruckOwner(owner.id, owner.name)}
+                              className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded transition-colors"
+                              title="Delete owner"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -308,6 +308,32 @@ router.put('/truck-owners/:id/toggle-partner', async (req, res) => {
   }
 });
 
+// Delete truck owner
+router.delete('/truck-owners/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const db = getDB();
+    
+    const existing = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+    
+    await db.run(
+      'DELETE FROM truck_owners WHERE id = ?',
+      [id]
+    );
+    
+    res.json({ 
+      message: 'Truck owner deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting truck owner:', error);
+    res.status(500).json({ error: 'Failed to delete truck owner' });
+  }
+});
+
 // Get partner stats
 router.get('/partner-stats', async (req, res) => {
   try {
