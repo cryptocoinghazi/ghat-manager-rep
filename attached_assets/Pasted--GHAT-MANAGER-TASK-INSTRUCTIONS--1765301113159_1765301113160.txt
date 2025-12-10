@@ -1,0 +1,150 @@
+# ================================
+#  GHAT MANAGER — TASK INSTRUCTIONS
+# ================================
+# You are modifying the repo:
+# https://github.com/cryptocoinghazi/ghat-manager-rep.git
+#
+# Your job is to review features, fix missing ones, and add
+# proper user/admin permissions + reporting system.
+#
+# Follow ALL tasks below accurately.
+
+# -----------------------------------------------------------
+#   SECTION 1 — VERIFY EXISTING FEATURE IMPLEMENTATION
+# -----------------------------------------------------------
+Check the entire codebase and verify if the following features exist:
+
+1. QUICK RECEIPTS  
+   - Ability to generate a receipt with basic fields  
+   - Ability to save the receipt to DB  
+   - Ability to print / download PDF  
+
+2. DAILY REGISTER  
+   - Daily collection entries  
+   - Member + Amount + Date  
+   - Totals per day  
+
+3. EXPENSES  
+   - Expense entry model exists  
+   - Ability to add, edit, delete expenses  
+   - Amount + Category + Notes + Date  
+
+4. REPORTS TAB  
+   Verify ALL reports exist and work:
+   - Daily Report  
+   - Monthly Report  
+   - Member-wise Summary  
+   - Expense Report  
+   - PDF Export for each report  
+
+If any of the above do NOT exist or are partially implemented, you must add or complete them.
+
+# -----------------------------------------------------------
+#   SECTION 2 — PERMISSIONS SYSTEM IMPROVEMENTS
+# -----------------------------------------------------------
+Implement a role-based permission system:
+
+ROLES:
+- admin
+- user
+
+RULES:
+1. ADMIN can access:
+   - quick receipts
+   - daily register
+   - expenses
+   - reports
+   - settings
+   - user management
+
+2. USER can access ONLY:
+   - quick receipts
+   - daily register
+   - expenses
+   - reports (only viewing, no delete)
+
+3. USERS MUST NOT SEE:
+   - settings page
+   - user management page
+
+Back-end middleware required:
+- create `authMiddleware.js`
+- add `requireRole("admin")` and `requireRole("user")`
+- protect all admin-only routes
+
+Front-end required:
+- Hide navigation items not permitted  
+- Redirect unauthorized access requests  
+
+# -----------------------------------------------------------
+#   SECTION 3 — ALLOW USERS TO ADD EXPENSES
+# -----------------------------------------------------------
+Users should be able to add expenses just like admin.
+
+Steps:
+1. Update backend `/api/expenses/create` to allow both admin + user  
+2. Add UI button “Add Expense” on user dashboard  
+3. Show only expenses created by the logged-in user  
+4. Admin sees ALL expenses  
+
+# -----------------------------------------------------------
+#   SECTION 4 — COMPLETE REPORTS SYSTEM
+# -----------------------------------------------------------
+You must ensure the Reports tab contains:
+
+1. Daily Collection Report  
+2. Monthly Totals Report  
+3. Member Summary Report  
+4. Expense Summary Report  
+5. Export to PDF for each report  
+
+If any report is missing:
+- create required routes in backend under `/api/reports/...`
+- create React pages inside `/client/src/pages/reports/`
+- use existing `pdfGenerator.js`  
+- ensure improved report layouts  
+
+# -----------------------------------------------------------
+#   SECTION 5 — DATABASE TABLE VALIDATION
+# -----------------------------------------------------------
+Ensure SQLite tables exist with correct structure:
+
+TABLES REQUIRED:  
+- users  
+- receipts  
+- daily_register  
+- expenses  
+- settings  
+
+If any column is missing:
+- alter table OR migrate schema  
+- ensure proper foreign keys where needed  
+
+# -----------------------------------------------------------
+#   SECTION 6 — UI/UX FIXES
+# -----------------------------------------------------------
+Make the following improvements:
+
+1. Sidebar menu must show different items for admin and user  
+2. Add a Dashboard home page  
+3. Add loading indicators for all API calls  
+4. Improve PDF layouts (remove blank space, add logo placeholder)  
+
+# -----------------------------------------------------------
+#   SECTION 7 — FINAL OUTPUT
+# -----------------------------------------------------------
+Once all tasks are completed, produce:
+
+1. Full folder diff (list of files changed)  
+2. Full code patches for backend and frontend  
+3. Updated SQL schema  
+4. A final “FEATURE STATUS REPORT” showing:
+   - features verified
+   - new features added
+   - bugs fixed
+   - permission system running
+   - deployment readiness  
+
+# ================================
+# END OF INSTRUCTION FILE
+# ================================
