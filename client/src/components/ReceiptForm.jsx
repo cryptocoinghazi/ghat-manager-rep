@@ -173,62 +173,48 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   };
 
-  const handleQuickFill = async (ownerName) => {
+  const handleQuickFill = (ownerName) => {
+    // Find owner in truckOwners array
+    const ownerInfo = truckOwners?.find(owner => owner.name === ownerName || owner.truck_owner === ownerName);
+    setSelectedOwnerInfo(ownerInfo || null);
+    
+    let rateToApply = flatSettings.default_rate || '1200';
+    
+    if (ownerInfo && ownerInfo.is_partner) {
+      // Apply partner rate from owner's custom rate or default partner rate
+      rateToApply = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+    }
+    
     setFormData(prev => ({
       ...prev,
-      truck_owner: ownerName
+      truck_owner: ownerName,
+      rate: rateToApply.toString()
     }));
-    
-    // Fetch owner info to check if partner and apply rate
-    try {
-      const response = await axios.get(`/api/settings/truck-owners/by-name/${encodeURIComponent(ownerName)}`);
-      const ownerInfo = response.data;
-      setSelectedOwnerInfo(ownerInfo);
-      
-      if (ownerInfo && ownerInfo.is_partner) {
-        // Apply partner rate
-        const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate;
-        setFormData(prev => ({
-          ...prev,
-          truck_owner: ownerName,
-          rate: partnerRate.toString()
-        }));
-      } else {
-        // Apply regular rate
-        setFormData(prev => ({
-          ...prev,
-          truck_owner: ownerName,
-          rate: flatSettings.default_rate || '1200'
-        }));
-        setSelectedOwnerInfo(ownerInfo);
-      }
-    } catch (error) {
-      console.error('Error fetching owner info:', error);
-      setSelectedOwnerInfo(null);
-    }
   };
   
   // Check owner when truck_owner field changes manually
-  const handleOwnerChange = async (e) => {
+  const handleOwnerChange = (e) => {
     const ownerName = e.target.value;
     handleInputChange(e);
     
-    // Debounce the API call
     if (ownerName.length > 2) {
-      try {
-        const response = await axios.get(`/api/settings/truck-owners/by-name/${encodeURIComponent(ownerName)}`);
-        const ownerInfo = response.data;
-        setSelectedOwnerInfo(ownerInfo);
-        
-        if (ownerInfo && ownerInfo.is_partner) {
-          const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate;
-          setFormData(prev => ({
-            ...prev,
-            rate: partnerRate.toString()
-          }));
-        }
-      } catch (error) {
-        setSelectedOwnerInfo(null);
+      // Find owner in truckOwners array
+      const ownerInfo = truckOwners?.find(owner => owner.name === ownerName || owner.truck_owner === ownerName);
+      setSelectedOwnerInfo(ownerInfo || null);
+      
+      if (ownerInfo && ownerInfo.is_partner) {
+        // Apply partner rate from owner's custom rate or default partner rate
+        const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+        setFormData(prev => ({
+          ...prev,
+          rate: partnerRate.toString()
+        }));
+      } else if (ownerInfo) {
+        // Apply regular rate
+        setFormData(prev => ({
+          ...prev,
+          rate: (flatSettings.default_rate || '1200').toString()
+        }));
       }
     } else {
       setSelectedOwnerInfo(null);
