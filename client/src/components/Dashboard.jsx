@@ -217,7 +217,7 @@ const Dashboard = ({ user }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid ${user?.role === 'admin' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'} gap-4`}>
         <Link
           to="/receipt"
           className="flex items-center justify-center space-x-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-sm p-5 hover:from-blue-600 hover:to-blue-700 transition-all"
@@ -234,13 +234,15 @@ const Dashboard = ({ user }) => {
           <span className="text-lg font-semibold">Add Expense</span>
         </Link>
 
-        <Link
-          to="/reports"
-          className="flex items-center justify-center space-x-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg shadow-sm p-5 hover:from-purple-600 hover:to-purple-700 transition-all"
-        >
-          <FiBarChart2 className="h-6 w-6" />
-          <span className="text-lg font-semibold">View Reports</span>
-        </Link>
+        {user?.role === 'admin' && (
+          <Link
+            to="/reports"
+            className="flex items-center justify-center space-x-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg shadow-sm p-5 hover:from-purple-600 hover:to-purple-700 transition-all"
+          >
+            <FiBarChart2 className="h-6 w-6" />
+            <span className="text-lg font-semibold">View Reports</span>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -359,9 +361,11 @@ const Dashboard = ({ user }) => {
               <FiCreditCard className="h-5 w-5 mr-2 text-orange-600" />
               Top Credit Customers
             </h2>
-            <Link to="/reports" className="text-sm text-blue-600 hover:text-blue-800">
-              View Full Report
-            </Link>
+            {user?.role === 'admin' && (
+              <Link to="/reports" className="text-sm text-blue-600 hover:text-blue-800">
+                View Full Report
+              </Link>
+            )}
           </div>
           <div className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
