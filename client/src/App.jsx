@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import Layout from './components/Layout';
+import Dashboard from './components/Dashboard';
 import ReceiptForm from './components/ReceiptForm';
 import DailyRegister from './components/DailyRegister';
 import Settings from './components/Settings';
@@ -136,7 +137,8 @@ function App() {
         
         <Routes>
           <Route path="/" element={<Layout user={user} onLogout={handleLogout} />}>
-            <Route index element={<Navigate to="/receipt" replace />} />
+            <Route index element={<Dashboard user={user} />} />
+            <Route path="dashboard" element={<Dashboard user={user} />} />
             <Route path="receipt" element={
               <ReceiptForm 
                 settings={settings}

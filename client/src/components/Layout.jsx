@@ -195,6 +195,7 @@ const Layout = ({ user, onLogout }) => {
   }, []);
 
   const allNavigation = [
+    { name: 'Dashboard', href: '/', icon: FiHome, color: 'text-blue-600', roles: ['admin', 'user'] },
     { name: 'Quick Receipt', href: '/receipt', icon: FiFileText, color: 'text-blue-600', roles: ['admin', 'user'] },
     { name: 'Daily Register', href: '/register', icon: FiDatabase, color: 'text-green-600', roles: ['admin', 'user'] },
     { name: 'Expenses', href: '/expenses', icon: FiDollarSign, color: 'text-red-600', roles: ['admin', 'user'] },

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import {
+  generateCreditReportPDF,
+  generateMonthlyReportPDF,
+  generateFinancialSummaryPDF,
+  generateExpenseReportPDF
+} from '../utils/pdfGenerator';
 import {
   FiFilter,
   FiDownload,
@@ -222,6 +226,54 @@ const Reports = () => {
     }
   };
 
+  const handleExportPDF = (reportType) => {
+    try {
+      switch (reportType) {
+        case 'credit':
+          if (!reportsData.credit) {
+            toast.error('No credit report data available');
+            return;
+          }
+          generateCreditReportPDF(reportsData.credit);
+          break;
+          
+        case 'monthly':
+          if (!reportsData.monthly) {
+            toast.error('No monthly report data available');
+            return;
+          }
+          generateMonthlyReportPDF(reportsData.monthly, selectedMonth);
+          break;
+          
+        case 'financial':
+          if (!reportsData.financial) {
+            toast.error('No financial summary data available');
+            return;
+          }
+          generateFinancialSummaryPDF(reportsData.financial, dateRange);
+          break;
+          
+        case 'expense':
+          if (!reportsData.expense) {
+            toast.error('No expense report data available');
+            return;
+          }
+          generateExpenseReportPDF(reportsData.expense);
+          break;
+          
+        default:
+          toast.error('Unknown report type');
+          return;
+      }
+      
+      toast.success('PDF exported successfully!');
+      
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF');
+    }
+  };
+
   // Format currency
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -283,6 +335,13 @@ const Reports = () => {
             Credit Report - Pending Payments
           </h3>
           <div className="flex space-x-2">
+            <button
+              onClick={() => handleExportPDF('credit')}
+              className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+            >
+              <FiFileText className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
             <button
               onClick={() => handleExportCSV('credit')}
               className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
@@ -403,6 +462,13 @@ const Reports = () => {
           </div>
           <div className="flex space-x-2">
             <button
+              onClick={() => handleExportPDF('monthly')}
+              className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+            >
+              <FiFileText className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
+            <button
               onClick={() => handleExportCSV('monthly')}
               className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
             >
@@ -500,6 +566,13 @@ const Reports = () => {
             </p>
           </div>
           <div className="flex space-x-2">
+            <button
+              onClick={() => handleExportPDF('financial')}
+              className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+            >
+              <FiFileText className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
             <button
               onClick={() => handleExportCSV('financial')}
               className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
@@ -616,6 +689,13 @@ const Reports = () => {
             </p>
           </div>
           <div className="flex space-x-2">
+            <button
+              onClick={() => handleExportPDF('expense')}
+              className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+            >
+              <FiFileText className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
             <button
               onClick={() => handleExportCSV('expense')}
               className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
