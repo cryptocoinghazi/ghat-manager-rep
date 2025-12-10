@@ -67,6 +67,7 @@ const PartnerManagement = () => {
     setEditingId(owner.id);
     setEditForm({
       name: owner.name,
+      vehicle_number: owner.vehicle_number || '',
       phone: owner.phone || '',
       address: owner.address || '',
       is_partner: owner.is_partner,
@@ -255,6 +256,14 @@ const PartnerManagement = () => {
                         <td className="px-4 py-3">
                           <input
                             type="text"
+                            value={editForm.vehicle_number || ''}
+                            onChange={e => setEditForm({...editForm, vehicle_number: e.target.value})}
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
                             value={editForm.phone}
                             onChange={e => setEditForm({...editForm, phone: e.target.value})}
                             className="w-full px-2 py-1 border border-gray-300 rounded"
@@ -301,6 +310,7 @@ const PartnerManagement = () => {
                     ) : (
                       <>
                         <td className="px-4 py-3 font-medium text-gray-900">{owner.name}</td>
+                        <td className="px-4 py-3 text-gray-600">{owner.vehicle_number || '-'}</td>
                         <td className="px-4 py-3 text-gray-600">{owner.phone || '-'}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
