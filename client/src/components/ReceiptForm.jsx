@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiPrinter, FiSave, FiUserPlus } from 'react-icons/fi';
+import { FiPrinter, FiSave } from 'react-icons/fi';
 import { FaCalculator } from 'react-icons/fa';
 import { generatePDF } from '../utils/pdfGenerator';
 import { refreshDashboardStats } from './Layout';
@@ -28,8 +28,6 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
   const [receiptNumber, setReceiptNumber] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showNewOwnerModal, setShowNewOwnerModal] = useState(false);
-  const [newOwner, setNewOwner] = useState('');
   const [errors, setErrors] = useState({});
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [selectedOwnerInfo, setSelectedOwnerInfo] = useState(null);
@@ -92,6 +90,17 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     fetchNextReceiptNumber();
     fetchRecentTransactions();
   }, []);
+
+  // Refresh truck owners periodically to catch newly added owners dynamically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (fetchTruckOwners) {
+        fetchTruckOwners();
+      }
+    }, 5000); // Refresh every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [fetchTruckOwners]);
 
   const fetchNextReceiptNumber = async () => {
     try {
@@ -243,21 +252,6 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   };
 
-  const handleAddNewOwner = async () => {
-    if (newOwner.trim()) {
-      try {
-        await axios.post('/api/settings/truck-owners', { name: newOwner.trim() });
-        fetchTruckOwners();
-        handleQuickFill(newOwner.trim());
-        setNewOwner('');
-        setShowNewOwnerModal(false);
-        toast.success('New truck owner added');
-      } catch (error) {
-        console.error('Error adding truck owner:', error);
-        toast.error('Failed to add truck owner');
-      }
-    }
-  };
 
   const handleFullPayment = () => {
     setFormData(prev => ({
@@ -409,30 +403,19 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   )}
                 </label>
                 <div className="relative">
-                  <div className="flex space-x-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        name="truck_owner"
-                        value={formData.truck_owner}
-                        onChange={handleOwnerChange}
-                        className={`w-full px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${selectedOwnerInfo?.is_partner ? 'pr-20' : ''}`}
-                        placeholder="Enter owner name"
-                      />
-                      {selectedOwnerInfo?.is_partner && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                          Partner
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => setShowNewOwnerModal(true)}
-                      className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center space-x-2 whitespace-nowrap"
-                    >
-                      <FiUserPlus className="h-4 w-4" />
-                      <span>New</span>
-                    </button>
-                  </div>
+                  <input
+                    type="text"
+                    name="truck_owner"
+                    value={formData.truck_owner}
+                    onChange={handleOwnerChange}
+                    className={`w-full px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${selectedOwnerInfo?.is_partner ? 'pr-20' : ''}`}
+                    placeholder="Enter owner name"
+                  />
+                  {selectedOwnerInfo?.is_partner && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                      Partner
+                    </span>
+                  )}
                   
                   {/* Owner suggestions dropdown */}
                   {formData.truck_owner && truckOwners.length > 0 && (
@@ -750,37 +733,6 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         </div>
       </div>
 
-      {/* New Owner Modal */}
-      {showNewOwnerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Truck Owner</h3>
-            <input
-              type="text"
-              value={newOwner}
-              onChange={(e) => setNewOwner(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-              placeholder="Enter owner name"
-              onKeyPress={(e) => e.key === 'Enter' && handleAddNewOwner()}
-            />
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowNewOwnerModal(false)}
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddNewOwner}
-                disabled={!newOwner.trim()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                Add Owner
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
