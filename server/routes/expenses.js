@@ -1,7 +1,14 @@
 import express from 'express';
 import { getDB } from '../db.js';
+import { authenticate, requireRole, requireOwnerOrAdmin } from '../auth/authMiddleware.js';
 
 const router = express.Router();
+
+const getExpenseOwner = async (req) => {
+  const db = getDB();
+  const expense = await db.get('SELECT created_by FROM expenses WHERE id = ?', [req.params.id]);
+  return expense ? expense.created_by : null;
+};
 
 // Get all expenses with optional filters
 router.get('/', async (req, res) => {
@@ -11,6 +18,12 @@ router.get('/', async (req, res) => {
     
     let query = 'SELECT * FROM expenses WHERE 1=1';
     const params = [];
+    
+    // Role-based filtering: users can only see their own expenses
+    if (req.user && req.user.role !== 'admin') {
+      query += ' AND created_by = ?';
+      params.push(req.user.username);
+    }
     
     if (startDate && endDate) {
       query += ' AND date BETWEEN ? AND ?';
@@ -197,18 +210,21 @@ router.post('/', async (req, res) => {
       receipt_number, vendor_name, ghat_location, approved_by, remarks
     } = req.body;
     
+    // Get the created_by from the authenticated user
+    const created_by = req.user ? req.user.username : null;
+    
     const sql = `
       INSERT INTO expenses 
       (date, category, description, amount, payment_mode, receipt_number, 
-       vendor_name, ghat_location, approved_by, remarks)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       vendor_name, ghat_location, approved_by, remarks, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     const params = [
       date || new Date().toISOString().split('T')[0],
       category, description, amount, payment_mode || 'CASH',
       receipt_number || null, vendor_name || null, ghat_location, 
-      approved_by || null, remarks || null
+      approved_by || null, remarks || null, created_by
     ];
     
     const result = await db.run(sql, params);
@@ -223,8 +239,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update expense
-router.put('/:id', async (req, res) => {
+// Update expense - users can only update their own, admin can update all
+router.put('/:id', requireOwnerOrAdmin(getExpenseOwner), async (req, res) => {
   try {
     const db = getDB();
     const {
@@ -259,8 +275,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete expense
-router.delete('/:id', async (req, res) => {
+// Delete expense - only admin can delete
+router.delete('/:id', requireRole(['admin']), async (req, res) => {
   try {
     const db = getDB();
     const result = await db.run('DELETE FROM expenses WHERE id = ?', [req.params.id]);

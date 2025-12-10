@@ -70,7 +70,7 @@ app.use('/api/auth', authRoutes);
 
 // Protected routes - require authentication
 app.use('/api/receipts', authenticateToken, receiptRoutes);
-app.use('/api/settings', authenticateToken, settingsRoutes);
+app.use('/api/settings', authenticateToken, requireAdmin, settingsRoutes);
 app.use('/api/reports', authenticateToken, requireAdmin, reportsRoutes);
 app.use('/api/expenses', authenticateToken, expenseRoutes);
 

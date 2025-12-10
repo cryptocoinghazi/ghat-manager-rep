@@ -141,10 +141,19 @@ async function createTables() {
       approved_by TEXT,
       remarks TEXT,
       status TEXT DEFAULT 'APPROVED',
+      created_by TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Add created_by column if it doesn't exist (migration for existing databases)
+  try {
+    await db.exec(`ALTER TABLE expenses ADD COLUMN created_by TEXT`);
+    console.log('✅ Added created_by column to expenses table');
+  } catch (error) {
+    // Column already exists, ignore error
+  }
 
   // Create expense categories table
   await db.exec(`

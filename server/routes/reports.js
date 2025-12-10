@@ -577,6 +577,240 @@ router.get('/export/financial-csv', async (req, res) => {
   }
 });
 
+// Get expense summary
+router.get('/expense-summary', async (req, res) => {
+  try {
+    const db = getDB();
+    const { startDate, endDate } = req.query;
+    
+    const defaultEndDate = new Date().toISOString().split('T')[0];
+    const defaultStartDate = new Date();
+    defaultStartDate.setDate(defaultStartDate.getDate() - 30);
+    const formattedDefaultStartDate = defaultStartDate.toISOString().split('T')[0];
+    
+    const start = startDate || formattedDefaultStartDate;
+    const end = endDate || defaultEndDate;
+    
+    const totalExpenses = await db.get(`
+      SELECT 
+        COUNT(*) as total_count,
+        SUM(amount) as total_amount
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+    `, [start, end]);
+    
+    const categoryBreakdown = await db.all(`
+      SELECT 
+        category,
+        COUNT(*) as count,
+        SUM(amount) as total,
+        ROUND(SUM(amount) * 100.0 / (SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND ?), 2) as percentage
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+      GROUP BY category
+      ORDER BY total DESC
+    `, [start, end, start, end]);
+    
+    const dailyTotals = await db.all(`
+      SELECT 
+        date,
+        COUNT(*) as count,
+        SUM(amount) as total
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+      GROUP BY date
+      ORDER BY date DESC
+    `, [start, end]);
+    
+    res.json({
+      period: { startDate: start, endDate: end },
+      summary: {
+        totalCount: totalExpenses?.total_count || 0,
+        totalAmount: totalExpenses?.total_amount || 0
+      },
+      categoryBreakdown,
+      dailyTotals
+    });
+  } catch (error) {
+    console.error('Error generating expense summary:', error);
+    res.status(500).json({ error: 'Failed to generate expense summary' });
+  }
+});
+
+// Get daily expense report
+router.get('/daily-expense-report', async (req, res) => {
+  try {
+    const db = getDB();
+    const { date } = req.query;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    
+    const expenses = await db.all(`
+      SELECT * FROM expenses 
+      WHERE date = ? 
+      ORDER BY category, amount DESC
+    `, [targetDate]);
+    
+    const summary = await db.all(`
+      SELECT 
+        category,
+        COUNT(*) as count,
+        SUM(amount) as total
+      FROM expenses 
+      WHERE date = ? 
+      GROUP BY category
+      ORDER BY total DESC
+    `, [targetDate]);
+    
+    const totalAmount = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    
+    res.json({
+      date: targetDate,
+      expenses,
+      summary: {
+        totalCount: expenses.length,
+        totalAmount,
+        categoryBreakdown: summary
+      }
+    });
+  } catch (error) {
+    console.error('Error generating daily expense report:', error);
+    res.status(500).json({ error: 'Failed to generate daily expense report' });
+  }
+});
+
+// Get monthly expense report
+router.get('/monthly-expense-report', async (req, res) => {
+  try {
+    const db = getDB();
+    const { year, month } = req.query;
+    
+    const currentDate = new Date();
+    const targetYear = year || currentDate.getFullYear();
+    const targetMonth = month || String(currentDate.getMonth() + 1).padStart(2, '0');
+    
+    const startDate = `${targetYear}-${targetMonth}-01`;
+    const endDate = `${targetYear}-${targetMonth}-31`;
+    
+    const expenses = await db.all(`
+      SELECT * FROM expenses 
+      WHERE date BETWEEN ? AND ? 
+      ORDER BY date DESC, category
+    `, [startDate, endDate]);
+    
+    const categoryBreakdown = await db.all(`
+      SELECT 
+        category,
+        COUNT(*) as count,
+        SUM(amount) as total,
+        ROUND(SUM(amount) * 100.0 / NULLIF((SELECT SUM(amount) FROM expenses WHERE date BETWEEN ? AND ?), 0), 2) as percentage
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+      GROUP BY category
+      ORDER BY total DESC
+    `, [startDate, endDate, startDate, endDate]);
+    
+    const dailyTotals = await db.all(`
+      SELECT 
+        date,
+        COUNT(*) as count,
+        SUM(amount) as total
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+      GROUP BY date
+      ORDER BY date
+    `, [startDate, endDate]);
+    
+    const monthlyTotal = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    
+    res.json({
+      period: `${targetYear}-${targetMonth}`,
+      expenses,
+      summary: {
+        monthlyTotal,
+        totalExpenses: expenses.length,
+        averageDaily: dailyTotals.length > 0 ? monthlyTotal / dailyTotals.length : 0
+      },
+      categoryBreakdown,
+      dailyTotals
+    });
+  } catch (error) {
+    console.error('Error generating monthly expense report:', error);
+    res.status(500).json({ error: 'Failed to generate monthly expense report' });
+  }
+});
+
+// Export expense data to CSV
+router.get('/export/expense-csv', async (req, res) => {
+  try {
+    const db = getDB();
+    const { startDate, endDate } = req.query;
+    
+    const start = startDate || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
+    const end = endDate || new Date().toISOString().split('T')[0];
+    
+    const expenses = await db.all(`
+      SELECT 
+        date as "Date",
+        category as "Category",
+        description as "Description",
+        amount as "Amount (₹)",
+        payment_mode as "Payment Mode",
+        vendor_name as "Vendor",
+        ghat_location as "Ghat Location",
+        approved_by as "Approved By",
+        remarks as "Remarks",
+        created_by as "Created By"
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+      ORDER BY date DESC, category
+    `, [start, end]);
+    
+    const summary = await db.all(`
+      SELECT 
+        category as "Category",
+        COUNT(*) as "Count",
+        SUM(amount) as "Total (₹)"
+      FROM expenses 
+      WHERE date BETWEEN ? AND ?
+      GROUP BY category
+      ORDER BY SUM(amount) DESC
+    `, [start, end]);
+    
+    const totalExpense = await db.get(`
+      SELECT SUM(amount) as total FROM expenses WHERE date BETWEEN ? AND ?
+    `, [start, end]);
+    
+    const headers = ['Date', 'Category', 'Description', 'Amount (₹)', 'Payment Mode', 'Vendor', 'Ghat Location', 'Approved By', 'Remarks', 'Created By'];
+    const csvData = [
+      'EXPENSE REPORT',
+      `Period: ${start} to ${end}`,
+      `Total Expenses: ₹${totalExpense?.total || 0}`,
+      '',
+      'CATEGORY SUMMARY',
+      Object.keys(summary[0] || {}).join(','),
+      ...summary.map(item => Object.values(item).map(v => v === null ? '' : `"${v}"`).join(',')),
+      '',
+      'EXPENSE DETAILS',
+      headers.join(','),
+      ...expenses.map(item => headers.map(h => {
+        const value = item[h];
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(','))
+    ].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=expense-report-${start}-to-${end}.csv`);
+    res.send(csvData);
+  } catch (error) {
+    console.error('Error exporting expense CSV:', error);
+    res.status(500).json({ error: 'Failed to export expense report' });
+  }
+});
+
 // Test endpoint for reports
 router.get('/test', (req, res) => {
   res.json({
@@ -587,9 +821,13 @@ router.get('/test', (req, res) => {
       'GET /financial-summary',
       'GET /client-report',
       'GET /daily-summary',
+      'GET /expense-summary',
+      'GET /daily-expense-report',
+      'GET /monthly-expense-report',
       'GET /export/credit-csv',
       'GET /export/monthly-csv',
-      'GET /export/financial-csv'
+      'GET /export/financial-csv',
+      'GET /export/expense-csv'
     ]
   });
 });

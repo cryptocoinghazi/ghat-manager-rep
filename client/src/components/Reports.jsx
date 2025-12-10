@@ -55,7 +55,8 @@ const Reports = () => {
     credit: null,
     monthly: null,
     financial: null,
-    client: null
+    client: null,
+    expense: null
   });
 
   // Format time to IST
@@ -147,6 +148,16 @@ const Reports = () => {
           setReportsData(prev => ({ ...prev, client: response.data }));
           break;
           
+        case 'expense':
+          response = await axios.get('/api/reports/expense-summary', {
+            params: {
+              startDate: dateRange.startDate,
+              endDate: dateRange.endDate
+            }
+          });
+          setReportsData(prev => ({ ...prev, expense: response.data }));
+          break;
+          
         default:
           break;
       }
@@ -180,6 +191,10 @@ const Reports = () => {
         case 'financial':
           endpoint = '/api/reports/export/financial-csv';
           params = { date: dateRange.endDate };
+          break;
+        case 'expense':
+          endpoint = '/api/reports/export/expense-csv';
+          params = { startDate: dateRange.startDate, endDate: dateRange.endDate };
           break;
         default:
           return;
@@ -581,6 +596,144 @@ const Reports = () => {
     );
   };
 
+  // Render Expense Report
+  const renderExpenseReport = () => {
+    if (!reportsData.expense) return null;
+    
+    const { period, summary, categoryBreakdown, dailyTotals } = reportsData.expense;
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Expense Report
+            </h3>
+            <p className="text-sm text-gray-500">
+              From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
+            </p>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleExportCSV('expense')}
+              className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
+            >
+              <FiDownload className="h-4 w-4" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Expense Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-red-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-600">Total Expenses</p>
+                <p className="text-2xl font-bold text-red-700">
+                  {formatCurrency(summary?.totalAmount)}
+                </p>
+              </div>
+              <FiTrendingDown className="h-8 w-8 text-red-400" />
+            </div>
+          </div>
+          
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600">Total Entries</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {summary?.totalCount || 0}
+                </p>
+              </div>
+              <FiFileText className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-600">Categories</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {categoryBreakdown?.length || 0}
+                </p>
+              </div>
+              <FiPieChart className="h-8 w-8 text-purple-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* Category Breakdown */}
+        {categoryBreakdown && categoryBreakdown.length > 0 && (
+          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+            <h4 className="text-md font-semibold text-gray-900 mb-4">Category Breakdown</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoryBreakdown.map((cat, index) => (
+                <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">{cat.category || 'Uncategorized'}</span>
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                      {cat.percentage || 0}%
+                    </span>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900">{formatCurrency(cat.total)}</p>
+                  <p className="text-xs text-gray-500">{cat.count} entries</p>
+                  <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{ width: `${cat.percentage || 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Daily Totals */}
+        {dailyTotals && dailyTotals.length > 0 && (
+          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+            <h4 className="text-md font-semibold text-gray-900 mb-4">Daily Expense Breakdown (IST)</h4>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date (IST)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entries</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {dailyTotals.map((day, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {formatDate(day.date)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">{day.count}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-red-600">{formatCurrency(day.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              <FiClock className="inline h-3 w-3 mr-1" />
+              Dates shown in Indian Standard Time (IST)
+            </p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {(!categoryBreakdown || categoryBreakdown.length === 0) && (!dailyTotals || dailyTotals.length === 0) && (
+          <div className="text-center py-12">
+            <FiTrendingDown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">No expense records found for selected date range</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render Client Report
   const renderClientReport = () => {
     if (!reportsData.client) return null;
@@ -734,7 +887,8 @@ const Reports = () => {
               { id: 'credit', label: 'Credit Report', icon: FiCreditCard },
               { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
               { id: 'financial', label: 'Financial Summary', icon: FiDollarSign },
-              { id: 'client', label: 'Client Report', icon: FiUsers }
+              { id: 'client', label: 'Client Report', icon: FiUsers },
+              { id: 'expense', label: 'Expense Report', icon: FiTrendingDown }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -824,6 +978,7 @@ const Reports = () => {
               {activeReport === 'monthly' && renderMonthlyReport()}
               {activeReport === 'financial' && renderFinancialSummary()}
               {activeReport === 'client' && renderClientReport()}
+              {activeReport === 'expense' && renderExpenseReport()}
             </>
           )}
         </div>
