@@ -184,10 +184,14 @@ router.get('/truck-owners/by-name/:name', async (req, res) => {
 // Create or update truck owner
 router.post('/truck-owners', async (req, res) => {
   try {
-    const { name, contact, address, phone, is_partner, partner_rate } = req.body;
+    const { name, contact, address, phone, vehicle_number, is_partner, partner_rate } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    if (!vehicle_number) {
+      return res.status(400).json({ error: 'Vehicle number is required' });
     }
     
     const db = getDB();
@@ -201,11 +205,12 @@ router.post('/truck-owners', async (req, res) => {
         `UPDATE truck_owners SET 
           phone = COALESCE(?, phone),
           address = COALESCE(?, address),
+          vehicle_number = COALESCE(?, vehicle_number),
           is_partner = COALESCE(?, is_partner),
           partner_rate = ?,
           updated_at = CURRENT_TIMESTAMP
         WHERE name = ?`,
-        [phone || contact || null, address || null, is_partner ? 1 : 0, partner_rate || null, name]
+        [phone || contact || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null, name]
       );
       
       const updated = await db.get('SELECT * FROM truck_owners WHERE name = ?', [name]);
@@ -216,9 +221,9 @@ router.post('/truck-owners', async (req, res) => {
     } else {
       // Create new owner
       const result = await db.run(
-        `INSERT INTO truck_owners (name, phone, address, is_partner, partner_rate, is_active) 
-         VALUES (?, ?, ?, ?, ?, 1)`,
-        [name, phone || contact || null, address || null, is_partner ? 1 : 0, partner_rate || null]
+        `INSERT INTO truck_owners (name, phone, address, vehicle_number, is_partner, partner_rate, is_active) 
+         VALUES (?, ?, ?, ?, ?, ?, 1)`,
+        [name, phone || contact || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null]
       );
       
       const newOwner = await db.get('SELECT * FROM truck_owners WHERE id = ?', [result.lastID]);
@@ -237,7 +242,7 @@ router.post('/truck-owners', async (req, res) => {
 router.put('/truck-owners/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, address, is_partner, partner_rate } = req.body;
+    const { name, phone, address, vehicle_number, is_partner, partner_rate } = req.body;
     
     const db = getDB();
     
@@ -251,11 +256,12 @@ router.put('/truck-owners/:id', async (req, res) => {
         name = COALESCE(?, name),
         phone = ?,
         address = ?,
+        vehicle_number = ?,
         is_partner = ?,
         partner_rate = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?`,
-      [name, phone || null, address || null, is_partner ? 1 : 0, partner_rate || null, id]
+      [name, phone || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null, id]
     );
     
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);

@@ -95,6 +95,11 @@ async function createTables() {
     )
   `);
 
+  // Migration: Add vehicle_number column if missing
+  try {
+    await db.exec(`ALTER TABLE truck_owners ADD COLUMN vehicle_number TEXT`);
+  } catch (e) { /* column exists */ }
+  
   // Migration: Add partner columns if missing
   try {
     await db.exec(`ALTER TABLE truck_owners ADD COLUMN is_partner INTEGER DEFAULT 0`);
