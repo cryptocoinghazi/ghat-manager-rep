@@ -52,21 +52,40 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     });
   }, [formData.brass_qty, formData.rate, formData.loading_charge, formData.cash_paid]);
 
-  // Update form when settings change
+  // Update form when truck owner or settings change
   useEffect(() => {
-    if (flatSettings.default_rate && flatSettings.default_rate !== formData.rate) {
+    if (formData.truck_owner && truckOwners && truckOwners.length > 0) {
+      const ownerInfo = truckOwners.find(owner => owner.name === formData.truck_owner || owner.truck_owner === formData.truck_owner);
+      
+      if (ownerInfo && ownerInfo.is_partner) {
+        // Apply partner rate
+        const partnerRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+        setFormData(prev => ({
+          ...prev,
+          rate: partnerRate.toString()
+        }));
+      } else {
+        // Apply default rate for regular owners
+        setFormData(prev => ({
+          ...prev,
+          rate: (flatSettings.default_rate || '1200').toString()
+        }));
+      }
+    } else if (!formData.truck_owner && flatSettings.default_rate) {
+      // If no owner selected, use default rate
       setFormData(prev => ({
         ...prev,
-        rate: flatSettings.default_rate
+        rate: flatSettings.default_rate.toString()
       }));
     }
+    
     if (flatSettings.loading_charge && flatSettings.loading_charge !== formData.loading_charge) {
       setFormData(prev => ({
         ...prev,
         loading_charge: flatSettings.loading_charge
       }));
     }
-  }, [flatSettings.default_rate, flatSettings.loading_charge]);
+  }, [formData.truck_owner, truckOwners, flatSettings.default_rate, flatSettings.default_partner_rate, flatSettings.loading_charge]);
 
   // Fetch next receipt number and recent transactions
   useEffect(() => {
