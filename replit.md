@@ -42,7 +42,16 @@ The application is configured for local development AND cloud deployment:
 
 ```
 
-## Recent Changes (December 8, 2025)
+## Recent Changes (December 10, 2025)
+12. **Partner Royalty System**
+   - Added partner designation for truck owners with discounted rates
+   - Partner rate field in Financial Settings (separate from default rate)
+   - Auto-apply partner rates when selecting partner owners in receipt form
+   - Partner Royalty report tab in Reports showing partner vs regular comparison
+   - Database migration added is_partner and partner_rate fields to truck_owners and receipts
+   - Backend API endpoint /api/reports/partner-royalty for royalty calculations
+
+## Previous Changes (December 8, 2025)
 1. Created Express.js backend server with all required API endpoints
 2. Set up SQLite database with tables for settings, truck_owners, receipts, and users
 3. Configured Vite to use port 5000 with host 0.0.0.0 for Replit proxy support
@@ -78,7 +87,8 @@ The application is configured for local development AND cloud deployment:
 - **Role-Based Navigation**: Different menu items for users vs admins
 - **Receipt Management**: Create and manage gate passes for sand trucks
 - **Daily Register**: View and edit daily transactions (available to all users)
-- **Reports**: Generate credit reports, monthly summaries, and financial reports (admin only)
+- **Reports**: Generate credit reports, monthly summaries, financial reports, and partner royalty reports (admin only)
+- **Partner Management**: Designate truck owners as partners with discounted rates
 - **Settings**: Manage company information and truck owners (admin only)
 - **User Management**: Admin-only feature to create, edit, and delete users
 - **Backup/Restore**: Export and import data (admin-only)
@@ -127,6 +137,7 @@ All endpoints except `/api/auth/*` require JWT authentication via `Authorization
 - GET `/api/reports/export/credit-csv` - Export credit report CSV
 - GET `/api/reports/export/monthly-csv` - Export monthly report CSV
 - GET `/api/reports/export/financial-csv` - Export financial summary CSV
+- GET `/api/reports/partner-royalty` - Partner royalty comparison report
 
 ## Database Schema
 ### Settings Table
@@ -138,6 +149,8 @@ All endpoints except `/api/auth/*` require JWT authentication via `Authorization
 - name (VARCHAR)
 - contact (VARCHAR)
 - address (TEXT)
+- is_partner (INTEGER, 0 or 1)
+- partner_rate (DECIMAL, custom rate for partner)
 - created_at (TIMESTAMP)
 
 ### Receipts Table
