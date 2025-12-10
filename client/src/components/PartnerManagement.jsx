@@ -225,6 +225,7 @@ const PartnerManagement = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle Number</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Partner Rate</th>
@@ -234,7 +235,7 @@ const PartnerManagement = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredOwners.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
                     No truck owners found
                   </td>
                 </tr>
