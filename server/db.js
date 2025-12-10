@@ -126,7 +126,68 @@ async function createTables() {
     CREATE INDEX IF NOT EXISTS idx_receipts_status ON receipts(payment_status);
   `);
 
+  // Create expenses table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL DEFAULT CURRENT_DATE,
+      category TEXT NOT NULL,
+      description TEXT NOT NULL,
+      amount REAL NOT NULL,
+      payment_mode TEXT DEFAULT 'CASH',
+      receipt_number TEXT,
+      vendor_name TEXT,
+      ghat_location TEXT NOT NULL,
+      approved_by TEXT,
+      remarks TEXT,
+      status TEXT DEFAULT 'APPROVED',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create expense categories table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS expense_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create expense indexes
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+    CREATE INDEX IF NOT EXISTS idx_expenses_ghat_location ON expenses(ghat_location);
+  `);
+
+  // Initialize default expense categories
+  await initializeExpenseCategories();
+
   console.log('✅ Tables created successfully');
+}
+
+async function initializeExpenseCategories() {
+  const defaultCategories = [
+    { name: 'LABOR', description: 'Worker wages and labor costs' },
+    { name: 'FUEL', description: 'Diesel, petrol, gas' },
+    { name: 'MAINTENANCE', description: 'Equipment and vehicle maintenance' },
+    { name: 'OFFICE', description: 'Office supplies and expenses' },
+    { name: 'TRANSPORT', description: 'Transportation costs' },
+    { name: 'RENT', description: 'Rent and lease payments' },
+    { name: 'UTILITIES', description: 'Electricity, water, internet' },
+    { name: 'FOOD', description: 'Food and refreshments' },
+    { name: 'OTHER', description: 'Miscellaneous expenses' }
+  ];
+
+  for (const category of defaultCategories) {
+    await db.run(`
+      INSERT OR IGNORE INTO expense_categories (name, description) 
+      VALUES (?, ?)
+    `, [category.name, category.description]);
+  }
 }
 
 async function initializeSettings() {

@@ -9,6 +9,7 @@ import Settings from './components/Settings';
 import Reports from './components/Reports';
 import Login from './components/Login';
 import UserManagement from './components/UserManagement';
+import ExpenseManager from './components/ExpenseManager';
 
 const AdminRoute = ({ user, children }) => {
   if (user?.role !== 'admin') {
@@ -144,6 +145,7 @@ function App() {
               />
             } />
             <Route path="register" element={<DailyRegister />} />
+            <Route path="expenses" element={<ExpenseManager />} />
             <Route path="reports" element={
               <AdminRoute user={user}>
                 <Reports />

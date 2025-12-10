@@ -63,6 +63,7 @@ import receiptRoutes from './routes/receipts.js';
 import settingsRoutes from './routes/settings.js';
 import reportsRoutes from './routes/reports.js';
 import authRoutes from './routes/auth.js';
+import expenseRoutes from './routes/expenses.js';
 
 // API Routes - Auth routes are public
 app.use('/api/auth', authRoutes);
@@ -71,6 +72,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/receipts', authenticateToken, receiptRoutes);
 app.use('/api/settings', authenticateToken, settingsRoutes);
 app.use('/api/reports', authenticateToken, requireAdmin, reportsRoutes);
+app.use('/api/expenses', authenticateToken, expenseRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
