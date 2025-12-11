@@ -2,6 +2,13 @@ import express from 'express';
 import { getDB } from '../db.js';
 
 const router = express.Router();
+const csvEscape = (v) => {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  const needsQuote = /[",\n]/.test(s);
+  const escaped = s.replace(/"/g, '""');
+  return needsQuote ? `"${escaped}"` : escaped;
+};
 
 // Get partner royalty report
 router.get('/partner-royalty', async (req, res) => {
@@ -675,16 +682,17 @@ router.get('/export/deposit-csv', async (req, res) => {
     query += ' ORDER BY dt.created_at DESC';
     const rows = await db.all(query, params);
     const headers = ['Date','Owner','Type','Amount','PrevBalance','NewBalance','ReceiptNo','Notes'];
-    const csv = [headers.join(','), ...rows.map(r => [
-      new Date(r.Date).toLocaleString('en-IN'),
-      `"${r.Owner}"`,
-      r.Type,
-      r.Amount,
-      r.PrevBalance,
-      r.NewBalance,
-      r.ReceiptNo || '',
-      r.Notes ? `"${String(r.Notes).replace(/"/g,'\"')}"` : ''
-    ].join(','))].join('\n');
+    const csvRows = rows.map(r => [
+      csvEscape(new Date(r.Date).toLocaleString('en-IN')),
+      csvEscape(r.Owner),
+      csvEscape(r.Type),
+      r.Amount ?? '',
+      r.PrevBalance ?? '',
+      r.NewBalance ?? '',
+      csvEscape(r.ReceiptNo || ''),
+      csvEscape(r.Notes || '')
+    ].join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
     res.setHeader('Content-Type','text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=deposit-transactions-${new Date().toISOString().split('T')[0]}.csv`);
     res.send(csv);
@@ -790,14 +798,23 @@ router.get('/export/monthly-csv', async (req, res) => {
       ['Average Transaction (₹)', monthlySummary?.['Average Transaction (₹)'] || 0]
     ];
     
+    const dailyHeaders = ['Date','Transactions','Total Amount (₹)','Cash Collected (₹)','Credit Given (₹)','Total Brass'];
+    const dailyRows = (monthlyData || []).map(item => [
+      csvEscape(item['Date']),
+      item['Transactions'] ?? 0,
+      item['Total Amount (₹)'] ?? 0,
+      item['Cash Collected (₹)'] ?? 0,
+      item['Credit Given (₹)'] ?? 0,
+      item['Total Brass'] ?? 0
+    ].join(','));
     const csvData = [
       'MONTHLY SUMMARY',
       summaryHeaders.join(','),
       ...summaryRows.map(row => row.join(',')),
       '',
       'DAILY BREAKDOWN',
-      Object.keys(monthlyData[0] || {}).join(','),
-      ...monthlyData.map(item => Object.values(item).join(','))
+      dailyHeaders.join(','),
+      ...dailyRows
     ].join('\n');
     
     const monthName = new Date(yearMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -833,13 +850,21 @@ router.get('/export/financial-csv', async (req, res) => {
       ORDER BY date(date_time)
     `, [start, end]);
     
+    const headers = ['Date','Transactions','Total Amount (₹)','Cash Collected (₹)','Credit Given (₹)'];
+    const rows = (dailyTrends || []).map(item => [
+      csvEscape(item['Date']),
+      item['Transactions'] ?? 0,
+      item['Total Amount (₹)'] ?? 0,
+      item['Cash Collected (₹)'] ?? 0,
+      item['Credit Given (₹)'] ?? 0
+    ].join(','));
     const csvData = [
       'FINANCIAL SUMMARY',
       `Period: ${start} to ${end}`,
       '',
       'DAILY TRENDS',
-      Object.keys(dailyTrends[0] || {}).join(','),
-      ...dailyTrends.map(item => Object.values(item).join(','))
+      headers.join(','),
+      ...rows
     ].join('\n');
     
     res.setHeader('Content-Type', 'text/csv');
@@ -1061,8 +1086,8 @@ router.get('/export/expense-csv', async (req, res) => {
       `Total Expenses: ₹${totalExpense?.total || 0}`,
       '',
       'CATEGORY SUMMARY',
-      Object.keys(summary[0] || {}).join(','),
-      ...summary.map(item => Object.values(item).map(v => v === null ? '' : `"${v}"`).join(',')),
+      ['Category','Count','Total (₹)'].join(','),
+      ...summary.map(item => [csvEscape(item['Category']), item['Count'] ?? 0, item['Total (₹)'] ?? 0].join(',')),
       '',
       'EXPENSE DETAILS',
       headers.join(','),
