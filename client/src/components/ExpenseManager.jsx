@@ -20,6 +20,14 @@ const ExpenseManager = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [summary, setSummary] = useState({ todayTotal: 0, monthTotal: 0, categoryMonthly: [] });
+  const currentUser = React.useMemo(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  }, []);
   
   const [filters, setFilters] = useState({
     category: '',
@@ -545,20 +553,24 @@ const ExpenseManager = () => {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(expense)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="Edit"
-                        >
-                          <FiEdit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(expense.id)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Delete"
-                        >
-                          <FiTrash2 className="h-4 w-4" />
-                        </button>
+                        {currentUser && (currentUser.role === 'admin' || expense.created_by === currentUser.username) && (
+                          <button
+                            onClick={() => handleEdit(expense)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Edit"
+                          >
+                            <FiEdit2 className="h-4 w-4" />
+                          </button>
+                        )}
+                        {currentUser && currentUser.role === 'admin' && (
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete"
+                          >
+                            <FiTrash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

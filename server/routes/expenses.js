@@ -19,9 +19,9 @@ router.get('/', async (req, res) => {
     let query = 'SELECT * FROM expenses WHERE 1=1';
     const params = [];
     
-    // Role-based filtering: users can only see their own expenses
+    // Role-based filtering: users can see their own and admin-created expenses
     if (req.user && req.user.role !== 'admin') {
-      query += ' AND created_by = ?';
+      query += ' AND (created_by = ? OR created_by = \"admin\")';
       params.push(req.user.username);
     }
     
@@ -105,15 +105,23 @@ router.get('/reports/daily', async (req, res) => {
     const { date } = req.query;
     const targetDate = date || new Date().toISOString().split('T')[0];
     
+    // Apply role-based visibility: non-admin users see their own + admin expenses
+    let dailyWhere = 'date = ?';
+    const dailyParams = [targetDate];
+    if (req.user && req.user.role !== 'admin') {
+      dailyWhere += ' AND (created_by = ? OR created_by = \"admin\")';
+      dailyParams.push(req.user.username);
+    }
+
     const expenses = await db.all(
-      `SELECT * FROM expenses WHERE date = ? ORDER BY category, amount DESC`,
-      [targetDate]
+      `SELECT * FROM expenses WHERE ${dailyWhere} ORDER BY category, amount DESC`,
+      dailyParams
     );
     
     const summary = await db.all(
       `SELECT category, COUNT(*) as count, SUM(amount) as total
-       FROM expenses WHERE date = ? GROUP BY category`,
-      [targetDate]
+       FROM expenses WHERE ${dailyWhere} GROUP BY category`,
+      dailyParams
     );
     
     const totalAmount = summary.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -147,21 +155,29 @@ router.get('/reports/monthly', async (req, res) => {
     const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
     const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-31`;
     
+    // Apply role-based visibility for monthly range
+    let monthWhere = 'date BETWEEN ? AND ?';
+    const monthParams = [startDate, endDate];
+    if (req.user && req.user.role !== 'admin') {
+      monthWhere += ' AND (created_by = ? OR created_by = \"admin\")';
+      monthParams.push(req.user.username);
+    }
+
     const expenses = await db.all(
-      `SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date, category`,
-      [startDate, endDate]
+      `SELECT * FROM expenses WHERE ${monthWhere} ORDER BY date, category`,
+      monthParams
     );
     
     const dailyTotals = await db.all(
       `SELECT date, COUNT(*) as count, SUM(amount) as total
-       FROM expenses WHERE date BETWEEN ? AND ? GROUP BY date ORDER BY date`,
-      [startDate, endDate]
+       FROM expenses WHERE ${monthWhere} GROUP BY date ORDER BY date`,
+      monthParams
     );
     
     const categoryTotals = await db.all(
       `SELECT category, SUM(amount) as total
-       FROM expenses WHERE date BETWEEN ? AND ? GROUP BY category ORDER BY total DESC`,
-      [startDate, endDate]
+       FROM expenses WHERE ${monthWhere} GROUP BY category ORDER BY total DESC`,
+      monthParams
     );
     
     const monthlyTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
