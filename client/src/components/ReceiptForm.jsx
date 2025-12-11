@@ -503,6 +503,34 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     printThermalReceipt(tempReceipt, flatSettings);
   };
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const key = (e.key || '').toLowerCase();
+      if (e.ctrlKey && !e.shiftKey && key === 'p') {
+        e.preventDefault();
+        if (validateForm()) {
+          handleThermalPrint();
+        } else {
+          toast.error('Fix validation errors before printing');
+        }
+      }
+      if (e.ctrlKey && e.shiftKey && key === 'p') {
+        e.preventDefault();
+        if (validateForm()) {
+          handlePrintPreview();
+        } else {
+          toast.error('Fix validation errors before printing');
+        }
+      }
+      if (e.ctrlKey && key === 's') {
+        e.preventDefault();
+        handleSaveReceipt();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [formData, calculations, errors, receiptNumber, selectedOwnerInfo]);
+
   const formatCurrency = (amount) => {
     return `${flatSettings.currency || '₹'}${parseFloat(amount).toFixed(2)}`;
   };
