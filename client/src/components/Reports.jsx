@@ -38,6 +38,8 @@ const Reports = ({ initialTab }) => {
   const [clientFilters, setClientFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
   const [expenseFilters, setExpenseFilters] = useState({ preset: 'This Month', startDate: '', endDate: '', category: 'all' });
   const [partnerFilters, setPartnerFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
+  const [partnerOwnerQuery, setPartnerOwnerQuery] = useState('');
+  const [partnerOwnerFocused, setPartnerOwnerFocused] = useState(false);
   const [owners, setOwners] = useState([]);
   const [depositFilters, setDepositFilters] = useState({
     startDate: '',
@@ -1387,6 +1389,9 @@ const Reports = ({ initialTab }) => {
     if (!reportsData.partnerRoyalty) return null;
     
     const { partnerSummary, regularSummary, partnerTotals, regularTotals, royalty, period } = reportsData.partnerRoyalty;
+    const query = partnerOwnerQuery.trim().toLowerCase();
+    const filteredPartner = query ? (partnerSummary || []).filter(o => (o.truck_owner || '').toLowerCase().includes(query)) : partnerSummary;
+    const filteredRegular = query ? (regularSummary || []).filter(o => (o.truck_owner || '').toLowerCase().includes(query)) : regularSummary;
     
     return (
       <div className="space-y-6">
@@ -1396,6 +1401,37 @@ const Reports = ({ initialTab }) => {
             <p className="text-sm text-gray-500">
               From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
             </p>
+          </div>
+          <div className="w-full md:w-80 relative">
+            <input
+              type="text"
+              value={partnerOwnerQuery}
+              onChange={(e) => setPartnerOwnerQuery(e.target.value)}
+              onFocus={() => setPartnerOwnerFocused(true)}
+              onBlur={() => setTimeout(() => setPartnerOwnerFocused(false), 150)}
+              placeholder="Filter by truck owner"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {partnerOwnerFocused && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow">
+                {owners
+                  .filter(o => (o.name || '').toLowerCase().includes(query))
+                  .slice(0, 10)
+                  .map(o => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onMouseDown={() => setPartnerOwnerQuery(o.name || '')}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                    >
+                      {o.name}
+                    </button>
+                  ))}
+                {query && owners.filter(o => (o.name || '').toLowerCase().includes(query)).length === 0 && (
+                  <div className="px-3 py-2 text-sm text-gray-500">No matches</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1466,7 +1502,7 @@ const Reports = ({ initialTab }) => {
         </div>
 
         {/* Partner Summary Table */}
-        {partnerSummary && partnerSummary.length > 0 && (
+        {filteredPartner && filteredPartner.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-green-50">
               <h4 className="text-md font-semibold text-green-800">Partner Owners</h4>
@@ -1485,7 +1521,7 @@ const Reports = ({ initialTab }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {partnerSummary.map((owner, index) => (
+                  {filteredPartner.map((owner, index) => (
                     <tr key={index} className="hover:bg-green-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         <div className="flex items-center">
@@ -1508,7 +1544,7 @@ const Reports = ({ initialTab }) => {
         )}
 
         {/* Regular Summary Table */}
-        {regularSummary && regularSummary.length > 0 && (
+        {filteredRegular && filteredRegular.length > 0 && (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-blue-50">
               <h4 className="text-md font-semibold text-blue-800">Regular Owners</h4>
@@ -1527,7 +1563,7 @@ const Reports = ({ initialTab }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {regularSummary.slice(0, 10).map((owner, index) => (
+                  {filteredRegular.slice(0, 10).map((owner, index) => (
                     <tr key={index} className="hover:bg-blue-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         <div className="flex items-center">
