@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { 
   FiPlus, FiEdit2, FiTrash2, FiFilter, FiX, FiDollarSign,
-  FiCalendar, FiTag, FiMapPin, FiFileText, FiUser, FiCreditCard
+  FiCalendar, FiTag, FiMapPin, FiFileText, FiUser, FiCreditCard, FiDownload
 } from 'react-icons/fi';
 
 const CATEGORIES = [
@@ -34,6 +34,14 @@ const ExpenseManager = () => {
     startDate: '',
     endDate: ''
   });
+
+  const csvEscape = (v) => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    const needsQuote = /[",\n]/.test(s);
+    const escaped = s.replace(/"/g, '""');
+    return needsQuote ? `"${escaped}"` : escaped;
+  };
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -168,6 +176,50 @@ const ExpenseManager = () => {
     setTimeout(fetchExpenses, 0);
   };
 
+  const exportDisplayedCSV = () => {
+    const headers = [
+      'Date', 'Category', 'Description', 'Amount (₹)', 'Payment Mode',
+      'Vendor', 'Ghat Location', 'Approved By', 'Remarks', 'Created By'
+    ];
+    const rows = expenses.map((e) => [
+      csvEscape(e.date),
+      csvEscape(e.category),
+      csvEscape(e.description),
+      e.amount ?? '',
+      csvEscape(e.payment_mode || ''),
+      csvEscape(e.vendor_name || ''),
+      csvEscape(e.ghat_location || ''),
+      csvEscape(e.approved_by || ''),
+      csvEscape(e.remarks || ''),
+      csvEscape(e.created_by || '')
+    ].join(','));
+
+    const period = `${filters.startDate || 'All'} to ${filters.endDate || 'All'}`;
+    const cat = filters.category || 'All Categories';
+    const headerBlock = [
+      'EXPENSES (Displayed Records)',
+      `Period: ${period}`,
+      `Filter: ${cat}`,
+      ''
+    ];
+
+    const csv = [
+      ...headerBlock,
+      headers.join(','),
+      ...rows
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses_displayed_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -299,6 +351,17 @@ const ExpenseManager = () => {
           >
             Reset
           </button>
+
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={exportDisplayedCSV}
+              className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+              title="Export displayed expenses to CSV"
+            >
+              <FiDownload className="h-4 w-4" />
+              <span>Export CSV</span>
+            </button>
+          )}
         </div>
       </div>
 
