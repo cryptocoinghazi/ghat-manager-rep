@@ -33,6 +33,11 @@ import { FaCalendarAlt, FaRupeeSign } from 'react-icons/fa';
 const Reports = ({ initialTab }) => {
   const [activeReport, setActiveReport] = useState('credit');
   const [loading, setLoading] = useState(false);
+  const [creditFilters, setCreditFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
+  const [financialFilters, setFinancialFilters] = useState({ preset: 'Today', startDate: '', endDate: '' });
+  const [clientFilters, setClientFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
+  const [expenseFilters, setExpenseFilters] = useState({ preset: 'This Month', startDate: '', endDate: '', category: 'all' });
+  const [partnerFilters, setPartnerFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
   const [owners, setOwners] = useState([]);
   const [depositFilters, setDepositFilters] = useState({
     startDate: '',
@@ -120,6 +125,107 @@ const Reports = ({ initialTab }) => {
     applyPreset();
   }, [depositFilters.preset]);
 
+  // Apply presets for other tabs
+  useEffect(() => {
+    const today = getCurrentISTDate();
+    const startOfMonth = getStartOfMonthIST();
+    const setByPreset = (preset, setter) => {
+      let start = today, end = today;
+      if (preset === 'Today') { start = today; end = today; }
+      else if (preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (preset === 'This Month') { start = startOfMonth; end = today; }
+      setter(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    setByPreset(creditFilters.preset, setCreditFilters);
+  }, [creditFilters.preset]);
+
+  useEffect(() => {
+    const today = getCurrentISTDate();
+    const startOfMonth = getStartOfMonthIST();
+    const setByPreset = (preset, setter) => {
+      let start = today, end = today;
+      if (preset === 'Today') { start = today; end = today; }
+      else if (preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (preset === 'This Month') { start = startOfMonth; end = today; }
+      setter(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    setByPreset(financialFilters.preset, setFinancialFilters);
+  }, [financialFilters.preset]);
+
+  useEffect(() => {
+    const today = getCurrentISTDate();
+    const startOfMonth = getStartOfMonthIST();
+    const setByPreset = (preset, setter) => {
+      let start = today, end = today;
+      if (preset === 'Today') { start = today; end = today; }
+      else if (preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (preset === 'This Month') { start = startOfMonth; end = today; }
+      setter(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    setByPreset(clientFilters.preset, setClientFilters);
+  }, [clientFilters.preset]);
+
+  useEffect(() => {
+    const today = getCurrentISTDate();
+    const startOfMonth = getStartOfMonthIST();
+    const setByPreset = (preset, setter) => {
+      let start = today, end = today;
+      if (preset === 'Today') { start = today; end = today; }
+      else if (preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (preset === 'This Month') { start = startOfMonth; end = today; }
+      setter(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    setByPreset(expenseFilters.preset, setExpenseFilters);
+  }, [expenseFilters.preset]);
+
+  useEffect(() => {
+    const today = getCurrentISTDate();
+    const startOfMonth = getStartOfMonthIST();
+    const setByPreset = (preset, setter) => {
+      let start = today, end = today;
+      if (preset === 'Today') { start = today; end = today; }
+      else if (preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (preset === 'This Month') { start = startOfMonth; end = today; }
+      setter(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    setByPreset(partnerFilters.preset, setPartnerFilters);
+  }, [partnerFilters.preset]);
+
   // Format time to IST
   const formatToIST = (dateString, includeDate = false) => {
     if (!dateString) return '';
@@ -159,7 +265,9 @@ const Reports = ({ initialTab }) => {
       
       switch (activeReport) {
         case 'credit':
-          response = await axios.get('/api/reports/credit-report');
+          response = await axios.get('/api/reports/credit-report', {
+            params: { startDate: creditFilters.startDate, endDate: creditFilters.endDate }
+          });
           setReportsData(prev => ({ ...prev, credit: response.data }));
           break;
           
@@ -182,9 +290,7 @@ const Reports = ({ initialTab }) => {
           
         case 'financial':
           response = await axios.get('/api/reports/daily-summary', {
-            params: { 
-              date: dateRange.endDate // Use single date for daily summary
-            }
+            params: { date: financialFilters.endDate || dateRange.endDate }
           });
           
           // Convert times in recent transactions to IST
@@ -202,8 +308,8 @@ const Reports = ({ initialTab }) => {
         case 'client':
           response = await axios.get('/api/reports/credit-report', {
             params: {
-              startDate: dateRange.startDate,
-              endDate: dateRange.endDate
+              startDate: clientFilters.startDate || dateRange.startDate,
+              endDate: clientFilters.endDate || dateRange.endDate
             }
           });
           setReportsData(prev => ({ ...prev, client: response.data }));
@@ -212,8 +318,8 @@ const Reports = ({ initialTab }) => {
         case 'expense':
           response = await axios.get('/api/reports/expense-summary', {
             params: {
-              startDate: dateRange.startDate,
-              endDate: dateRange.endDate
+              startDate: expenseFilters.startDate || dateRange.startDate,
+              endDate: expenseFilters.endDate || dateRange.endDate
             }
           });
           setReportsData(prev => ({ ...prev, expense: response.data }));
@@ -267,6 +373,7 @@ const Reports = ({ initialTab }) => {
       switch (reportType) {
         case 'credit':
           endpoint = '/api/reports/export/credit-csv';
+          params = { startDate: creditFilters.startDate, endDate: creditFilters.endDate };
           break;
         case 'monthly':
           endpoint = '/api/reports/export/monthly-csv';
@@ -274,11 +381,11 @@ const Reports = ({ initialTab }) => {
           break;
         case 'financial':
           endpoint = '/api/reports/export/financial-csv';
-          params = { date: dateRange.endDate };
+          params = { startDate: financialFilters.startDate || dateRange.startDate, endDate: financialFilters.endDate || dateRange.endDate };
           break;
         case 'expense':
           endpoint = '/api/reports/export/expense-csv';
-          params = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+          params = { startDate: expenseFilters.startDate || dateRange.startDate, endDate: expenseFilters.endDate || dateRange.endDate };
           break;
         case 'deposit':
           endpoint = '/api/reports/export/deposit-csv';
@@ -443,6 +550,28 @@ const Reports = ({ initialTab }) => {
               <FiDownload className="h-4 w-4" />
               <span>Export CSV</span>
             </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
+            <select value={creditFilters.preset} onChange={(e) => setCreditFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option>Today</option>
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>Custom Range</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:col-span-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <input type="date" value={creditFilters.startDate} onChange={(e) => setCreditFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <input type="date" value={creditFilters.endDate} onChange={(e) => setCreditFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
           </div>
         </div>
 
@@ -677,6 +806,28 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
+            <select value={financialFilters.preset} onChange={(e) => setFinancialFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option>Today</option>
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>Custom Range</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:col-span-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <input type="date" value={financialFilters.startDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <input type="date" value={financialFilters.endDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
@@ -800,6 +951,37 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
+            <select value={expenseFilters.preset} onChange={(e) => setExpenseFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option>Today</option>
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>Custom Range</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <select value={expenseFilters.category} onChange={(e) => setExpenseFilters(prev => ({ ...prev, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="all">All</option>
+              {reportsData.expense?.categoryBreakdown?.map((c, idx) => (
+                <option key={idx} value={c.category || 'Uncategorized'}>{c.category || 'Uncategorized'}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:col-span-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <input type="date" value={expenseFilters.startDate} onChange={(e) => setExpenseFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <input type="date" value={expenseFilters.endDate} onChange={(e) => setExpenseFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
         {/* Expense Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-red-50 p-4 rounded-lg">
@@ -844,7 +1026,7 @@ const Reports = ({ initialTab }) => {
           <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
             <h4 className="text-md font-semibold text-gray-900 mb-4">Category Breakdown</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoryBreakdown.map((cat, index) => (
+              {(expenseFilters.category === 'all' ? categoryBreakdown : categoryBreakdown.filter(c => (c.category || 'Uncategorized') === expenseFilters.category)).map((cat, index) => (
                 <div key={index} className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">{cat.category || 'Uncategorized'}</span>
@@ -880,7 +1062,7 @@ const Reports = ({ initialTab }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dailyTotals.map((day, index) => (
+                  {(expenseFilters.category === 'all' ? dailyTotals : dailyTotals).map((day, index) => (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {formatDate(day.date)}
@@ -1078,6 +1260,28 @@ const Reports = ({ initialTab }) => {
               <FiDownload className="h-4 w-4" />
               <span>Export CSV</span>
             </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
+            <select value={clientFilters.preset} onChange={(e) => setClientFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option>Today</option>
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>Custom Range</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:col-span-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <input type="date" value={clientFilters.startDate} onChange={(e) => setClientFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <input type="date" value={clientFilters.endDate} onChange={(e) => setClientFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
           </div>
         </div>
 

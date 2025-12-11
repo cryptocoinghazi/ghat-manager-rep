@@ -127,6 +127,9 @@ router.get('/partner-royalty', async (req, res) => {
 router.get('/credit-report', async (req, res) => {
   try {
     const db = getDB();
+    const { startDate, endDate } = req.query;
+    const end = endDate || new Date().toISOString().split('T')[0];
+    const start = startDate || '2024-01-01';
     
     const creditReport = await db.all(`
       SELECT 
@@ -137,11 +140,12 @@ router.get('/credit-report', async (req, res) => {
         MAX(date_time) as latest_credit
       FROM receipts 
       WHERE credit_amount > 0
+        AND date(date_time) BETWEEN date(?) AND date(?)
         AND is_active = 1
       GROUP BY truck_owner
       HAVING total_credit > 0
       ORDER BY total_credit DESC
-    `);
+    `, [start, end]);
     
     // Get credit aging
     const creditAging = await db.all(`
@@ -155,10 +159,11 @@ router.get('/credit-report', async (req, res) => {
         SUM(credit_amount) as amount
       FROM receipts 
       WHERE credit_amount > 0
+        AND date(date_time) BETWEEN date(?) AND date(?)
         AND is_active = 1
       GROUP BY truck_owner, aging_bucket
       ORDER BY truck_owner, aging_bucket
-    `);
+    `, [start, end]);
     
     res.json({
       creditReport,
@@ -693,6 +698,9 @@ router.get('/export/deposit-csv', async (req, res) => {
 router.get('/export/credit-csv', async (req, res) => {
   try {
     const db = getDB();
+    const { startDate, endDate } = req.query;
+    const end = endDate || new Date().toISOString().split('T')[0];
+    const start = startDate || '2024-01-01';
     
     const creditReport = await db.all(`
       SELECT 
@@ -703,11 +711,12 @@ router.get('/export/credit-csv', async (req, res) => {
         MAX(date_time) as "Latest Credit Date"
       FROM receipts 
       WHERE credit_amount > 0
+        AND date(date_time) BETWEEN date(?) AND date(?)
         AND is_active = 1
       GROUP BY truck_owner
       HAVING SUM(credit_amount) > 0
       ORDER BY SUM(credit_amount) DESC
-    `);
+    `, [start, end]);
     
     // Convert to CSV
     const headers = ['Customer Name', 'Pending Receipts', 'Total Credit (₹)', 'Oldest Credit Date', 'Latest Credit Date'];
@@ -723,7 +732,7 @@ router.get('/export/credit-csv', async (req, res) => {
     ].join('\n');
     
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=credit-report-${new Date().toISOString().split('T')[0]}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=credit-report-${start}-to-${end}.csv`);
     res.send(csvData);
   } catch (error) {
     console.error('Error exporting credit CSV:', error);
