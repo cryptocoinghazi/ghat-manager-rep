@@ -272,7 +272,11 @@ async function initializeSettings() {
     { key: 'receipt_prefix', value: 'GM', category: 'receipt' },
     { key: 'receipt_start', value: '9001', category: 'receipt' },
     { key: 'currency', value: '₹', category: 'financial' },
-    { key: 'unit', value: 'Brass', category: 'general' }
+    { key: 'unit', value: 'Brass', category: 'general' },
+    { key: 'printer_width', value: '58mm', category: 'receipt' },
+    { key: 'auto_print', value: 'true', category: 'receipt' },
+    { key: 'print_duplicate', value: 'false', category: 'receipt' },
+    { key: 'include_barcode', value: 'false', category: 'receipt' }
   ];
 
   for (const setting of defaultSettings) {

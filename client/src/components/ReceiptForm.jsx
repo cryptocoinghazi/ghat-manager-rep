@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { FiPrinter, FiSave, FiRefreshCw, FiUserPlus } from 'react-icons/fi';
 import { FaCalculator } from 'react-icons/fa';
 import { generatePDF } from '../utils/pdfGenerator';
+import { printThermalReceipt } from '../utils/thermalPrinter';
 import { refreshDashboardStats } from './Layout';
 
 const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
@@ -482,6 +483,26 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     generatePDF(tempReceipt, flatSettings);
   };
 
+  const handleThermalPrint = () => {
+    const tempReceipt = {
+      receipt_no: receiptNumber,
+      date_time: new Date().toISOString(),
+      truck_owner: formData.truck_owner || 'Sample Owner',
+      vehicle_number: formData.vehicle_number || 'MH-31-XXXX',
+      brass_qty: parseFloat(formData.brass_qty) || 1,
+      rate: parseFloat(formData.rate) || 1200,
+      loading_charge: parseFloat(formData.loading_charge) || 150,
+      total_amount: calculations.totalBill,
+      cash_paid: parseFloat(formData.cash_paid) || 0,
+      credit_amount: calculations.creditAmount,
+      is_partner: selectedOwnerInfo?.is_partner || false,
+      deposit_deducted: selectedOwnerInfo?.deposit_deducted || 0,
+      payment_method: selectedOwnerInfo?.payment_method || undefined
+    };
+
+    printThermalReceipt(tempReceipt, flatSettings);
+  };
+
   const formatCurrency = (amount) => {
     return `${flatSettings.currency || '₹'}${parseFloat(amount).toFixed(2)}`;
   };
@@ -522,11 +543,19 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
             <p className="text-xl font-bold text-blue-600">{receiptNumber}</p>
           </div>
           <button 
-            onClick={handlePrintPreview}
+            onClick={handleThermalPrint}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
             <FiPrinter className="h-5 w-5" />
-            <span>Print Preview</span>
+            <span>Print Receipt (Thermal)</span>
+          </button>
+          <button 
+            onClick={handlePrintPreview}
+            className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
+            title="Switch to A4 format"
+          >
+            <FiPrinter className="h-5 w-5" />
+            <span>A4 Preview</span>
           </button>
         </div>
       </div>

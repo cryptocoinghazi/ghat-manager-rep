@@ -496,6 +496,37 @@ const Settings = ({ settings, fetchSettings }) => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Printer Width
+                </label>
+                <select
+                  name="printer_width"
+                  value={formData.printer_width || '58mm'}
+                  onChange={handleInputChange}
+                  className="input-field"
+                >
+                  <option value="58mm">58mm</option>
+                  <option value="80mm">80mm</option>
+                </select>
+                <p className="mt-1 text-sm text-gray-500">Thermal paper width</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Include barcode (QR)
+                </label>
+                <select
+                  name="include_barcode"
+                  value={formData.include_barcode || 'false'}
+                  onChange={handleInputChange}
+                  className="input-field"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Receipt Footer Text
                 </label>
                 <input
@@ -520,6 +551,21 @@ const Settings = ({ settings, fetchSettings }) => {
                 >
                   <option value="true">Yes</option>
                   <option value="false">No</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Print duplicate copy
+                </label>
+                <select
+                  name="print_duplicate"
+                  value={formData.print_duplicate || 'false'}
+                  onChange={handleInputChange}
+                  className="input-field"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
                 </select>
               </div>
               

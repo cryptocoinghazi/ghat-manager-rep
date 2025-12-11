@@ -92,7 +92,7 @@ router.put('/:key', async (req, res) => {
   }
 });
 
-// Update multiple settings
+// Update multiple settings (upsert missing keys)
 router.post('/batch-update', async (req, res) => {
   try {
     const updates = req.body;
@@ -107,13 +107,36 @@ router.post('/batch-update', async (req, res) => {
     await db.run('BEGIN TRANSACTION');
     
     try {
+      const categoryMap = {
+        quarry_name: 'company',
+        quarry_address: 'company',
+        default_rate: 'financial',
+        default_partner_rate: 'financial',
+        loading_charge: 'financial',
+        receipt_prefix: 'receipt',
+        receipt_start: 'receipt',
+        currency: 'financial',
+        unit: 'general',
+        printer_width: 'receipt',
+        auto_print: 'receipt',
+        print_duplicate: 'receipt',
+        include_barcode: 'receipt'
+      };
+
       for (const [key, value] of Object.entries(updates)) {
-        await db.run(
+        const result = await db.run(
           'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
           [value, key]
         );
+        if (result.changes === 0) {
+          const category = categoryMap[key] || 'general';
+          await db.run(
+            'INSERT INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+            [key, String(value), category]
+          );
+        }
       }
-      
+
       await db.run('COMMIT');
       res.json({ message: 'Settings updated successfully' });
     } catch (error) {
