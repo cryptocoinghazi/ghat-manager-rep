@@ -238,6 +238,79 @@ router.post('/truck-owners', async (req, res) => {
   }
 });
 
+// Deposit: add amount to owner's balance (admin)
+router.post('/truck-owners/:id/deposit/add', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+    const db = getDB();
+    const addVal = parseFloat(amount);
+    if (!addVal || addVal <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    }
+    const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
+    if (!owner) {
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+    const newBalance = parseFloat(owner.deposit_balance || 0) + addVal;
+    await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newBalance, id]);
+    const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    res.json({ message: 'Deposit added successfully', owner: updated });
+  } catch (error) {
+    console.error('Error adding deposit:', error);
+    res.status(500).json({ error: 'Failed to add deposit' });
+  }
+});
+
+// Deposit: deduct amount from owner's balance (admin/manual)
+router.post('/truck-owners/:id/deposit/deduct', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, receipt_id } = req.body;
+    const db = getDB();
+    const deductVal = parseFloat(amount);
+    if (!deductVal || deductVal <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    }
+    const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
+    if (!owner) {
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+    const available = parseFloat(owner.deposit_balance || 0);
+    if (available < deductVal) {
+      return res.status(400).json({ error: 'Insufficient deposit balance' });
+    }
+    await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [available - deductVal, id]);
+    const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    res.json({ message: 'Deposit deducted successfully', owner: updated, receipt_id });
+  } catch (error) {
+    console.error('Error deducting deposit:', error);
+    res.status(500).json({ error: 'Failed to deduct deposit' });
+  }
+});
+
+router.put('/truck-owners/:id/deposit/set', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body;
+    const db = getDB();
+    const newVal = parseFloat(amount);
+    if (isNaN(newVal) || newVal < 0) {
+      return res.status(400).json({ error: 'Amount must be a non-negative number' });
+    }
+    const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
+    if (!owner) {
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+    await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newVal, id]);
+    const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
+    res.json({ message: 'Deposit balance updated', owner: updated });
+  } catch (error) {
+    console.error('Error setting deposit balance:', error);
+    res.status(500).json({ error: 'Failed to set deposit balance' });
+  }
+});
+
 // Update truck owner by ID
 router.put('/truck-owners/:id', async (req, res) => {
   try {

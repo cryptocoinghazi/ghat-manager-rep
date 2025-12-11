@@ -40,6 +40,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [vehicleSuggestions, setVehicleSuggestions] = useState([]);
   const [ownerSuggestions, setOwnerSuggestions] = useState([]);
+  const [useDepositBalance, setUseDepositBalance] = useState(false);
 
   // Calculate values when form changes
   useEffect(() => {
@@ -408,6 +409,17 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
       if (isRateOverridden) {
         receiptData.applied_rate = parseFloat(formData.rate);
+      }
+
+      // Deposit deduction flow
+      if (useDepositBalance && selectedOwnerInfo) {
+        const available = parseFloat(selectedOwnerInfo.deposit_balance || 0);
+        const totalBill = calculations.totalBill;
+        const deductAmount = Math.min(totalBill, available);
+        const remainingAmount = totalBill - deductAmount;
+        receiptData.payment_method = 'deposit';
+        receiptData.deposit_deducted = deductAmount;
+        receiptData.cash_paid = remainingAmount;
       }
 
       console.log('Saving receipt:', receiptData);
@@ -790,6 +802,29 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       Credit Only
                     </button>
                   </div>
+                </div>
+                {/* Deposit Option */}
+                <div className="mt-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={useDepositBalance}
+                      onChange={(e) => setUseDepositBalance(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <span className="font-medium">Deduct from Deposit Balance</span>
+                  </label>
+
+                  {useDepositBalance && selectedOwnerInfo && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm">
+                        Available Balance: <span className="font-bold">₹{selectedOwnerInfo.deposit_balance || 0}</span>
+                      </p>
+                      <p className="text-sm mt-1">
+                        Will deduct: <span className="font-bold">₹{Math.min(calculations.totalBill, selectedOwnerInfo.deposit_balance || 0)}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

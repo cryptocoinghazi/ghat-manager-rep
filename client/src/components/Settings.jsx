@@ -173,6 +173,42 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   };
 
+  const handleAddDeposit = async (owner) => {
+    const input = window.prompt(`Add deposit for ${owner.name} (₹):`, '0');
+    if (input === null) return;
+    const amount = parseFloat(input);
+    if (!amount || amount <= 0) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    try {
+      await axios.post(`/api/settings/truck-owners/${owner.id}/deposit/add`, { amount });
+      toast.success('Deposit added');
+      await fetchTruckOwners();
+    } catch (error) {
+      console.error('Error adding deposit:', error);
+      toast.error(error.response?.data?.error || 'Failed to add deposit');
+    }
+  };
+
+  const handleEditDeposit = async (owner) => {
+    const input = window.prompt(`Set deposit balance for ${owner.name} (₹):`, String(owner.deposit_balance || 0));
+    if (input === null) return;
+    const amount = parseFloat(input);
+    if (isNaN(amount) || amount < 0) {
+      toast.error('Enter a valid non-negative amount');
+      return;
+    }
+    try {
+      await axios.put(`/api/settings/truck-owners/${owner.id}/deposit/set`, { amount });
+      toast.success('Deposit balance updated');
+      await fetchTruckOwners();
+    } catch (error) {
+      console.error('Error updating deposit:', error);
+      toast.error(error.response?.data?.error || 'Failed to update deposit');
+    }
+  };
+
   const tabs = [
     { id: 'company', name: 'Company', icon: FiHome },
     { id: 'financial', name: 'Financial', icon: FaDollarSign },
@@ -600,6 +636,7 @@ const Settings = ({ settings, fetchSettings }) => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Number</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deposit Balance</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
@@ -610,7 +647,22 @@ const Settings = ({ settings, fetchSettings }) => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.vehicle_number || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.contact || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.address || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{owner.deposit_balance || 0}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleAddDeposit(owner)}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded transition-colors mr-2"
+                              title="Add deposit"
+                            >
+                              Add Balance
+                            </button>
+                            <button
+                              onClick={() => handleEditDeposit(owner)}
+                              className="text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 p-2 rounded transition-colors mr-2"
+                              title="Edit deposit"
+                            >
+                              Edit Balance
+                            </button>
                             <button
                               onClick={() => handleDeleteTruckOwner(owner.id, owner.name)}
                               className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded transition-colors"

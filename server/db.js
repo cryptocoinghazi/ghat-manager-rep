@@ -61,6 +61,8 @@ async function createTables() {
       credit_amount DECIMAL(10,2) DEFAULT 0,
       total_amount DECIMAL(10,2) NOT NULL,
       payment_status TEXT DEFAULT 'pending',
+      payment_method TEXT DEFAULT 'cash',
+      deposit_deducted DECIMAL(10,2) DEFAULT 0,
       owner_type TEXT DEFAULT 'regular',
       applied_rate DECIMAL(10,2) DEFAULT NULL,
       notes TEXT,
@@ -77,6 +79,13 @@ async function createTables() {
   try {
     await db.exec(`ALTER TABLE receipts ADD COLUMN applied_rate DECIMAL(10,2) DEFAULT NULL`);
   } catch (e) { /* column exists */ }
+  // Migration: Add deposit/payment columns if missing
+  try {
+    await db.exec(`ALTER TABLE receipts ADD COLUMN payment_method TEXT DEFAULT 'cash'`);
+  } catch (e) { /* column exists */ }
+  try {
+    await db.exec(`ALTER TABLE receipts ADD COLUMN deposit_deducted DECIMAL(10,2) DEFAULT 0`);
+  } catch (e) { /* column exists */ }
 
   // Create truck_owners table
   await db.exec(`
@@ -89,6 +98,7 @@ async function createTables() {
       payment_type TEXT DEFAULT 'cash',
       is_partner INTEGER DEFAULT 0,
       partner_rate DECIMAL(10,2) DEFAULT NULL,
+      deposit_balance DECIMAL(10,2) DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -112,6 +122,10 @@ async function createTables() {
   } catch (e) { /* column exists */ }
   try {
     await db.exec(`ALTER TABLE truck_owners ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+  } catch (e) { /* column exists */ }
+  // Migration: Add deposit_balance if missing
+  try {
+    await db.exec(`ALTER TABLE truck_owners ADD COLUMN deposit_balance DECIMAL(10,2) DEFAULT 0`);
   } catch (e) { /* column exists */ }
 
   // Create settings table

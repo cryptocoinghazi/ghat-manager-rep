@@ -142,12 +142,15 @@ router.post('/', async (req, res) => {
       notes,
       date_time,
       owner_type,
-      applied_rate
+      applied_rate,
+      payment_method,
+      deposit_deducted
     } = req.body;
 
     console.log('Creating receipt with data:', {
       receipt_no, truck_owner, vehicle_number, brass_qty, rate,
-      loading_charge, cash_paid, notes, date_time, owner_type, applied_rate
+      loading_charge, cash_paid, notes, date_time, owner_type, applied_rate,
+      payment_method, deposit_deducted
     });
 
     // Basic validation
@@ -185,10 +188,43 @@ router.post('/', async (req, res) => {
     // Calculate amounts
     const totalMaterialCost = parseFloat(brass_qty) * finalRate;
     const totalAmount = totalMaterialCost + parseFloat(loading_charge || 0);
-    const cashPaidValue = parseFloat(cash_paid || 0);
+    let cashPaidValue = parseFloat(cash_paid || 0);
+    const depositDeductedValue = parseFloat(deposit_deducted || 0);
     const creditAmount = totalAmount - cashPaidValue;
-    const paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
-                         cashPaidValue > 0 ? 'partial' : 'unpaid';
+    let paymentStatus;
+    let paymentMethod = payment_method || 'cash';
+    // If deposit used, ensure owner has enough balance and deduct
+    if (paymentMethod === 'deposit' && depositDeductedValue > 0) {
+      const ownerForDeposit = await db.get(
+        'SELECT id, deposit_balance FROM truck_owners WHERE name = ? AND is_active = 1',
+        [truck_owner]
+      );
+      if (!ownerForDeposit) {
+        return res.status(400).json({ error: 'Owner not found for deposit deduction' });
+      }
+      const available = parseFloat(ownerForDeposit.deposit_balance || 0);
+      const toDeduct = Math.min(depositDeductedValue, available, totalAmount);
+      // Adjust cash to cover remaining if provided
+      cashPaidValue = parseFloat(cash_paid || 0);
+      const remainingAfterDeposit = totalAmount - toDeduct;
+      // Begin transaction-like sequence
+      await db.run('BEGIN');
+      try {
+        await db.run(
+          'UPDATE truck_owners SET deposit_balance = ? WHERE id = ?',
+          [available - toDeduct, ownerForDeposit.id]
+        );
+        paymentStatus = (cashPaidValue >= remainingAfterDeposit) ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
+      } catch (e) {
+        await db.run('ROLLBACK');
+        throw e;
+      }
+      // We will COMMIT after insertion below
+    } else {
+      paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
+                      cashPaidValue > 0 ? 'partial' : 'unpaid';
+      paymentMethod = cashPaidValue >= totalAmount ? 'cash' : (cashPaidValue > 0 ? 'cash' : 'credit');
+    }
 
     // FIX: Validate and normalize timestamp
     let timestamp;
@@ -217,8 +253,8 @@ router.post('/', async (req, res) => {
       `INSERT INTO receipts (
         receipt_no, truck_owner, vehicle_number, brass_qty, rate,
         loading_charge, cash_paid, credit_amount, total_amount,
-        payment_status, owner_type, applied_rate, notes, date_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        payment_status, payment_method, deposit_deducted, owner_type, applied_rate, notes, date_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         finalReceiptNo,
         truck_owner,
@@ -226,10 +262,12 @@ router.post('/', async (req, res) => {
         brass_qty,
         finalRate,
         loading_charge || 0,
-        cash_paid || 0,
+        cashPaidValue || 0,
         creditAmount,
         totalAmount,
         paymentStatus,
+        paymentMethod,
+        depositDeductedValue || 0,
         finalOwnerType,
         finalAppliedRate || finalRate,
         notes || '',
@@ -256,6 +294,8 @@ router.post('/', async (req, res) => {
       'SELECT * FROM receipts WHERE id = ?',
       [result.lastID]
     );
+    // Commit if deposit transaction started
+    try { await db.run('COMMIT'); } catch (e) {}
 
     console.log('Receipt created successfully:', newReceipt);
 

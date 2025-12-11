@@ -504,7 +504,9 @@ export function generatePDF(receiptData, settings = {}) {
     const materialCost = brassQty * rate;
     const totalAmount = materialCost + loadingCharge;
     const cashPaid = parseFloat(data.cash_paid) || 0;
-    const creditAmount = totalAmount - cashPaid;
+    const depositPaid = parseFloat(data.deposit_deducted || 0);
+    const paidAmount = cashPaid + depositPaid;
+    const creditAmount = totalAmount - paidAmount;
 
     doc.setFont('helvetica', 'bold');
     doc.text('Quantity:', 15, y);
@@ -543,10 +545,10 @@ export function generatePDF(receiptData, settings = {}) {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
 
-    if (creditAmount === 0) {
+    if (creditAmount <= 0) {
       doc.setTextColor(0, 128, 0);
       doc.text('PAID IN FULL', doc.internal.pageSize.width / 2, y, { align: 'center' });
-    } else if (cashPaid > 0 && cashPaid < totalAmount) {
+    } else if (paidAmount > 0 && paidAmount < totalAmount) {
       doc.setTextColor(255, 165, 0);
       doc.text('PARTIAL PAYMENT', doc.internal.pageSize.width / 2, y, { align: 'center' });
     } else {
