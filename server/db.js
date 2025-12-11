@@ -212,6 +212,22 @@ async function createTables() {
     )
   `);
 
+  // Create deposit transactions log table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS deposit_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id INTEGER NOT NULL,
+      type TEXT NOT NULL, -- add | deduct | set
+      amount DECIMAL(10,2) NOT NULL,
+      previous_balance DECIMAL(10,2) NOT NULL,
+      new_balance DECIMAL(10,2) NOT NULL,
+      receipt_no TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES truck_owners(id)
+    )
+  `);
+
   // Create expense indexes
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);

@@ -252,8 +252,14 @@ router.post('/truck-owners/:id/deposit/add', async (req, res) => {
     if (!owner) {
       return res.status(404).json({ error: 'Truck owner not found' });
     }
-    const newBalance = parseFloat(owner.deposit_balance || 0) + addVal;
+    const prev = parseFloat(owner.deposit_balance || 0);
+    const newBalance = prev + addVal;
     await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newBalance, id]);
+    await db.run(
+      `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, notes)
+       VALUES (?, 'add', ?, ?, ?, ?)`,
+      [id, addVal, prev, newBalance, 'Manual deposit add']
+    );
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
     res.json({ message: 'Deposit added successfully', owner: updated });
   } catch (error) {
@@ -281,6 +287,11 @@ router.post('/truck-owners/:id/deposit/deduct', async (req, res) => {
       return res.status(400).json({ error: 'Insufficient deposit balance' });
     }
     await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [available - deductVal, id]);
+    await db.run(
+      `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, receipt_no, notes)
+       VALUES (?, 'deduct', ?, ?, ?, ?, ?)`,
+      [id, deductVal, available, available - deductVal, receipt_id || null, 'Manual deposit deduct']
+    );
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
     res.json({ message: 'Deposit deducted successfully', owner: updated, receipt_id });
   } catch (error) {
@@ -302,7 +313,13 @@ router.put('/truck-owners/:id/deposit/set', async (req, res) => {
     if (!owner) {
       return res.status(404).json({ error: 'Truck owner not found' });
     }
+    const prevSet = parseFloat(owner.deposit_balance || 0);
     await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newVal, id]);
+    await db.run(
+      `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, notes)
+       VALUES (?, 'set', ?, ?, ?, ?)`,
+      [id, newVal, prevSet, newVal, 'Set balance']
+    );
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
     res.json({ message: 'Deposit balance updated', owner: updated });
   } catch (error) {

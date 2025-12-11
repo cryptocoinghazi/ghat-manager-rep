@@ -427,6 +427,69 @@ export function generateExpenseReportPDF(data) {
   }
 }
 
+export function generateDepositReportPDF(data, filters) {
+  try {
+    if (!data) {
+      throw new Error('No deposit report data available');
+    }
+    const { transactions = [], summary = {} } = data;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const margin = 15;
+    let subtitle = '';
+    if (filters?.startDate && filters?.endDate) {
+      subtitle = `${formatDateIST(filters.startDate)} to ${formatDateIST(filters.endDate)}`;
+    }
+    let yPos = addHeader(doc, 'Deposit Transactions', subtitle);
+    addSummaryBox(doc, 'Additions', formatCurrencyPDF(summary.totalAdditions || 0), margin, yPos, 55, [34, 197, 94]);
+    addSummaryBox(doc, 'Deductions', formatCurrencyPDF(summary.totalDeductions || 0), margin + 60, yPos, 60, [239, 68, 68]);
+    addSummaryBox(doc, 'Net Change', formatCurrencyPDF(summary.netChange || 0), margin + 125, yPos, 55, [59, 130, 246]);
+    yPos += 32;
+    if (transactions.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Transactions', margin, yPos);
+      yPos += 5;
+      const tableData = transactions.map(t => [
+        `${formatDateIST(t.date_time)} ${formatTimeIST(t.date_time)}`,
+        t.owner_name,
+        t.type,
+        formatCurrencyPDF(t.amount),
+        formatCurrencyPDF(t.previous_balance),
+        formatCurrencyPDF(t.new_balance),
+        t.receipt_no || '-',
+        t.notes || ''
+      ]);
+      doc.autoTable({
+        startY: yPos,
+        head: [['Date', 'Owner', 'Type', 'Amount', 'Prev Bal', 'New Bal', 'Receipt No', 'Notes']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 18, halign: 'center' },
+          3: { cellWidth: 25, halign: 'right' },
+          4: { cellWidth: 25, halign: 'right' },
+          5: { cellWidth: 25, halign: 'right' },
+          6: { cellWidth: 25 },
+          7: { cellWidth: 28 }
+        },
+        margin: { left: margin, right: margin }
+      });
+    }
+    addFooter(doc);
+    const fileName = `ghat-manager-deposit-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    return fileName;
+  } catch (error) {
+    console.error('Error generating deposit report PDF:', error);
+    throw error;
+  }
+}
+
 export function generatePDF(receiptData, settings = {}) {
   try {
     const data = {

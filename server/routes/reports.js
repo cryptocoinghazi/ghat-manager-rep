@@ -544,6 +544,151 @@ router.get('/daily-summary', async (req, res) => {
   }
 });
 
+// Deposit transactions report
+router.get('/deposit-transactions', async (req, res) => {
+  try {
+    const db = getDB();
+    const {
+      startDate,
+      endDate,
+      truckOwnerId,
+      transactionType,
+      page = 1,
+      limit = 50
+    } = req.query;
+
+    let query = `
+      SELECT dt.id, dt.created_at as date_time, t.name as owner_name, dt.type, dt.amount,
+             dt.previous_balance, dt.new_balance, dt.receipt_no, dt.notes, t.id as owner_id
+      FROM deposit_transactions dt
+      JOIN truck_owners t ON dt.owner_id = t.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (startDate) { query += ' AND date(dt.created_at) >= date(?)'; params.push(startDate); }
+    if (endDate) { query += ' AND date(dt.created_at) <= date(?)'; params.push(endDate); }
+    if (truckOwnerId && truckOwnerId !== 'all') { query += ' AND dt.owner_id = ?'; params.push(truckOwnerId); }
+    if (transactionType && transactionType !== 'all') { query += ' AND dt.type = ?'; params.push(transactionType); }
+
+    query += ' ORDER BY dt.created_at DESC';
+    const offset = (page - 1) * limit;
+    query += ' LIMIT ? OFFSET ?';
+    params.push(Number(limit), Number(offset));
+
+    const transactions = await db.all(query, params);
+
+    // Summary
+    let summaryQuery = `
+      SELECT 
+        SUM(CASE WHEN type='add' THEN amount ELSE 0 END) as total_additions,
+        SUM(CASE WHEN type='deduct' THEN amount ELSE 0 END) as total_deductions
+      FROM deposit_transactions dt
+      WHERE 1=1
+    `;
+    const summaryParams = [];
+    if (startDate) { summaryQuery += ' AND date(dt.created_at) >= date(?)'; summaryParams.push(startDate); }
+    if (endDate) { summaryQuery += ' AND date(dt.created_at) <= date(?)'; summaryParams.push(endDate); }
+    if (truckOwnerId && truckOwnerId !== 'all') { summaryQuery += ' AND dt.owner_id = ?'; summaryParams.push(truckOwnerId); }
+    if (transactionType && transactionType !== 'all') { summaryQuery += ' AND dt.type = ?'; summaryParams.push(transactionType); }
+
+    const summaryRow = await db.get(summaryQuery, summaryParams);
+    const totalAdditions = parseFloat(summaryRow?.total_additions || 0);
+    const totalDeductions = parseFloat(summaryRow?.total_deductions || 0);
+    const netChange = totalAdditions - totalDeductions;
+
+    // Starting and ending balances (for specific owner only)
+    let startingBalance = null;
+    let endingBalance = null;
+    if (truckOwnerId && truckOwnerId !== 'all') {
+      const firstTx = await db.get(`
+        SELECT previous_balance FROM deposit_transactions 
+        WHERE owner_id = ? 
+          ${startDate ? 'AND date(created_at) >= date(?)' : ''}
+          ${endDate ? 'AND date(created_at) <= date(?)' : ''}
+        ORDER BY created_at ASC LIMIT 1
+      `, [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])]);
+
+      const lastTx = await db.get(`
+        SELECT new_balance FROM deposit_transactions 
+        WHERE owner_id = ? 
+          ${startDate ? 'AND date(created_at) >= date(?)' : ''}
+          ${endDate ? 'AND date(created_at) <= date(?)' : ''}
+        ORDER BY created_at DESC LIMIT 1
+      `, [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])]);
+
+      startingBalance = firstTx?.previous_balance ?? null;
+      endingBalance = lastTx?.new_balance ?? null;
+    }
+
+    // Pagination count
+    let countQuery = `
+      SELECT COUNT(*) as count FROM deposit_transactions dt WHERE 1=1
+    `;
+    const countParams = [];
+    if (startDate) { countQuery += ' AND date(dt.created_at) >= date(?)'; countParams.push(startDate); }
+    if (endDate) { countQuery += ' AND date(dt.created_at) <= date(?)'; countParams.push(endDate); }
+    if (truckOwnerId && truckOwnerId !== 'all') { countQuery += ' AND dt.owner_id = ?'; countParams.push(truckOwnerId); }
+    if (transactionType && transactionType !== 'all') { countQuery += ' AND dt.type = ?'; countParams.push(transactionType); }
+    const countRow = await db.get(countQuery, countParams);
+
+    res.json({
+      transactions,
+      summary: {
+        totalAdditions,
+        totalDeductions,
+        netChange,
+        startingBalance,
+        endingBalance
+      },
+      pagination: { page: Number(page), limit: Number(limit), total: countRow?.count || 0 }
+    });
+  } catch (error) {
+    console.error('Error fetching deposit transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch deposit transactions' });
+  }
+});
+
+// Export deposit transactions to CSV
+router.get('/export/deposit-csv', async (req, res) => {
+  try {
+    const db = getDB();
+    const { startDate, endDate, truckOwnerId, transactionType } = req.query;
+    let query = `
+      SELECT dt.created_at as Date, t.name as Owner, dt.type as Type, dt.amount as Amount,
+             dt.previous_balance as PrevBalance, dt.new_balance as NewBalance,
+             dt.receipt_no as ReceiptNo, dt.notes as Notes
+      FROM deposit_transactions dt
+      JOIN truck_owners t ON dt.owner_id = t.id
+      WHERE 1=1
+    `;
+    const params = [];
+    if (startDate) { query += ' AND date(dt.created_at) >= date(?)'; params.push(startDate); }
+    if (endDate) { query += ' AND date(dt.created_at) <= date(?)'; params.push(endDate); }
+    if (truckOwnerId && truckOwnerId !== 'all') { query += ' AND dt.owner_id = ?'; params.push(truckOwnerId); }
+    if (transactionType && transactionType !== 'all') { query += ' AND dt.type = ?'; params.push(transactionType); }
+    query += ' ORDER BY dt.created_at DESC';
+    const rows = await db.all(query, params);
+    const headers = ['Date','Owner','Type','Amount','PrevBalance','NewBalance','ReceiptNo','Notes'];
+    const csv = [headers.join(','), ...rows.map(r => [
+      new Date(r.Date).toLocaleString('en-IN'),
+      `"${r.Owner}"`,
+      r.Type,
+      r.Amount,
+      r.PrevBalance,
+      r.NewBalance,
+      r.ReceiptNo || '',
+      r.Notes ? `"${String(r.Notes).replace(/"/g,'\"')}"` : ''
+    ].join(','))].join('\n');
+    res.setHeader('Content-Type','text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=deposit-transactions-${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting deposit CSV:', error);
+    res.status(500).json({ error: 'Failed to export deposit transactions' });
+  }
+});
+
 // Export credit report to CSV
 router.get('/export/credit-csv', async (req, res) => {
   try {

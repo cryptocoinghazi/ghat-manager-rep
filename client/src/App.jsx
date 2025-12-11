@@ -154,6 +154,11 @@ function App() {
                 <Reports />
               </AdminRoute>
             } />
+            <Route path="reports/deposit" element={
+              <AdminRoute user={user}>
+                <Reports initialTab="deposit" />
+              </AdminRoute>
+            } />
             <Route path="settings" element={
               <AdminRoute user={user}>
                 <Settings 

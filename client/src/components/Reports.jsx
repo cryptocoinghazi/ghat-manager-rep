@@ -5,7 +5,8 @@ import {
   generateCreditReportPDF,
   generateMonthlyReportPDF,
   generateFinancialSummaryPDF,
-  generateExpenseReportPDF
+  generateExpenseReportPDF,
+  generateDepositReportPDF
 } from '../utils/pdfGenerator';
 import {
   FiFilter,
@@ -29,9 +30,19 @@ import {
 } from 'react-icons/fi';
 import { FaCalendarAlt, FaRupeeSign } from 'react-icons/fa';
 
-const Reports = () => {
+const Reports = ({ initialTab }) => {
   const [activeReport, setActiveReport] = useState('credit');
   const [loading, setLoading] = useState(false);
+  const [owners, setOwners] = useState([]);
+  const [depositFilters, setDepositFilters] = useState({
+    startDate: '',
+    endDate: '',
+    truckOwnerId: 'all',
+    transactionType: 'all',
+    page: 1,
+    limit: 50,
+    preset: 'Today'
+  });
   
   // Get current date in IST
   const getCurrentISTDate = () => {
@@ -63,8 +74,51 @@ const Reports = () => {
     financial: null,
     client: null,
     expense: null,
-    partnerRoyalty: null
+    partnerRoyalty: null,
+    deposit: null
   });
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveReport(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    const fetchOwners = async () => {
+      try {
+        const response = await axios.get('/api/settings/truck-owners');
+        setOwners(response.data || []);
+      } catch (error) {
+        console.error('Error fetching truck owners:', error);
+      }
+    };
+    fetchOwners();
+  }, []);
+
+  useEffect(() => {
+    const applyPreset = () => {
+      const today = getCurrentISTDate();
+      const startOfMonth = getStartOfMonthIST();
+      let start = today;
+      let end = today;
+      if (depositFilters.preset === 'Today') {
+        start = today; end = today;
+      } else if (depositFilters.preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diffToMonday = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diffToMonday);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (depositFilters.preset === 'This Month') {
+        start = startOfMonth; end = today;
+      }
+      setDepositFilters(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    applyPreset();
+  }, [depositFilters.preset]);
 
   // Format time to IST
   const formatToIST = (dateString, includeDate = false) => {
@@ -164,6 +218,19 @@ const Reports = () => {
           });
           setReportsData(prev => ({ ...prev, expense: response.data }));
           break;
+        case 'deposit':
+          response = await axios.get('/api/reports/deposit-transactions', {
+            params: {
+              startDate: depositFilters.startDate,
+              endDate: depositFilters.endDate,
+              truckOwnerId: depositFilters.truckOwnerId,
+              transactionType: depositFilters.transactionType,
+              page: depositFilters.page,
+              limit: depositFilters.limit
+            }
+          });
+          setReportsData(prev => ({ ...prev, deposit: response.data }));
+          break;
           
         case 'partnerRoyalty':
           response = await axios.get('/api/reports/partner-royalty', {
@@ -190,7 +257,7 @@ const Reports = () => {
     if (activeReport) {
       fetchReportData();
     }
-  }, [activeReport, selectedMonth, dateRange]);
+  }, [activeReport, selectedMonth, dateRange, depositFilters]);
 
   const handleExportCSV = async (reportType) => {
     try {
@@ -212,6 +279,15 @@ const Reports = () => {
         case 'expense':
           endpoint = '/api/reports/export/expense-csv';
           params = { startDate: dateRange.startDate, endDate: dateRange.endDate };
+          break;
+        case 'deposit':
+          endpoint = '/api/reports/export/deposit-csv';
+          params = {
+            startDate: depositFilters.startDate,
+            endDate: depositFilters.endDate,
+            truckOwnerId: depositFilters.truckOwnerId,
+            transactionType: depositFilters.transactionType
+          };
           break;
         default:
           return;
@@ -270,6 +346,13 @@ const Reports = () => {
             return;
           }
           generateExpenseReportPDF(reportsData.expense);
+          break;
+        case 'deposit':
+          if (!reportsData.deposit) {
+            toast.error('No deposit report data available');
+            return;
+          }
+          generateDepositReportPDF(reportsData.deposit, depositFilters);
           break;
           
         default:
@@ -827,6 +910,149 @@ const Reports = () => {
     );
   };
 
+  const renderDepositReport = () => {
+    const data = reportsData.deposit;
+    if (!data) return null;
+    const { transactions = [], summary = {}, pagination = {} } = data;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Deposit Transactions</h3>
+          <div className="flex space-x-2">
+            <button onClick={() => handleExportPDF('deposit')} className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm">
+              <FiFileText className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
+            <button onClick={() => handleExportCSV('deposit')} className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm">
+              <FiDownload className="h-4 w-4" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
+            <select value={depositFilters.preset} onChange={(e) => setDepositFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option>Today</option>
+              <option>This Week</option>
+              <option>This Month</option>
+              <option>Custom Range</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
+            <select value={depositFilters.truckOwnerId} onChange={(e) => setDepositFilters(prev => ({ ...prev, truckOwnerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="all">All Truck Owners</option>
+              {owners.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Type</label>
+            <select value={depositFilters.transactionType} onChange={(e) => setDepositFilters(prev => ({ ...prev, transactionType: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="all">All Transactions</option>
+              <option value="add">Additions Only</option>
+              <option value="deduct">Deductions Only</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <input type="date" value={depositFilters.startDate} onChange={(e) => setDepositFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <input type="date" value={depositFilters.endDate} onChange={(e) => setDepositFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-600">Total Additions</p>
+                <p className="text-2xl font-bold text-green-700">{formatCurrency(summary?.totalAdditions)}</p>
+              </div>
+              <FiTrendingUp className="h-8 w-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-600">Total Deductions</p>
+                <p className="text-2xl font-bold text-red-700">{formatCurrency(summary?.totalDeductions)}</p>
+              </div>
+              <FiTrendingDown className="h-8 w-8 text-red-400" />
+            </div>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600">Net Change</p>
+                <p className="text-2xl font-bold text-blue-700">{formatCurrency(summary?.netChange)}</p>
+              </div>
+              <FiDollarSign className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-600">Ending Balance</p>
+                <p className="text-2xl font-bold text-purple-700">{formatCurrency(summary?.endingBalance)}</p>
+              </div>
+              <FiDollarSign className="h-8 w-8 text-purple-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prev Bal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Bal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt No</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {transactions.map((t) => (
+                  <tr key={t.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-500">{formatToIST(t.date_time, true)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{t.owner_name}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`text-xs px-2 py-1 rounded-full ${t.type === 'add' ? 'bg-green-100 text-green-800' : t.type === 'deduct' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>{t.type}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(t.amount)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(t.previous_balance)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{formatCurrency(t.new_balance)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{t.receipt_no || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{t.notes || ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-gray-600">Page {pagination.page || depositFilters.page}</div>
+            <div className="flex items-center space-x-2">
+              <button onClick={() => setDepositFilters(prev => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))} className="px-3 py-2 border rounded-lg">Prev</button>
+              <button onClick={() => setDepositFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))} className="px-3 py-2 border rounded-lg">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Render Client Report
   const renderClientReport = () => {
     if (!reportsData.client) return null;
@@ -1157,6 +1383,7 @@ const Reports = () => {
               { id: 'credit', label: 'Credit Report', icon: FiCreditCard },
               { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
               { id: 'financial', label: 'Financial Summary', icon: FiDollarSign },
+              { id: 'deposit', label: 'Deposit Reports', icon: FiDollarSign },
               { id: 'client', label: 'Client Report', icon: FiUsers },
               { id: 'expense', label: 'Expense Report', icon: FiTrendingDown },
               { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers }
@@ -1248,6 +1475,7 @@ const Reports = () => {
               {activeReport === 'credit' && renderCreditReport()}
               {activeReport === 'monthly' && renderMonthlyReport()}
               {activeReport === 'financial' && renderFinancialSummary()}
+              {activeReport === 'deposit' && renderDepositReport()}
               {activeReport === 'client' && renderClientReport()}
               {activeReport === 'expense' && renderExpenseReport()}
               {activeReport === 'partnerRoyalty' && renderPartnerRoyaltyReport()}

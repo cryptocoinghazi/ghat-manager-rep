@@ -214,6 +214,11 @@ router.post('/', async (req, res) => {
           'UPDATE truck_owners SET deposit_balance = ? WHERE id = ?',
           [available - toDeduct, ownerForDeposit.id]
         );
+        await db.run(
+          `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, receipt_no, notes)
+           VALUES (?, 'deduct', ?, ?, ?, ?, ?)`,
+          [ownerForDeposit.id, toDeduct, available, available - toDeduct, receipt_no || finalReceiptNo, 'Receipt deduction']
+        );
         paymentStatus = (cashPaidValue >= remainingAfterDeposit) ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
       } catch (e) {
         await db.run('ROLLBACK');
