@@ -10,6 +10,12 @@ const padLine = (label, value, width = 32) => {
   return `${l}${' '.repeat(spaces)}${v}`;
 };
 
+const centerText = (text, width = 32) => {
+  const t = text.trim();
+  const pad = Math.max(0, Math.floor((width - t.length) / 2));
+  return `${' '.repeat(pad)}${t}`;
+};
+
 const formatAmount = (currency, val) => {
   const num = Number(val || 0);
   return `${currency || '₹'}${num.toFixed(2)}`;
@@ -29,15 +35,13 @@ const toIST = (iso) => {
 const buildCSS = (width = '58mm') => {
   const mm = width === '80mm' ? '80mm' : '58mm';
   return `
-@media print {
-  @page { margin: 0; size: ${mm} auto; }
-  body { width: ${mm}; margin: 0; padding: 2mm; font-family: Courier New, monospace; font-size: 10px; line-height: 1.2; }
-  .no-print { display: none; }
-  .receipt-container { width: 100%; max-width: ${mm}; }
-  .header { text-align: center; font-weight: bold; margin-bottom: 3mm; }
-  .divider { border-top: 1px dashed #000; margin: 3mm 0; }
-  .line { white-space: pre; }
-}
+body { width: ${mm}; margin: 0; padding: 2mm; font-family: Courier New, monospace; font-size: 10px; line-height: 1.2; }
+.receipt-container { width: 100%; max-width: ${mm}; }
+.header { text-align: center; font-weight: bold; margin-bottom: 3mm; }
+.divider { border-top: 1px dashed #000; margin: 3mm 0; }
+.line { white-space: pre; }
+.no-print { display: none; }
+@media print { @page { margin: 0; size: ${mm} auto; } }
 `;
 };
 
@@ -62,13 +66,11 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
 
   const headerLines = [
     '='.repeat(widthChars),
-    padLine('', 'SAND MINING GATE PASS', widthChars),
+    centerText('SAND MINING GATE PASS', widthChars),
     '='.repeat(widthChars),
-    buildSectionLines([
-      ['Receipt', receipt.receipt_no || '-'],
-      ['Date', date],
-      ['Time', time]
-    ], widthChars),
+    padLine('Receipt', receipt.receipt_no || '-', widthChars),
+    padLine('Date', date, widthChars),
+    padLine('Time', time, widthChars),
     '-'.repeat(widthChars)
   ].join('\n');
 
@@ -165,4 +167,3 @@ export const printThermalReceipt = (receipt, settings = {}) => {
 };
 
 export default printThermalReceipt;
-
