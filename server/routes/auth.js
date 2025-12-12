@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getDB } from '../db.js';
+import { Users } from '../models/index.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'ghat-manager-secret-key-2024';
@@ -24,12 +25,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const db = getDB();
-    
-    const user = await db.get(
-      'SELECT * FROM users WHERE username = ?', 
-      [username]
-    );
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+    let user;
+    if (useMySQL) {
+      const found = await Users.findOne({ where: { username, is_active: 1 } });
+      user = found ? found.toJSON() : null;
+    } else {
+      const db = getDB();
+      user = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+    }
     
     if (!user) {
       console.log('User not found:', username);
@@ -99,12 +103,17 @@ router.post('/verify', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    const db = getDB();
-    const user = await db.get(
-      'SELECT id, username, role, full_name FROM users WHERE id = ?', 
-      [decoded.id]
-    );
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+    let user;
+    if (useMySQL) {
+      const found = await Users.findByPk(decoded.id);
+      user = found ? found.toJSON() : null;
+      if (user && user.is_active === 0) user = null;
+      if (user) user = { id: user.id, username: user.username, role: user.role, full_name: user.full_name };
+    } else {
+      const db = getDB();
+      user = await db.get('SELECT id, username, role, full_name FROM users WHERE id = ?', [decoded.id]);
+    }
     
     if (!user) {
       return res.status(401).json({ 
@@ -138,12 +147,17 @@ router.get('/verify', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    const db = getDB();
-    const user = await db.get(
-      'SELECT id, username, role, full_name FROM users WHERE id = ?', 
-      [decoded.id]
-    );
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+    let user;
+    if (useMySQL) {
+      const found = await Users.findByPk(decoded.id);
+      user = found ? found.toJSON() : null;
+      if (user && user.is_active === 0) user = null;
+      if (user) user = { id: user.id, username: user.username, role: user.role, full_name: user.full_name };
+    } else {
+      const db = getDB();
+      user = await db.get('SELECT id, username, role, full_name FROM users WHERE id = ?', [decoded.id]);
+    }
     
     if (!user) {
       return res.status(401).json({ 
@@ -176,12 +190,14 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const db = getDB();
-    
-    const existingUser = await db.get(
-      'SELECT * FROM users WHERE username = ?', 
-      [username]
-    );
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+    let existingUser;
+    if (useMySQL) {
+      existingUser = await Users.findOne({ where: { username } });
+    } else {
+      const db = getDB();
+      existingUser = await db.get('SELECT * FROM users WHERE username = ?', [username]);
+    }
     
     if (existingUser) {
       return res.status(400).json({ 
@@ -191,29 +207,37 @@ router.post('/register', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const result = await db.run(
-      'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-      [username, hashedPassword, role]
-    );
-
-    console.log('New user registered:', { id: result.lastID, username, role });
-    
-    const token = jwt.sign(
-      { id: result.lastID, username, role },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: result.lastID,
-        username,
-        role
-      }
-    });
+    if (useMySQL) {
+      const created = await Users.create({ username, password_hash: hashedPassword, role });
+      console.log('New user registered:', { id: created.id, username, role });
+      const token = jwt.sign(
+        { id: created.id, username, role },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      return res.status(201).json({
+        success: true,
+        token,
+        user: { id: created.id, username, role }
+      });
+    } else {
+      const db = getDB();
+      const result = await db.run(
+        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
+        [username, hashedPassword, role]
+      );
+      console.log('New user registered:', { id: result.lastID, username, role });
+      const token = jwt.sign(
+        { id: result.lastID, username, role },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      return res.status(201).json({
+        success: true,
+        token,
+        user: { id: result.lastID, username, role }
+      });
+    }
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ 

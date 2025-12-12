@@ -56,7 +56,7 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+const useMySQL = (process.env.DB_DIALECT || 'sqlite').toLowerCase() === 'mysql';
 if (useMySQL) {
   await syncModels();
 } else {
