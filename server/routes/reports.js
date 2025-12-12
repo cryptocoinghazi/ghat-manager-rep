@@ -568,7 +568,7 @@ router.get('/deposit-transactions', async (req, res) => {
     } = req.query;
 
     let query = `
-      SELECT dt.id, dt.created_at as date_time, t.name as owner_name, dt.type, dt.amount,
+      SELECT dt.id, dt.createdAt as date_time, t.name as owner_name, dt.type, dt.amount,
              dt.previous_balance, dt.new_balance, dt.receipt_no, dt.notes, t.id as owner_id
       FROM deposit_transactions dt
       JOIN truck_owners t ON dt.owner_id = t.id
@@ -576,12 +576,12 @@ router.get('/deposit-transactions', async (req, res) => {
     `;
     const params = [];
 
-    if (startDate) { query += ' AND DATE(dt.created_at) >= ?'; params.push(startDate); }
-    if (endDate) { query += ' AND DATE(dt.created_at) <= ?'; params.push(endDate); }
+    if (startDate) { query += ' AND DATE(dt.createdAt) >= ?'; params.push(startDate); }
+    if (endDate) { query += ' AND DATE(dt.createdAt) <= ?'; params.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { query += ' AND dt.owner_id = ?'; params.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { query += ' AND dt.type = ?'; params.push(transactionType); }
 
-    query += ' ORDER BY dt.created_at DESC';
+    query += ' ORDER BY dt.createdAt DESC';
     const offset = (page - 1) * limit;
     query += ' LIMIT ? OFFSET ?';
     params.push(Number(limit), Number(offset));
@@ -597,8 +597,8 @@ router.get('/deposit-transactions', async (req, res) => {
       WHERE 1=1
     `;
     const summaryParams = [];
-    if (startDate) { summaryQuery += ' AND DATE(dt.created_at) >= ?'; summaryParams.push(startDate); }
-    if (endDate) { summaryQuery += ' AND DATE(dt.created_at) <= ?'; summaryParams.push(endDate); }
+    if (startDate) { summaryQuery += ' AND DATE(dt.createdAt) >= ?'; summaryParams.push(startDate); }
+    if (endDate) { summaryQuery += ' AND DATE(dt.createdAt) <= ?'; summaryParams.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { summaryQuery += ' AND dt.owner_id = ?'; summaryParams.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { summaryQuery += ' AND dt.type = ?'; summaryParams.push(transactionType); }
 
@@ -615,18 +615,18 @@ router.get('/deposit-transactions', async (req, res) => {
       const [firstTxRows] = await sequelize.query(`
         SELECT previous_balance FROM deposit_transactions 
         WHERE owner_id = ? 
-          ${startDate ? 'AND DATE(created_at) >= ?' : ''}
-          ${endDate ? 'AND DATE(created_at) <= ?' : ''}
-        ORDER BY created_at ASC LIMIT 1
+          ${startDate ? 'AND DATE(createdAt) >= ?' : ''}
+          ${endDate ? 'AND DATE(createdAt) <= ?' : ''}
+        ORDER BY createdAt ASC LIMIT 1
       `, { replacements: [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])] });
       const firstTx = firstTxRows[0] || null;
 
       const [lastTxRows] = await sequelize.query(`
         SELECT new_balance FROM deposit_transactions 
         WHERE owner_id = ? 
-          ${startDate ? 'AND DATE(created_at) >= ?' : ''}
-          ${endDate ? 'AND DATE(created_at) <= ?' : ''}
-        ORDER BY created_at DESC LIMIT 1
+          ${startDate ? 'AND DATE(createdAt) >= ?' : ''}
+          ${endDate ? 'AND DATE(createdAt) <= ?' : ''}
+        ORDER BY createdAt DESC LIMIT 1
       `, { replacements: [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])] });
       const lastTx = lastTxRows[0] || null;
 
@@ -639,8 +639,8 @@ router.get('/deposit-transactions', async (req, res) => {
       SELECT COUNT(*) as count FROM deposit_transactions dt WHERE 1=1
     `;
     const countParams = [];
-    if (startDate) { countQuery += ' AND DATE(dt.created_at) >= ?'; countParams.push(startDate); }
-    if (endDate) { countQuery += ' AND DATE(dt.created_at) <= ?'; countParams.push(endDate); }
+    if (startDate) { countQuery += ' AND DATE(dt.createdAt) >= ?'; countParams.push(startDate); }
+    if (endDate) { countQuery += ' AND DATE(dt.createdAt) <= ?'; countParams.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { countQuery += ' AND dt.owner_id = ?'; countParams.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { countQuery += ' AND dt.type = ?'; countParams.push(transactionType); }
     const [countRows] = await sequelize.query(countQuery, { replacements: countParams });
@@ -676,11 +676,11 @@ router.get('/export/deposit-csv', async (req, res) => {
       WHERE 1=1
     `;
     const params = [];
-    if (startDate) { query += ' AND DATE(dt.created_at) >= ?'; params.push(startDate); }
-    if (endDate) { query += ' AND DATE(dt.created_at) <= ?'; params.push(endDate); }
+    if (startDate) { query += ' AND DATE(dt.createdAt) >= ?'; params.push(startDate); }
+    if (endDate) { query += ' AND DATE(dt.createdAt) <= ?'; params.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { query += ' AND dt.owner_id = ?'; params.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { query += ' AND dt.type = ?'; params.push(transactionType); }
-    query += ' ORDER BY dt.created_at DESC';
+    query += ' ORDER BY dt.createdAt DESC';
     const [rows] = await sequelize.query(query, { replacements: params });
     const headers = ['Date','Owner','Type','Amount','PrevBalance','NewBalance','ReceiptNo','Notes'];
     const csvRows = rows.map(r => [

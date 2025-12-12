@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     if (startDate && endDate) where.date = { [Op.between]: [startDate, endDate] };
     if (category) where.category = category;
     if (ghatLocation) where.ghat_location = ghatLocation;
-    const expenses = await Expenses.findAll({ where, order: [['date','DESC'], ['created_at','DESC']] });
+    const expenses = await Expenses.findAll({ where, order: [['date','DESC'], ['id','DESC']] });
     return res.json(expenses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -102,9 +102,8 @@ router.get('/reports/monthly', async (req, res) => {
     const { year, month } = req.query;
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
-    
-    const targetYear = year || currentYear;
-    const targetMonth = month || currentMonth;
+    const targetYear = Number.parseInt(year, 10) || currentYear;
+    const targetMonth = Number.parseInt(month, 10) || currentMonth;
     
     const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
     const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-31`;
@@ -121,7 +120,7 @@ router.get('/reports/monthly', async (req, res) => {
     const [dailyTotals] = await sequelize.query(`SELECT date, COUNT(*) as count, SUM(amount) as total FROM expenses WHERE ${monthWhere} GROUP BY date ORDER BY date`, { replacements: monthParams });
     const [categoryTotals] = await sequelize.query(`SELECT category, SUM(amount) as total FROM expenses WHERE ${monthWhere} GROUP BY category ORDER BY total DESC`, { replacements: monthParams });
     
-    const monthlyTotal = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const monthlyTotal = expenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
     
     res.json({
       period: `${targetYear}-${String(targetMonth).padStart(2, '0')}`,
