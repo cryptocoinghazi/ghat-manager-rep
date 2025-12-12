@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDB } from '../db.js';
+import { sequelize, Settings } from '../models/index.js';
 
 const router = express.Router();
 const csvEscape = (v) => {
@@ -13,14 +13,13 @@ const csvEscape = (v) => {
 // Get partner royalty report
 router.get('/partner-royalty', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     
     const start = startDate || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
     const end = endDate || new Date().toISOString().split('T')[0];
     
     // Get partner-wise summary
-    const partnerSummary = await db.all(`
+    const [partnerSummary] = await sequelize.query(`
       SELECT 
         r.truck_owner,
         t.is_partner,
@@ -34,14 +33,14 @@ router.get('/partner-royalty', async (req, res) => {
         r.owner_type
       FROM receipts r
       LEFT JOIN truck_owners t ON r.truck_owner = t.name
-      WHERE date(r.date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(r.date_time) BETWEEN ? AND ?
         AND r.is_active = 1
       GROUP BY r.truck_owner
       ORDER BY total_amount DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get partner totals
-    const partnerTotals = await db.get(`
+    const [partnerTotalsRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as total_trips,
         SUM(brass_qty) as total_brass,
@@ -49,13 +48,14 @@ router.get('/partner-royalty', async (req, res) => {
         SUM(cash_paid) as total_cash,
         SUM(credit_amount) as total_credit
       FROM receipts
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND owner_type = 'partner'
         AND is_active = 1
-    `, [start, end]);
+    `, { replacements: [start, end] });
+    const partnerTotals = partnerTotalsRows[0] || {};
     
     // Get regular totals
-    const regularTotals = await db.get(`
+    const [regularTotalsRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as total_trips,
         SUM(brass_qty) as total_brass,
@@ -63,18 +63,19 @@ router.get('/partner-royalty', async (req, res) => {
         SUM(cash_paid) as total_cash,
         SUM(credit_amount) as total_credit
       FROM receipts
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND (owner_type = 'regular' OR owner_type IS NULL)
         AND is_active = 1
-    `, [start, end]);
+    `, { replacements: [start, end] });
+    const regularTotals = regularTotalsRows[0] || {};
     
     // Calculate royalty (difference between regular and partner rates)
     // Get settings for default rates
-    const defaultRate = await db.get("SELECT value FROM settings WHERE key = 'default_rate'");
-    const defaultPartnerRate = await db.get("SELECT value FROM settings WHERE key = 'default_partner_rate'");
+    const defaultRate = await Settings.findByPk('default_rate');
+    const defaultPartnerRate = await Settings.findByPk('default_partner_rate');
     
-    const regularRate = parseFloat(defaultRate?.value) || 1200;
-    const partnerRate = parseFloat(defaultPartnerRate?.value) || 1000;
+    const regularRate = parseFloat(defaultRate?.get('value')) || 1200;
+    const partnerRate = parseFloat(defaultPartnerRate?.get('value')) || 1000;
     const rateDifference = regularRate - partnerRate;
     
     // Calculate potential royalty from partner transactions
@@ -82,19 +83,19 @@ router.get('/partner-royalty', async (req, res) => {
     const royaltyAmount = partnerBrass * rateDifference;
     
     // Get daily breakdown
-    const dailyBreakdown = await db.all(`
+    const [dailyBreakdown] = await sequelize.query(`
       SELECT 
-        date(date_time) as date,
+        DATE(date_time) as date,
         owner_type,
         COUNT(*) as trips,
         SUM(brass_qty) as brass,
         SUM(total_amount) as amount
       FROM receipts
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
-      GROUP BY date(date_time), owner_type
+      GROUP BY DATE(date_time), owner_type
       ORDER BY date DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     res.json({
       period: { startDate: start, endDate: end },
@@ -133,12 +134,11 @@ router.get('/partner-royalty', async (req, res) => {
 // Get credit report
 router.get('/credit-report', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     const end = endDate || new Date().toISOString().split('T')[0];
     const start = startDate || '2024-01-01';
     
-    const creditReport = await db.all(`
+    const [creditReport] = await sequelize.query(`
       SELECT 
         truck_owner,
         COUNT(*) as pending_count,
@@ -147,30 +147,30 @@ router.get('/credit-report', async (req, res) => {
         MAX(date_time) as latest_credit
       FROM receipts 
       WHERE credit_amount > 0
-        AND date(date_time) BETWEEN date(?) AND date(?)
+        AND DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner
       HAVING total_credit > 0
       ORDER BY total_credit DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get credit aging
-    const creditAging = await db.all(`
+    const [creditAging] = await sequelize.query(`
       SELECT 
         truck_owner,
         CASE 
-          WHEN julianday('now') - julianday(date_time) <= 7 THEN '0-7 days'
-          WHEN julianday('now') - julianday(date_time) <= 30 THEN '8-30 days'
+          WHEN TIMESTAMPDIFF(DAY, date_time, NOW()) <= 7 THEN '0-7 days'
+          WHEN TIMESTAMPDIFF(DAY, date_time, NOW()) <= 30 THEN '8-30 days'
           ELSE '30+ days'
         END as aging_bucket,
         SUM(credit_amount) as amount
       FROM receipts 
       WHERE credit_amount > 0
-        AND date(date_time) BETWEEN date(?) AND date(?)
+        AND DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner, aging_bucket
       ORDER BY truck_owner, aging_bucket
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     res.json({
       creditReport,
@@ -187,7 +187,6 @@ router.get('/credit-report', async (req, res) => {
 // Get monthly report
 router.get('/monthly-report', async (req, res) => {
   try {
-    const db = getDB();
     const { year, month } = req.query;
     
     // Default to current month if not provided
@@ -195,22 +194,22 @@ router.get('/monthly-report', async (req, res) => {
     const yearMonth = year && month ? `${year}-${month.padStart(2, '0')}` : 
                      `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
     
-    const dailyData = await db.all(`
+    const [dailyData] = await sequelize.query(`
       SELECT 
-        date(date_time) as day,
+        DATE(date_time) as day,
         COUNT(*) as transactions,
         SUM(total_amount) as total_amount,
         SUM(cash_paid) as cash_collected,
         SUM(credit_amount) as credit_given,
         SUM(brass_qty) as total_brass
       FROM receipts 
-      WHERE strftime('%Y-%m', date_time) = ?
+      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
         AND is_active = 1
-      GROUP BY date(date_time)
+      GROUP BY DATE(date_time)
       ORDER BY day
-    `, [yearMonth]);
+    `, { replacements: [yearMonth] });
     
-    const monthlySummary = await db.get(`
+    const [monthlySummaryRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as total_transactions,
         SUM(total_amount) as total_amount,
@@ -219,24 +218,25 @@ router.get('/monthly-report', async (req, res) => {
         SUM(brass_qty) as total_brass,
         AVG(total_amount) as avg_transaction
       FROM receipts 
-      WHERE strftime('%Y-%m', date_time) = ?
+      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
         AND is_active = 1
-    `, [yearMonth]);
+    `, { replacements: [yearMonth] });
+    const monthlySummary = monthlySummaryRows[0] || null;
     
     // Get payment distribution
-    const paymentDistribution = await db.all(`
+    const [paymentDistribution] = await sequelize.query(`
       SELECT 
         payment_status,
         COUNT(*) as count,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE strftime('%Y-%m', date_time) = ?
+      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
         AND is_active = 1
       GROUP BY payment_status
-    `, [yearMonth]);
+    `, { replacements: [yearMonth] });
     
     // Get top 5 customers for the month
-    const topCustomers = await db.all(`
+    const [topCustomers] = await sequelize.query(`
       SELECT 
         truck_owner,
         COUNT(*) as transactions,
@@ -244,12 +244,12 @@ router.get('/monthly-report', async (req, res) => {
         SUM(cash_paid) as cash_paid,
         SUM(credit_amount) as credit_amount
       FROM receipts 
-      WHERE strftime('%Y-%m', date_time) = ?
+      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
         AND is_active = 1
       GROUP BY truck_owner
       ORDER BY total_amount DESC
       LIMIT 5
-    `, [yearMonth]);
+    `, { replacements: [yearMonth] });
     
     res.json({
       month: yearMonth,
@@ -274,7 +274,6 @@ router.get('/monthly-report', async (req, res) => {
 // Get financial summary
 router.get('/financial-summary', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     
     // Default to last 30 days if no dates provided
@@ -287,7 +286,7 @@ router.get('/financial-summary', async (req, res) => {
     const end = endDate || defaultEndDate;
     
     // Get overall summary for the period
-    const summary = await db.get(`
+    const [summaryRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as total_transactions,
         SUM(total_amount) as total_amount,
@@ -298,27 +297,28 @@ router.get('/financial-summary', async (req, res) => {
         MIN(date_time) as period_start,
         MAX(date_time) as period_end
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
-    `, [start, end]);
+    `, { replacements: [start, end] });
+    const summary = summaryRows[0] || null;
     
     // Get daily trends
-    const dailyTrends = await db.all(`
+    const [dailyTrends] = await sequelize.query(`
       SELECT 
-        date(date_time) as date,
+        DATE(date_time) as date,
         COUNT(*) as transactions,
         SUM(total_amount) as total_amount,
         SUM(cash_paid) as cash_collected,
         SUM(credit_amount) as credit_given
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
-      GROUP BY date(date_time)
+      GROUP BY DATE(date_time)
       ORDER BY date
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get customer-wise summary
-    const customerSummary = await db.all(`
+    const [customerSummary] = await sequelize.query(`
       SELECT 
         truck_owner,
         COUNT(*) as transactions,
@@ -326,39 +326,39 @@ router.get('/financial-summary', async (req, res) => {
         SUM(cash_paid) as cash_paid,
         SUM(credit_amount) as credit_amount
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner
       ORDER BY total_amount DESC
       LIMIT 10
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get vehicle summary
-    const vehicleSummary = await db.all(`
+    const [vehicleSummary] = await sequelize.query(`
       SELECT 
         vehicle_number,
         COUNT(*) as trips,
         SUM(total_amount) as total_amount
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY vehicle_number
       ORDER BY trips DESC
       LIMIT 10
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get payment method trends
-    const paymentTrends = await db.all(`
+    const [paymentTrends] = await sequelize.query(`
       SELECT 
         payment_status,
         COUNT(*) as count,
         SUM(total_amount) as amount,
-        (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM receipts WHERE date(date_time) BETWEEN date(?) AND date(?) AND is_active = 1)) as percentage
+        (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM receipts WHERE DATE(date_time) BETWEEN ? AND ? AND is_active = 1)) as percentage
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY payment_status
-    `, [start, end, start, end]);
+    `, { replacements: [start, end, start, end] });
     
     res.json({
       period: { startDate: start, endDate: end },
@@ -384,7 +384,6 @@ router.get('/financial-summary', async (req, res) => {
 // Get client report
 router.get('/client-report', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     
     // Default to all time if no dates provided
@@ -392,7 +391,7 @@ router.get('/client-report', async (req, res) => {
     const end = endDate || new Date().toISOString().split('T')[0];
     
     // Get client summary
-    const clientSummary = await db.all(`
+    const [clientSummary] = await sequelize.query(`
       SELECT 
         truck_owner,
         COUNT(*) as total_transactions,
@@ -404,42 +403,42 @@ router.get('/client-report', async (req, res) => {
         MAX(date_time) as last_transaction,
         ROUND(AVG(total_amount), 2) as avg_transaction_value
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner
       ORDER BY total_amount DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get client payment status summary
-    const clientPaymentStatus = await db.all(`
+    const [clientPaymentStatus] = await sequelize.query(`
       SELECT 
         truck_owner,
         payment_status,
         COUNT(*) as count,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner, payment_status
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Get recent transactions for each client (latest 5)
-    const recentTransactions = await db.all(`
+    const [recentTransactions] = await sequelize.query(`
       SELECT 
         r1.*
       FROM receipts r1
-      WHERE date(r1.date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(r1.date_time) BETWEEN ? AND ?
         AND r1.is_active = 1
         AND (
           SELECT COUNT(*) 
           FROM receipts r2 
           WHERE r2.truck_owner = r1.truck_owner 
-            AND date(r2.date_time) BETWEEN date(?) AND date(?)
+            AND DATE(r2.date_time) BETWEEN ? AND ?
             AND r2.is_active = 1
             AND r2.date_time >= r1.date_time
         ) <= 5
       ORDER BY r1.truck_owner, r1.date_time DESC
-    `, [start, end, start, end]);
+    `, { replacements: [start, end, start, end] });
     
     res.json({
       period: { startDate: start, endDate: end },
@@ -457,14 +456,13 @@ router.get('/client-report', async (req, res) => {
 // Get daily summary (existing route - enhanced)
 router.get('/daily-summary', async (req, res) => {
   try {
-    const db = getDB();
     const { date } = req.query;
     
     // Default to today if no date provided
     const targetDate = date || new Date().toISOString().split('T')[0];
     
     // Get daily totals
-    const summary = await db.get(`
+    const [summaryRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as total_transactions,
         SUM(total_amount) as total_amount,
@@ -472,25 +470,26 @@ router.get('/daily-summary', async (req, res) => {
         SUM(credit_amount) as total_credit,
         SUM(brass_qty) as total_brass
       FROM receipts 
-      WHERE date(date_time) = date(?)
+      WHERE DATE(date_time) = ?
         AND is_active = 1
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
+    const summary = summaryRows[0] || null;
     
     // Get hourly distribution
-    const hourly = await db.all(`
+    const [hourly] = await sequelize.query(`
       SELECT 
-        strftime('%H', date_time) as hour,
+        DATE_FORMAT(date_time, '%H') as hour,
         COUNT(*) as transactions,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE date(date_time) = date(?)
+      WHERE DATE(date_time) = ?
         AND is_active = 1
-      GROUP BY strftime('%H', date_time)
+      GROUP BY DATE_FORMAT(date_time, '%H')
       ORDER BY hour
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
     
     // Get top customers of the day
-    const topCustomers = await db.all(`
+    const [topCustomers] = await sequelize.query(`
       SELECT 
         truck_owner,
         COUNT(*) as transactions,
@@ -498,27 +497,27 @@ router.get('/daily-summary', async (req, res) => {
         SUM(cash_paid) as cash_paid,
         SUM(credit_amount) as credit_amount
       FROM receipts 
-      WHERE date(date_time) = date(?)
+      WHERE DATE(date_time) = ?
         AND is_active = 1
       GROUP BY truck_owner
       ORDER BY total_amount DESC
       LIMIT 10
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
     
     // Get payment method distribution
-    const paymentDistribution = await db.all(`
+    const [paymentDistribution] = await sequelize.query(`
       SELECT 
         payment_status,
         COUNT(*) as count,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE date(date_time) = date(?)
+      WHERE DATE(date_time) = ?
         AND is_active = 1
       GROUP BY payment_status
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
     
     // Get recent transactions for the day
-    const recentTransactions = await db.all(`
+    const [recentTransactions] = await sequelize.query(`
       SELECT 
         receipt_no,
         truck_owner,
@@ -530,11 +529,11 @@ router.get('/daily-summary', async (req, res) => {
         credit_amount,
         payment_status
       FROM receipts 
-      WHERE date(date_time) = date(?)
+      WHERE DATE(date_time) = ?
         AND is_active = 1
       ORDER BY date_time DESC
       LIMIT 20
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
     
     res.json({
       date: targetDate,
@@ -559,7 +558,6 @@ router.get('/daily-summary', async (req, res) => {
 // Deposit transactions report
 router.get('/deposit-transactions', async (req, res) => {
   try {
-    const db = getDB();
     const {
       startDate,
       endDate,
@@ -578,8 +576,8 @@ router.get('/deposit-transactions', async (req, res) => {
     `;
     const params = [];
 
-    if (startDate) { query += ' AND date(dt.created_at) >= date(?)'; params.push(startDate); }
-    if (endDate) { query += ' AND date(dt.created_at) <= date(?)'; params.push(endDate); }
+    if (startDate) { query += ' AND DATE(dt.created_at) >= ?'; params.push(startDate); }
+    if (endDate) { query += ' AND DATE(dt.created_at) <= ?'; params.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { query += ' AND dt.owner_id = ?'; params.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { query += ' AND dt.type = ?'; params.push(transactionType); }
 
@@ -588,7 +586,7 @@ router.get('/deposit-transactions', async (req, res) => {
     query += ' LIMIT ? OFFSET ?';
     params.push(Number(limit), Number(offset));
 
-    const transactions = await db.all(query, params);
+    const [transactions] = await sequelize.query(query, { replacements: params });
 
     // Summary
     let summaryQuery = `
@@ -599,12 +597,13 @@ router.get('/deposit-transactions', async (req, res) => {
       WHERE 1=1
     `;
     const summaryParams = [];
-    if (startDate) { summaryQuery += ' AND date(dt.created_at) >= date(?)'; summaryParams.push(startDate); }
-    if (endDate) { summaryQuery += ' AND date(dt.created_at) <= date(?)'; summaryParams.push(endDate); }
+    if (startDate) { summaryQuery += ' AND DATE(dt.created_at) >= ?'; summaryParams.push(startDate); }
+    if (endDate) { summaryQuery += ' AND DATE(dt.created_at) <= ?'; summaryParams.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { summaryQuery += ' AND dt.owner_id = ?'; summaryParams.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { summaryQuery += ' AND dt.type = ?'; summaryParams.push(transactionType); }
 
-    const summaryRow = await db.get(summaryQuery, summaryParams);
+    const [summaryRows] = await sequelize.query(summaryQuery, { replacements: summaryParams });
+    const summaryRow = summaryRows[0] || {};
     const totalAdditions = parseFloat(summaryRow?.total_additions || 0);
     const totalDeductions = parseFloat(summaryRow?.total_deductions || 0);
     const netChange = totalAdditions - totalDeductions;
@@ -613,21 +612,23 @@ router.get('/deposit-transactions', async (req, res) => {
     let startingBalance = null;
     let endingBalance = null;
     if (truckOwnerId && truckOwnerId !== 'all') {
-      const firstTx = await db.get(`
+      const [firstTxRows] = await sequelize.query(`
         SELECT previous_balance FROM deposit_transactions 
         WHERE owner_id = ? 
-          ${startDate ? 'AND date(created_at) >= date(?)' : ''}
-          ${endDate ? 'AND date(created_at) <= date(?)' : ''}
+          ${startDate ? 'AND DATE(created_at) >= ?' : ''}
+          ${endDate ? 'AND DATE(created_at) <= ?' : ''}
         ORDER BY created_at ASC LIMIT 1
-      `, [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])]);
+      `, { replacements: [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])] });
+      const firstTx = firstTxRows[0] || null;
 
-      const lastTx = await db.get(`
+      const [lastTxRows] = await sequelize.query(`
         SELECT new_balance FROM deposit_transactions 
         WHERE owner_id = ? 
-          ${startDate ? 'AND date(created_at) >= date(?)' : ''}
-          ${endDate ? 'AND date(created_at) <= date(?)' : ''}
+          ${startDate ? 'AND DATE(created_at) >= ?' : ''}
+          ${endDate ? 'AND DATE(created_at) <= ?' : ''}
         ORDER BY created_at DESC LIMIT 1
-      `, [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])]);
+      `, { replacements: [truckOwnerId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])] });
+      const lastTx = lastTxRows[0] || null;
 
       startingBalance = firstTx?.previous_balance ?? null;
       endingBalance = lastTx?.new_balance ?? null;
@@ -638,11 +639,12 @@ router.get('/deposit-transactions', async (req, res) => {
       SELECT COUNT(*) as count FROM deposit_transactions dt WHERE 1=1
     `;
     const countParams = [];
-    if (startDate) { countQuery += ' AND date(dt.created_at) >= date(?)'; countParams.push(startDate); }
-    if (endDate) { countQuery += ' AND date(dt.created_at) <= date(?)'; countParams.push(endDate); }
+    if (startDate) { countQuery += ' AND DATE(dt.created_at) >= ?'; countParams.push(startDate); }
+    if (endDate) { countQuery += ' AND DATE(dt.created_at) <= ?'; countParams.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { countQuery += ' AND dt.owner_id = ?'; countParams.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { countQuery += ' AND dt.type = ?'; countParams.push(transactionType); }
-    const countRow = await db.get(countQuery, countParams);
+    const [countRows] = await sequelize.query(countQuery, { replacements: countParams });
+    const countRow = countRows[0] || {};
 
     res.json({
       transactions,
@@ -664,7 +666,6 @@ router.get('/deposit-transactions', async (req, res) => {
 // Export deposit transactions to CSV
 router.get('/export/deposit-csv', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate, truckOwnerId, transactionType } = req.query;
     let query = `
       SELECT dt.created_at as Date, t.name as Owner, dt.type as Type, dt.amount as Amount,
@@ -675,12 +676,12 @@ router.get('/export/deposit-csv', async (req, res) => {
       WHERE 1=1
     `;
     const params = [];
-    if (startDate) { query += ' AND date(dt.created_at) >= date(?)'; params.push(startDate); }
-    if (endDate) { query += ' AND date(dt.created_at) <= date(?)'; params.push(endDate); }
+    if (startDate) { query += ' AND DATE(dt.created_at) >= ?'; params.push(startDate); }
+    if (endDate) { query += ' AND DATE(dt.created_at) <= ?'; params.push(endDate); }
     if (truckOwnerId && truckOwnerId !== 'all') { query += ' AND dt.owner_id = ?'; params.push(truckOwnerId); }
     if (transactionType && transactionType !== 'all') { query += ' AND dt.type = ?'; params.push(transactionType); }
     query += ' ORDER BY dt.created_at DESC';
-    const rows = await db.all(query, params);
+    const [rows] = await sequelize.query(query, { replacements: params });
     const headers = ['Date','Owner','Type','Amount','PrevBalance','NewBalance','ReceiptNo','Notes'];
     const csvRows = rows.map(r => [
       csvEscape(new Date(r.Date).toLocaleString('en-IN')),
@@ -705,12 +706,11 @@ router.get('/export/deposit-csv', async (req, res) => {
 // Export credit report to CSV
 router.get('/export/credit-csv', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     const end = endDate || new Date().toISOString().split('T')[0];
     const start = startDate || '2024-01-01';
     
-    const creditReport = await db.all(`
+    const [creditReport] = await sequelize.query(`
       SELECT 
         truck_owner as "Customer Name",
         COUNT(*) as "Pending Receipts",
@@ -719,12 +719,12 @@ router.get('/export/credit-csv', async (req, res) => {
         MAX(date_time) as "Latest Credit Date"
       FROM receipts 
       WHERE credit_amount > 0
-        AND date(date_time) BETWEEN date(?) AND date(?)
+        AND DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner
       HAVING SUM(credit_amount) > 0
       ORDER BY SUM(credit_amount) DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     // Convert to CSV
     const headers = ['Customer Name', 'Pending Receipts', 'Total Credit (₹)', 'Oldest Credit Date', 'Latest Credit Date'];
@@ -751,29 +751,28 @@ router.get('/export/credit-csv', async (req, res) => {
 // Export monthly report to CSV
 router.get('/export/monthly-csv', async (req, res) => {
   try {
-    const db = getDB();
     const { month } = req.query;
     
     const currentDate = new Date();
     const yearMonth = month || `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
     
-    const monthlyData = await db.all(`
+    const [monthlyData] = await sequelize.query(`
       SELECT 
-        date(date_time) as "Date",
+        DATE(date_time) as "Date",
         COUNT(*) as "Transactions",
         SUM(total_amount) as "Total Amount (₹)",
         SUM(cash_paid) as "Cash Collected (₹)",
         SUM(credit_amount) as "Credit Given (₹)",
         SUM(brass_qty) as "Total Brass"
       FROM receipts 
-      WHERE strftime('%Y-%m', date_time) = ?
+      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
         AND is_active = 1
-      GROUP BY date(date_time)
-      ORDER BY date(date_time)
-    `, [yearMonth]);
+      GROUP BY DATE(date_time)
+      ORDER BY DATE(date_time)
+    `, { replacements: [yearMonth] });
     
     // Get monthly summary
-    const monthlySummary = await db.get(`
+    const [monthlySummaryRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as "Total Transactions",
         SUM(total_amount) as "Total Revenue (₹)",
@@ -782,9 +781,10 @@ router.get('/export/monthly-csv', async (req, res) => {
         SUM(brass_qty) as "Total Brass",
         AVG(total_amount) as "Average Transaction (₹)"
       FROM receipts 
-      WHERE strftime('%Y-%m', date_time) = ?
+      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
         AND is_active = 1
-    `, [yearMonth]);
+    `, { replacements: [yearMonth] });
+    const monthlySummary = monthlySummaryRows[0] || null;
     
     // Create CSV with summary and daily data
     const summaryHeaders = ['Metric', 'Value'];
@@ -830,25 +830,24 @@ router.get('/export/monthly-csv', async (req, res) => {
 // Export financial summary to CSV
 router.get('/export/financial-csv', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     
     const start = startDate || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
     const end = endDate || new Date().toISOString().split('T')[0];
     
-    const dailyTrends = await db.all(`
+    const [dailyTrends] = await sequelize.query(`
       SELECT 
-        date(date_time) as "Date",
+        DATE(date_time) as "Date",
         COUNT(*) as "Transactions",
         SUM(total_amount) as "Total Amount (₹)",
         SUM(cash_paid) as "Cash Collected (₹)",
         SUM(credit_amount) as "Credit Given (₹)"
       FROM receipts 
-      WHERE date(date_time) BETWEEN date(?) AND date(?)
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
-      GROUP BY date(date_time)
-      ORDER BY date(date_time)
-    `, [start, end]);
+      GROUP BY DATE(date_time)
+      ORDER BY DATE(date_time)
+    `, { replacements: [start, end] });
     
     const headers = ['Date','Transactions','Total Amount (₹)','Cash Collected (₹)','Credit Given (₹)'];
     const rows = (dailyTrends || []).map(item => [
@@ -879,7 +878,6 @@ router.get('/export/financial-csv', async (req, res) => {
 // Get expense summary
 router.get('/expense-summary', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     
     const defaultEndDate = new Date().toISOString().split('T')[0];
@@ -890,15 +888,16 @@ router.get('/expense-summary', async (req, res) => {
     const start = startDate || formattedDefaultStartDate;
     const end = endDate || defaultEndDate;
     
-    const totalExpenses = await db.get(`
+    const [totalExpensesRows] = await sequelize.query(`
       SELECT 
         COUNT(*) as total_count,
         SUM(amount) as total_amount
       FROM expenses 
       WHERE date BETWEEN ? AND ?
-    `, [start, end]);
+    `, { replacements: [start, end] });
+    const totalExpenses = totalExpensesRows[0] || null;
     
-    const categoryBreakdown = await db.all(`
+    const [categoryBreakdown] = await sequelize.query(`
       SELECT 
         category,
         COUNT(*) as count,
@@ -908,9 +907,9 @@ router.get('/expense-summary', async (req, res) => {
       WHERE date BETWEEN ? AND ?
       GROUP BY category
       ORDER BY total DESC
-    `, [start, end, start, end]);
+    `, { replacements: [start, end, start, end] });
     
-    const dailyTotals = await db.all(`
+    const [dailyTotals] = await sequelize.query(`
       SELECT 
         date,
         COUNT(*) as count,
@@ -919,7 +918,7 @@ router.get('/expense-summary', async (req, res) => {
       WHERE date BETWEEN ? AND ?
       GROUP BY date
       ORDER BY date DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
     res.json({
       period: { startDate: start, endDate: end },
@@ -939,17 +938,16 @@ router.get('/expense-summary', async (req, res) => {
 // Get daily expense report
 router.get('/daily-expense-report', async (req, res) => {
   try {
-    const db = getDB();
     const { date } = req.query;
     const targetDate = date || new Date().toISOString().split('T')[0];
     
-    const expenses = await db.all(`
+    const [expenses] = await sequelize.query(`
       SELECT * FROM expenses 
       WHERE date = ? 
       ORDER BY category, amount DESC
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
     
-    const summary = await db.all(`
+    const [summary] = await sequelize.query(`
       SELECT 
         category,
         COUNT(*) as count,
@@ -958,7 +956,7 @@ router.get('/daily-expense-report', async (req, res) => {
       WHERE date = ? 
       GROUP BY category
       ORDER BY total DESC
-    `, [targetDate]);
+    `, { replacements: [targetDate] });
     
     const totalAmount = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
     
@@ -980,7 +978,6 @@ router.get('/daily-expense-report', async (req, res) => {
 // Get monthly expense report
 router.get('/monthly-expense-report', async (req, res) => {
   try {
-    const db = getDB();
     const { year, month } = req.query;
     
     const currentDate = new Date();
@@ -990,13 +987,13 @@ router.get('/monthly-expense-report', async (req, res) => {
     const startDate = `${targetYear}-${targetMonth}-01`;
     const endDate = `${targetYear}-${targetMonth}-31`;
     
-    const expenses = await db.all(`
+    const [expenses] = await sequelize.query(`
       SELECT * FROM expenses 
       WHERE date BETWEEN ? AND ? 
       ORDER BY date DESC, category
-    `, [startDate, endDate]);
+    `, { replacements: [startDate, endDate] });
     
-    const categoryBreakdown = await db.all(`
+    const [categoryBreakdown] = await sequelize.query(`
       SELECT 
         category,
         COUNT(*) as count,
@@ -1006,9 +1003,9 @@ router.get('/monthly-expense-report', async (req, res) => {
       WHERE date BETWEEN ? AND ?
       GROUP BY category
       ORDER BY total DESC
-    `, [startDate, endDate, startDate, endDate]);
+    `, { replacements: [startDate, endDate, startDate, endDate] });
     
-    const dailyTotals = await db.all(`
+    const [dailyTotals] = await sequelize.query(`
       SELECT 
         date,
         COUNT(*) as count,
@@ -1017,7 +1014,7 @@ router.get('/monthly-expense-report', async (req, res) => {
       WHERE date BETWEEN ? AND ?
       GROUP BY date
       ORDER BY date
-    `, [startDate, endDate]);
+    `, { replacements: [startDate, endDate] });
     
     const monthlyTotal = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
     
@@ -1041,13 +1038,12 @@ router.get('/monthly-expense-report', async (req, res) => {
 // Export expense data to CSV
 router.get('/export/expense-csv', async (req, res) => {
   try {
-    const db = getDB();
     const { startDate, endDate } = req.query;
     
     const start = startDate || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0];
     const end = endDate || new Date().toISOString().split('T')[0];
     
-    const expenses = await db.all(`
+    const [expenses] = await sequelize.query(`
       SELECT 
         date as "Date",
         category as "Category",
@@ -1062,9 +1058,9 @@ router.get('/export/expense-csv', async (req, res) => {
       FROM expenses 
       WHERE date BETWEEN ? AND ?
       ORDER BY date DESC, category
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
-    const summary = await db.all(`
+    const [summary] = await sequelize.query(`
       SELECT 
         category as "Category",
         COUNT(*) as "Count",
@@ -1073,11 +1069,12 @@ router.get('/export/expense-csv', async (req, res) => {
       WHERE date BETWEEN ? AND ?
       GROUP BY category
       ORDER BY SUM(amount) DESC
-    `, [start, end]);
+    `, { replacements: [start, end] });
     
-    const totalExpense = await db.get(`
+    const [totalExpenseRows] = await sequelize.query(`
       SELECT SUM(amount) as total FROM expenses WHERE date BETWEEN ? AND ?
-    `, [start, end]);
+    `, { replacements: [start, end] });
+    const totalExpense = totalExpenseRows[0] || null;
     
     const headers = ['Date', 'Category', 'Description', 'Amount (₹)', 'Payment Mode', 'Vendor', 'Ghat Location', 'Approved By', 'Remarks', 'Created By'];
     const csvData = [
