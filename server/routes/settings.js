@@ -1,39 +1,36 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { getDB } from '../db.js';
+import { Op } from 'sequelize';
+import { Settings, TruckOwners, DepositTransactions, sequelize } from '../models/index.js';
 
 const router = express.Router();
 
 // Get all settings
 router.get('/', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+    if (useMySQL) {
+      const rows = await Settings.findAll({ order: [['category', 'ASC'], ['key', 'ASC']] });
+      const result = { categorized: {}, flat: {} };
+      rows.forEach(setting => {
+        const s = setting.toJSON();
+        if (!result.categorized[s.category]) result.categorized[s.category] = {};
+        result.categorized[s.category][s.key] = { value: s.value, id: s.key, updated_at: s.updated_at };
+        result.flat[s.key] = s.value;
+      });
+      return res.json(result);
+    }
     const db = getDB();
     const settings = await db.all('SELECT * FROM settings ORDER BY category, key');
-    
-    // Return both structured and flat formats for compatibility
-    const result = {
-      categorized: {},
-      flat: {}
-    };
-    
+    const result = { categorized: {}, flat: {} };
     settings.forEach(setting => {
-      // Create categorized structure
-      if (!result.categorized[setting.category]) {
-        result.categorized[setting.category] = {};
-      }
-      result.categorized[setting.category][setting.key] = {
-        value: setting.value,
-        id: setting.id,
-        updated_at: setting.updated_at
-      };
-      
-      // Create flat key-value structure
+      if (!result.categorized[setting.category]) result.categorized[setting.category] = {};
+      result.categorized[setting.category][setting.key] = { value: setting.value, id: setting.id, updated_at: setting.updated_at };
       result.flat[setting.key] = setting.value;
     });
-    
     res.json(result);
   } catch (error) {
-    console.error('Error fetching settings:', error);
     res.status(500).json({ error: 'Failed to fetch settings' });
   }
 });
@@ -41,26 +38,20 @@ router.get('/', async (req, res) => {
 // Get settings by category
 router.get('/category/:category', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { category } = req.params;
+    if (useMySQL) {
+      const rows = await Settings.findAll({ where: { category }, order: [['key', 'ASC']] });
+      const result = {};
+      rows.forEach(s => { const r = s.toJSON(); result[r.key] = { value: r.value, id: r.key, updated_at: r.updated_at }; });
+      return res.json(result);
+    }
     const db = getDB();
-    
-    const settings = await db.all(
-      'SELECT * FROM settings WHERE category = ? ORDER BY key',
-      [category]
-    );
-    
+    const settings = await db.all('SELECT * FROM settings WHERE category = ? ORDER BY key', [category]);
     const categorySettings = {};
-    settings.forEach(setting => {
-      categorySettings[setting.key] = {
-        value: setting.value,
-        id: setting.id,
-        updated_at: setting.updated_at
-      };
-    });
-    
+    settings.forEach(setting => { categorySettings[setting.key] = { value: setting.value, id: setting.id, updated_at: setting.updated_at }; });
     res.json(categorySettings);
   } catch (error) {
-    console.error('Error fetching category settings:', error);
     res.status(500).json({ error: 'Failed to fetch category settings' });
   }
 });
@@ -68,26 +59,21 @@ router.get('/category/:category', async (req, res) => {
 // Update single setting
 router.put('/:key', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { key } = req.params;
     const { value } = req.body;
-    
-    if (value === undefined) {
-      return res.status(400).json({ error: 'Value is required' });
+    if (value === undefined) return res.status(400).json({ error: 'Value is required' });
+    if (useMySQL) {
+      const existing = await Settings.findByPk(key);
+      if (!existing) return res.status(404).json({ error: 'Setting not found' });
+      await existing.update({ value, updated_at: new Date() });
+      return res.json({ message: 'Setting updated successfully' });
     }
-    
     const db = getDB();
-    const result = await db.run(
-      'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
-      [value, key]
-    );
-    
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Setting not found' });
-    }
-    
+    const result = await db.run('UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?', [value, key]);
+    if (result.changes === 0) return res.status(404).json({ error: 'Setting not found' });
     res.json({ message: 'Setting updated successfully' });
   } catch (error) {
-    console.error('Error updating setting:', error);
     res.status(500).json({ error: 'Failed to update setting' });
   }
 });
@@ -95,17 +81,45 @@ router.put('/:key', async (req, res) => {
 // Update multiple settings (upsert missing keys)
 router.post('/batch-update', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const updates = req.body;
-    
-    if (!updates || typeof updates !== 'object') {
-      return res.status(400).json({ error: 'Invalid updates format' });
+    if (!updates || typeof updates !== 'object') return res.status(400).json({ error: 'Invalid updates format' });
+    if (useMySQL) {
+      const categoryMap = {
+        quarry_name: 'company',
+        quarry_address: 'company',
+        default_rate: 'financial',
+        default_partner_rate: 'financial',
+        loading_charge: 'financial',
+        receipt_prefix: 'receipt',
+        receipt_start: 'receipt',
+        currency: 'financial',
+        unit: 'general',
+        printer_width: 'receipt',
+        auto_print: 'receipt',
+        print_duplicate: 'receipt',
+        include_barcode: 'receipt'
+      };
+      const t = await sequelize.transaction();
+      try {
+        for (const [key, value] of Object.entries(updates)) {
+          const category = categoryMap[key] || 'general';
+          const existing = await Settings.findByPk(key, { transaction: t });
+          if (existing) {
+            await existing.update({ value: String(value), category, updated_at: new Date() }, { transaction: t });
+          } else {
+            await Settings.create({ key, value: String(value), category, updated_at: new Date() }, { transaction: t });
+          }
+        }
+        await t.commit();
+        return res.json({ message: 'Settings updated successfully' });
+      } catch (e) {
+        await t.rollback();
+        throw e;
+      }
     }
-    
     const db = getDB();
-    
-    // Start transaction for batch update
     await db.run('BEGIN TRANSACTION');
-    
     try {
       const categoryMap = {
         quarry_name: 'company',
@@ -122,21 +136,13 @@ router.post('/batch-update', async (req, res) => {
         print_duplicate: 'receipt',
         include_barcode: 'receipt'
       };
-
       for (const [key, value] of Object.entries(updates)) {
-        const result = await db.run(
-          'UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?',
-          [value, key]
-        );
+        const result = await db.run('UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?', [value, key]);
         if (result.changes === 0) {
           const category = categoryMap[key] || 'general';
-          await db.run(
-            'INSERT INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
-            [key, String(value), category]
-          );
+          await db.run('INSERT INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)', [key, String(value), category]);
         }
       }
-
       await db.run('COMMIT');
       res.json({ message: 'Settings updated successfully' });
     } catch (error) {
@@ -144,7 +150,6 @@ router.post('/batch-update', async (req, res) => {
       throw error;
     }
   } catch (error) {
-    console.error('Error updating settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
@@ -152,32 +157,24 @@ router.post('/batch-update', async (req, res) => {
 // Get truck owners with error handling for missing table
 router.get('/truck-owners', async (req, res) => {
   try {
-    const db = getDB();
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { is_partner } = req.query;
-    
-    // Check if table exists
-    const tableExists = await db.get(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='truck_owners'"
-    );
-    
-    if (!tableExists) {
-      return res.json([]); // Return empty array if table doesn't exist
+    if (useMySQL) {
+      const where = { is_active: 1 };
+      if (is_partner !== undefined) where.is_partner = (is_partner === 'true' || is_partner === '1') ? 1 : 0;
+      const owners = await TruckOwners.findAll({ where, order: [['name','ASC']] });
+      return res.json(owners);
     }
-    
+    const db = getDB();
+    const tableExists = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='truck_owners'");
+    if (!tableExists) return res.json([]);
     let query = 'SELECT * FROM truck_owners WHERE is_active = 1';
     const params = [];
-    
-    if (is_partner !== undefined) {
-      query += ' AND is_partner = ?';
-      params.push(is_partner === 'true' || is_partner === '1' ? 1 : 0);
-    }
-    
+    if (is_partner !== undefined) { query += ' AND is_partner = ?'; params.push(is_partner === 'true' || is_partner === '1' ? 1 : 0); }
     query += ' ORDER BY name';
-    
     const owners = await db.all(query, params);
     res.json(owners);
   } catch (error) {
-    console.error('Error fetching truck owners:', error);
     res.status(500).json({ error: 'Failed to fetch truck owners' });
   }
 });
@@ -185,21 +182,16 @@ router.get('/truck-owners', async (req, res) => {
 // Get single truck owner by name
 router.get('/truck-owners/by-name/:name', async (req, res) => {
   try {
-    const db = getDB();
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { name } = req.params;
-    
-    const owner = await db.get(
-      'SELECT * FROM truck_owners WHERE name = ? AND is_active = 1',
-      [name]
-    );
-    
-    if (!owner) {
-      return res.json(null);
+    if (useMySQL) {
+      const owner = await TruckOwners.findOne({ where: { name, is_active: 1 } });
+      return res.json(owner || null);
     }
-    
-    res.json(owner);
+    const db = getDB();
+    const owner = await db.get('SELECT * FROM truck_owners WHERE name = ? AND is_active = 1', [name]);
+    res.json(owner || null);
   } catch (error) {
-    console.error('Error fetching truck owner:', error);
     res.status(500).json({ error: 'Failed to fetch truck owner' });
   }
 });
@@ -207,56 +199,40 @@ router.get('/truck-owners/by-name/:name', async (req, res) => {
 // Create or update truck owner
 router.post('/truck-owners', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { name, contact, address, phone, vehicle_number, is_partner, partner_rate } = req.body;
-    
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    if (!vehicle_number) return res.status(400).json({ error: 'Vehicle number is required' });
+    if (useMySQL) {
+      const existing = await TruckOwners.findOne({ where: { name } });
+      if (existing) {
+        await existing.update({ phone: phone || contact || null, address: address || null, vehicle_number: vehicle_number || null, is_partner: is_partner ? 1 : 0, partner_rate: partner_rate || null });
+        return res.json({ message: 'Truck owner updated successfully', owner: existing });
+      } else {
+        const created = await TruckOwners.create({ name, phone: phone || contact || null, address: address || null, vehicle_number: vehicle_number || null, is_partner: is_partner ? 1 : 0, partner_rate: partner_rate || null, is_active: 1 });
+        return res.json({ message: 'Truck owner created successfully', owner: created });
+      }
     }
-    
-    if (!vehicle_number) {
-      return res.status(400).json({ error: 'Vehicle number is required' });
-    }
-    
     const db = getDB();
-    
-    // Check if owner already exists
     const existing = await db.get('SELECT id FROM truck_owners WHERE name = ?', [name]);
-    
     if (existing) {
-      // Update existing owner
-      await db.run(
-        `UPDATE truck_owners SET 
+      await db.run(`UPDATE truck_owners SET 
           phone = COALESCE(?, phone),
           address = COALESCE(?, address),
           vehicle_number = COALESCE(?, vehicle_number),
           is_partner = COALESCE(?, is_partner),
           partner_rate = ?,
           updated_at = CURRENT_TIMESTAMP
-        WHERE name = ?`,
-        [phone || contact || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null, name]
-      );
-      
+        WHERE name = ?`, [phone || contact || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null, name]);
       const updated = await db.get('SELECT * FROM truck_owners WHERE name = ?', [name]);
-      res.json({ 
-        message: 'Truck owner updated successfully',
-        owner: updated
-      });
+      return res.json({ message: 'Truck owner updated successfully', owner: updated });
     } else {
-      // Create new owner
-      const result = await db.run(
-        `INSERT INTO truck_owners (name, phone, address, vehicle_number, is_partner, partner_rate, is_active) 
-         VALUES (?, ?, ?, ?, ?, ?, 1)`,
-        [name, phone || contact || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null]
-      );
-      
+      const result = await db.run(`INSERT INTO truck_owners (name, phone, address, vehicle_number, is_partner, partner_rate, is_active) 
+         VALUES (?, ?, ?, ?, ?, ?, 1)`, [name, phone || contact || null, address || null, vehicle_number || null, is_partner ? 1 : 0, partner_rate || null]);
       const newOwner = await db.get('SELECT * FROM truck_owners WHERE id = ?', [result.lastID]);
-      res.json({ 
-        message: 'Truck owner created successfully',
-        owner: newOwner
-      });
+      return res.json({ message: 'Truck owner created successfully', owner: newOwner });
     }
   } catch (error) {
-    console.error('Error saving truck owner:', error);
     res.status(500).json({ error: 'Failed to save truck owner' });
   }
 });
@@ -264,29 +240,31 @@ router.post('/truck-owners', async (req, res) => {
 // Deposit: add amount to owner's balance (admin)
 router.post('/truck-owners/:id/deposit/add', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { id } = req.params;
     const { amount } = req.body;
-    const db = getDB();
     const addVal = parseFloat(amount);
-    if (!addVal || addVal <= 0) {
-      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    if (!addVal || addVal <= 0) return res.status(400).json({ error: 'Amount must be greater than 0' });
+    if (useMySQL) {
+      const owner = await TruckOwners.findOne({ where: { id, is_active: 1 } });
+      if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
+      const prev = parseFloat(owner.deposit_balance || 0);
+      const newBalance = prev + addVal;
+      await owner.update({ deposit_balance: newBalance });
+      await DepositTransactions.create({ owner_id: owner.id, type: 'add', amount: addVal, previous_balance: prev, new_balance: newBalance, notes: 'Manual deposit add' });
+      return res.json({ message: 'Deposit added successfully', owner });
     }
+    const db = getDB();
     const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
-    if (!owner) {
-      return res.status(404).json({ error: 'Truck owner not found' });
-    }
+    if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
     const prev = parseFloat(owner.deposit_balance || 0);
     const newBalance = prev + addVal;
     await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newBalance, id]);
-    await db.run(
-      `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, notes)
-       VALUES (?, 'add', ?, ?, ?, ?)`,
-      [id, addVal, prev, newBalance, 'Manual deposit add']
-    );
+    await db.run(`INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, notes)
+       VALUES (?, 'add', ?, ?, ?, ?)`, [id, addVal, prev, newBalance, 'Manual deposit add']);
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
     res.json({ message: 'Deposit added successfully', owner: updated });
   } catch (error) {
-    console.error('Error adding deposit:', error);
     res.status(500).json({ error: 'Failed to add deposit' });
   }
 });
@@ -294,59 +272,62 @@ router.post('/truck-owners/:id/deposit/add', async (req, res) => {
 // Deposit: deduct amount from owner's balance (admin/manual)
 router.post('/truck-owners/:id/deposit/deduct', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { id } = req.params;
     const { amount, receipt_id } = req.body;
-    const db = getDB();
     const deductVal = parseFloat(amount);
-    if (!deductVal || deductVal <= 0) {
-      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    if (!deductVal || deductVal <= 0) return res.status(400).json({ error: 'Amount must be greater than 0' });
+    if (useMySQL) {
+      const owner = await TruckOwners.findOne({ where: { id, is_active: 1 } });
+      if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
+      const available = parseFloat(owner.deposit_balance || 0);
+      if (available < deductVal) return res.status(400).json({ error: 'Insufficient deposit balance' });
+      await owner.update({ deposit_balance: available - deductVal });
+      await DepositTransactions.create({ owner_id: owner.id, type: 'deduct', amount: deductVal, previous_balance: available, new_balance: available - deductVal, receipt_no: receipt_id || null, notes: 'Manual deposit deduct' });
+      return res.json({ message: 'Deposit deducted successfully', owner, receipt_id });
     }
+    const db = getDB();
     const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
-    if (!owner) {
-      return res.status(404).json({ error: 'Truck owner not found' });
-    }
+    if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
     const available = parseFloat(owner.deposit_balance || 0);
-    if (available < deductVal) {
-      return res.status(400).json({ error: 'Insufficient deposit balance' });
-    }
+    if (available < deductVal) return res.status(400).json({ error: 'Insufficient deposit balance' });
     await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [available - deductVal, id]);
-    await db.run(
-      `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, receipt_no, notes)
-       VALUES (?, 'deduct', ?, ?, ?, ?, ?)`,
-      [id, deductVal, available, available - deductVal, receipt_id || null, 'Manual deposit deduct']
-    );
+    await db.run(`INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, receipt_no, notes)
+       VALUES (?, 'deduct', ?, ?, ?, ?, ?)`, [id, deductVal, available, available - deductVal, receipt_id || null, 'Manual deposit deduct']);
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
     res.json({ message: 'Deposit deducted successfully', owner: updated, receipt_id });
   } catch (error) {
-    console.error('Error deducting deposit:', error);
     res.status(500).json({ error: 'Failed to deduct deposit' });
   }
 });
 
 router.put('/truck-owners/:id/deposit/set', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { id } = req.params;
     const { amount } = req.body;
-    const db = getDB();
     const newVal = parseFloat(amount);
     if (isNaN(newVal) || newVal < 0) {
       return res.status(400).json({ error: 'Amount must be a non-negative number' });
     }
-    const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
-    if (!owner) {
-      return res.status(404).json({ error: 'Truck owner not found' });
+    if (useMySQL) {
+      const owner = await TruckOwners.findOne({ where: { id, is_active: 1 } });
+      if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
+      const prevSet = parseFloat(owner.deposit_balance || 0);
+      await owner.update({ deposit_balance: newVal });
+      await DepositTransactions.create({ owner_id: owner.id, type: 'set', amount: newVal, previous_balance: prevSet, new_balance: newVal, notes: 'Set balance' });
+      return res.json({ message: 'Deposit balance updated', owner });
     }
+    const db = getDB();
+    const owner = await db.get('SELECT * FROM truck_owners WHERE id = ? AND is_active = 1', [id]);
+    if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
     const prevSet = parseFloat(owner.deposit_balance || 0);
     await db.run('UPDATE truck_owners SET deposit_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newVal, id]);
-    await db.run(
-      `INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, notes)
-       VALUES (?, 'set', ?, ?, ?, ?)`,
-      [id, newVal, prevSet, newVal, 'Set balance']
-    );
+    await db.run(`INSERT INTO deposit_transactions (owner_id, type, amount, previous_balance, new_balance, notes)
+       VALUES (?, 'set', ?, ?, ?, ?)`, [id, newVal, prevSet, newVal, 'Set balance']);
     const updated = await db.get('SELECT * FROM truck_owners WHERE id = ?', [id]);
     res.json({ message: 'Deposit balance updated', owner: updated });
   } catch (error) {
-    console.error('Error setting deposit balance:', error);
     res.status(500).json({ error: 'Failed to set deposit balance' });
   }
 });

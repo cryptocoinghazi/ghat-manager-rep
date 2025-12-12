@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db.js';
+import { syncModels, sequelize } from './models/index.js';
 import { authenticateToken, requireAdmin } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,8 +56,12 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database initialization
-initializeDatabase().catch(console.error);
+const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+if (useMySQL) {
+  await syncModels();
+} else {
+  await initializeDatabase();
+}
 
 // Import routes
 import receiptRoutes from './routes/receipts.js';
@@ -97,7 +102,7 @@ app.get('/api/test', (req, res) => {
     render: !!process.env.RENDER,
     railway: !!process.env.RAILWAY_ENVIRONMENT,
     service: process.env.RENDER_SERVICE_NAME || process.env.RAILWAY_SERVICE_ID || 'Local',
-    database: 'SQLite',
+    database: useMySQL ? 'MySQL' : 'SQLite',
     cors: 'Enabled'
   });
 });
@@ -108,7 +113,7 @@ app.get('/api/admin/info', (req, res) => {
     app: 'Ghat Manager',
     version: '1.0.0',
     environment: process.env.NODE_ENV,
-    database: 'SQLite',
+    database: useMySQL ? 'MySQL' : 'SQLite',
     railway: {
       environment: process.env.RAILWAY_ENVIRONMENT,
       serviceId: process.env.RAILWAY_SERVICE_ID,

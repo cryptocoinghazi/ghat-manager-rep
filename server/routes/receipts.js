@@ -14,7 +14,7 @@ function isValidDate(date) {
 // Get all receipts with filters - FIXED TIMEZONE ISSUE
 router.get('/', async (req, res) => {
   try {
-    const useMySQL = (process.env.DB_DIALECT || '').toLowerCase() === 'mysql';
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const {
       startDate,
       endDate,
@@ -140,16 +140,22 @@ router.get('/', async (req, res) => {
 // Get single receipt by ID
 router.get('/:id', async (req, res) => {
   try {
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
+    if (useMySQL) {
+      const receipt = await Receipts.findByPk(req.params.id);
+      if (!receipt || receipt.is_active === 0) {
+        return res.status(404).json({ error: 'Receipt not found' });
+      }
+      return res.json(receipt);
+    }
     const db = getDB();
     const receipt = await db.get(
       'SELECT * FROM receipts WHERE id = ? AND is_active = 1',
       [req.params.id]
     );
-
     if (!receipt) {
       return res.status(404).json({ error: 'Receipt not found' });
     }
-
     res.json(receipt);
   } catch (error) {
     console.error('Error fetching receipt:', error);
@@ -160,7 +166,7 @@ router.get('/:id', async (req, res) => {
 // Create new receipt - FIXED: Normalize timestamp + Partner rates
 router.post('/', async (req, res) => {
   try {
-    const useMySQL = (process.env.DB_DIALECT || '').toLowerCase() === 'mysql';
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const {
       receipt_no,
       truck_owner,
@@ -386,7 +392,7 @@ router.post('/', async (req, res) => {
 // Update receipt (no changes needed here)
 router.put('/:id', async (req, res) => {
   try {
-    const useMySQL = (process.env.DB_DIALECT || '').toLowerCase() === 'mysql';
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     const { cash_paid, notes } = req.body;
 
     // Get existing receipt
@@ -438,7 +444,7 @@ router.put('/:id', async (req, res) => {
 // Delete receipt (soft delete)
 router.delete('/:id', async (req, res) => {
   try {
-    const useMySQL = (process.env.DB_DIALECT || '').toLowerCase() === 'mysql';
+    const useMySQL = (process.env.DB_DIALECT || 'mysql').toLowerCase() === 'mysql';
     if (useMySQL) {
       const rec = await Receipts.findByPk(req.params.id);
       if (!rec) return res.status(404).json({ error: 'Receipt not found' });
