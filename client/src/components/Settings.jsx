@@ -11,6 +11,8 @@ const Settings = ({ settings, fetchSettings }) => {
   const [backupData, setBackupData] = useState(null);
   const [truckOwners, setTruckOwners] = useState([]);
   const [newOwner, setNewOwner] = useState({ name: '', contact: '', address: '', vehicle_number: '' });
+  const [dbBackups, setDbBackups] = useState([]);
+  const [isDbConnected, setIsDbConnected] = useState(false);
 
   // Initialize formData with settings.flat (since backend now returns { flat, categorized })
   useEffect(() => {
@@ -25,6 +27,7 @@ const Settings = ({ settings, fetchSettings }) => {
   // Fetch truck owners
   useEffect(() => {
     fetchTruckOwners();
+    checkDbStatus();
   }, []);
 
   const fetchTruckOwners = async () => {
@@ -135,6 +138,49 @@ const Settings = ({ settings, fetchSettings }) => {
       
       setFormData(prev => ({ ...prev, ...defaults }));
       toast.success('Settings reset to defaults (click Save to apply)');
+    }
+  };
+
+  const checkDbStatus = async () => {
+    try {
+      const res = await axios.get('/api/health');
+      setIsDbConnected(true);
+    } catch {
+      setIsDbConnected(false);
+    }
+  };
+
+  const handleDbBackup = async () => {
+    try {
+      const res = await axios.get('/api/database/backup');
+      toast.success('Database backup created');
+      await handleDbBackupList();
+    } catch {
+      toast.error('Database backup failed');
+    }
+  };
+
+  const handleDbBackupList = async () => {
+    try {
+      const res = await axios.get('/api/database/backup/list');
+      setDbBackups(res.data || []);
+    } catch {
+      setDbBackups([]);
+    }
+  };
+
+  const handleDbRestore = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      await axios.post('/api/database/restore', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success('Database restored');
+    } catch {
+      toast.error('Restore failed');
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -791,6 +837,43 @@ const Settings = ({ settings, fetchSettings }) => {
               >
                 Reset to Defaults
               </button>
+            </div>
+
+            <div className="card p-6">
+              <h4 className="font-semibold text-gray-900 mb-4">Database Management</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">Current Database</p>
+                  <p className="text-sm font-medium">MySQL</p>
+                  <p className="text-xs text-gray-500">Status: {isDbConnected ? 'Connected' : 'Unknown'}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center space-x-3">
+                <button onClick={handleDbBackup} className="btn-primary flex items-center space-x-2">
+                  <FiDownload className="h-5 w-5" />
+                  <span>Backup Database</span>
+                </button>
+                <label className="btn-secondary flex items-center space-x-2 cursor-pointer">
+                  <FiUpload className="h-5 w-5" />
+                  <span>Restore Database</span>
+                  <input type="file" accept=".sql" className="hidden" onChange={handleDbRestore} />
+                </label>
+                <button onClick={handleDbBackupList} className="btn-secondary">Refresh List</button>
+              </div>
+              <div className="mt-4">
+                {dbBackups.length === 0 ? (
+                  <p className="text-sm text-gray-600">No backups found</p>
+                ) : (
+                  <ul className="text-sm">
+                    {dbBackups.map(b => (
+                      <li key={b.name} className="flex justify-between py-1">
+                        <span>{b.name}</span>
+                        <span className="text-gray-500">{Math.round((b.size || 0)/1024)} KB</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         )}

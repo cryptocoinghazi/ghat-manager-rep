@@ -64,6 +64,7 @@ import settingsRoutes from './routes/settings.js';
 import reportsRoutes from './routes/reports.js';
 import authRoutes from './routes/auth.js';
 import expenseRoutes from './routes/expenses.js';
+import databaseRoutes from './routes/database.js';
 
 // API Routes - Auth routes are public
 app.use('/api/auth', authRoutes);
@@ -73,6 +74,7 @@ app.use('/api/receipts', authenticateToken, receiptRoutes);
 app.use('/api/settings', authenticateToken, requireAdmin, settingsRoutes);
 app.use('/api/reports', authenticateToken, requireAdmin, reportsRoutes);
 app.use('/api/expenses', authenticateToken, expenseRoutes);
+app.use('/api/database', authenticateToken, requireAdmin, databaseRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
