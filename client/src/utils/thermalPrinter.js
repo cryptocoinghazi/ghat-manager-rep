@@ -103,9 +103,17 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
     '-'.repeat(widthChars)
   ].join('\n');
 
+  const paidAmount = cash + depositUsed;
+  const inferredMethod = (() => {
+    if (receipt.payment_method) return String(receipt.payment_method).toUpperCase();
+    if (paidAmount >= total) return depositUsed > 0 && cash === 0 ? 'DEPOSIT' : 'CASH';
+    if (paidAmount > 0) return 'PARTIAL';
+    return 'CREDIT';
+  })();
+
   const payLines = [
     buildSectionLines([
-      ['PAYMENT', receipt.payment_method ? receipt.payment_method.toUpperCase() : (depositUsed > 0 ? 'DEPOSIT' : (cash >= total ? 'CASH' : 'CREDIT'))],
+      ['PAYMENT', inferredMethod],
       ['CASH PAID', formatAmount(currency, cash)],
       ['DEPOSIT USED', formatAmount(currency, depositUsed)],
       ['BALANCE', formatAmount(currency, balance)]

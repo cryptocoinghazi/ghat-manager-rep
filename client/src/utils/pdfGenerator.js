@@ -499,8 +499,8 @@ export function generatePDF(receiptData, settings = {}) {
       quarry_address: receiptData.quarry_address || settings.quarry_address || 'Mukindpur, District Office',
       currency: receiptData.currency || settings.currency || 'Rs',
       unit: receiptData.unit || settings.unit || 'Brass',
-      loading_charge: receiptData.loading_charge || settings.loading_charge || 0,
-      rate: receiptData.rate || settings.default_rate || 0,
+      loading_charge: (receiptData.loading_charge ?? settings.loading_charge ?? 0),
+      rate: (receiptData.rate ?? settings.default_rate ?? 0),
     };
 
     const doc = new jsPDF({

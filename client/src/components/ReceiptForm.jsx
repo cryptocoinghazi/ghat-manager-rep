@@ -466,6 +466,26 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   };
 
   const handlePrintPreview = () => {
+    const totalAmount = calculations.totalBill;
+    const cashPaid = parseFloat(formData.cash_paid) || 0;
+    const lcValPreview = parseFloat(formData.loading_charge);
+    const loadingChargePreview = Number.isFinite(lcValPreview) ? lcValPreview : parseFloat(flatSettings.loading_charge || 0);
+    const depositAvailable = parseFloat(selectedOwnerInfo?.deposit_balance || 0);
+    const depositUsed = useDepositBalance ? Math.min(totalAmount, depositAvailable) : 0;
+    const paidAmount = cashPaid + depositUsed;
+    let paymentMethod = undefined;
+    if (depositUsed > 0 && paidAmount < totalAmount) {
+      paymentMethod = 'partial';
+    } else if (depositUsed > 0 && paidAmount >= totalAmount) {
+      paymentMethod = 'deposit';
+    } else if (paidAmount >= totalAmount) {
+      paymentMethod = 'cash';
+    } else if (paidAmount > 0 && paidAmount < totalAmount) {
+      paymentMethod = 'partial';
+    } else {
+      paymentMethod = 'credit';
+    }
+
     const tempReceipt = {
       receipt_no: receiptNumber,
       date_time: new Date().toISOString(),
@@ -473,17 +493,39 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       vehicle_number: formData.vehicle_number || 'MH-31-XXXX',
       brass_qty: parseFloat(formData.brass_qty) || 1,
       rate: parseFloat(formData.rate) || 1200,
-      loading_charge: parseFloat(formData.loading_charge) || 150,
-      total_amount: calculations.totalBill,
-      cash_paid: parseFloat(formData.cash_paid) || 0,
-      credit_amount: calculations.creditAmount,
-      is_partner: selectedOwnerInfo?.is_partner || false
+      loading_charge: loadingChargePreview,
+      total_amount: totalAmount,
+      cash_paid: cashPaid,
+      credit_amount: Math.max(0, totalAmount - paidAmount),
+      is_partner: selectedOwnerInfo?.is_partner || false,
+      deposit_deducted: depositUsed,
+      payment_method: paymentMethod
     };
-    
+
     generatePDF(tempReceipt, flatSettings);
   };
 
   const handleThermalPrint = () => {
+    const totalAmount = calculations.totalBill;
+    const cashPaid = parseFloat(formData.cash_paid) || 0;
+    const lcValThermal = parseFloat(formData.loading_charge);
+    const loadingChargeThermal = Number.isFinite(lcValThermal) ? lcValThermal : parseFloat(flatSettings.loading_charge || 0);
+    const depositAvailable = parseFloat(selectedOwnerInfo?.deposit_balance || 0);
+    const depositUsed = useDepositBalance ? Math.min(totalAmount, depositAvailable) : 0;
+    const paidAmount = cashPaid + depositUsed;
+    let paymentMethod = undefined;
+    if (depositUsed > 0 && paidAmount < totalAmount) {
+      paymentMethod = 'partial';
+    } else if (depositUsed > 0 && paidAmount >= totalAmount) {
+      paymentMethod = 'deposit';
+    } else if (paidAmount >= totalAmount) {
+      paymentMethod = 'cash';
+    } else if (paidAmount > 0 && paidAmount < totalAmount) {
+      paymentMethod = 'partial';
+    } else {
+      paymentMethod = 'credit';
+    }
+
     const tempReceipt = {
       receipt_no: receiptNumber,
       date_time: new Date().toISOString(),
@@ -491,13 +533,13 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       vehicle_number: formData.vehicle_number || 'MH-31-XXXX',
       brass_qty: parseFloat(formData.brass_qty) || 1,
       rate: parseFloat(formData.rate) || 1200,
-      loading_charge: parseFloat(formData.loading_charge) || 150,
-      total_amount: calculations.totalBill,
-      cash_paid: parseFloat(formData.cash_paid) || 0,
-      credit_amount: calculations.creditAmount,
+      loading_charge: loadingChargeThermal,
+      total_amount: totalAmount,
+      cash_paid: cashPaid,
+      credit_amount: Math.max(0, totalAmount - paidAmount),
       is_partner: selectedOwnerInfo?.is_partner || false,
-      deposit_deducted: selectedOwnerInfo?.deposit_deducted || 0,
-      payment_method: selectedOwnerInfo?.payment_method || undefined
+      deposit_deducted: depositUsed,
+      payment_method: paymentMethod
     };
 
     printThermalReceipt(tempReceipt, flatSettings);
