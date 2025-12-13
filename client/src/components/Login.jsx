@@ -122,6 +122,54 @@ const Login = ({ onLogin }) => {
         </div>
       </section>
 
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <h3 className="text-3xl font-bold text-center mb-12">How It Looks</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <img src="https://placehold.co/800x450?text=Receipt+Thermal+Print" alt="Quick Receipt Thermal Print" className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h4 className="font-bold">Quick Receipt</h4>
+              <p className="text-gray-600 text-sm">Thermal & A4 print with configurable prefix and settings.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <img src="https://placehold.co/800x450?text=Dashboard+Overview" alt="Dashboard Overview" className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h4 className="font-bold">Dashboard</h4>
+              <p className="text-gray-600 text-sm">Real-time KPIs, today’s stats, and quick actions.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <img src="https://placehold.co/800x450?text=Daily+Register" alt="Daily Register" className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h4 className="font-bold">Daily Register</h4>
+              <p className="text-gray-600 text-sm">All receipts for the day with filters and exports.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <img src="https://placehold.co/800x450?text=Partner+Rate+Management" alt="Partner Rate Management" className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h4 className="font-bold">Owner & Partner Rates</h4>
+              <p className="text-gray-600 text-sm">Maintain truck owner and partner pricing easily.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <img src="https://placehold.co/800x450?text=Deposit+Deduction+History" alt="Deposit Deduction History" className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h4 className="font-bold">Deposit Deductions</h4>
+              <p className="text-gray-600 text-sm">Live balance, deductions, and historical tracking.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+            <img src="https://placehold.co/800x450?text=Client+%26+Credit+Reports" alt="Client and Credit Reports" className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h4 className="font-bold">Client & Credit Reports</h4>
+              <p className="text-gray-600 text-sm">Filterable reports with export options.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="max-w-5xl mx-auto px-6 py-16 text-center">
         <h3 className="text-3xl font-bold mb-10">Trusted by Mining Businesses</h3>
         <div className="bg-white p-8 rounded-xl shadow">
