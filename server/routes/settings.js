@@ -2,11 +2,12 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
 import { Settings, TruckOwners, DepositTransactions, sequelize, Users, Receipts, CreditPayments } from '../models/index.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get all settings
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const rows = await Settings.findAll({ order: [['category', 'ASC'], ['key', 'ASC']] });
     const result = { categorized: {}, flat: {} };
@@ -23,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get settings by category
-router.get('/category/:category', async (req, res) => {
+router.get('/category/:category', requireAdmin, async (req, res) => {
   try {
     const { category } = req.params;
     const rows = await Settings.findAll({ where: { category }, order: [['key', 'ASC']] });
@@ -36,7 +37,7 @@ router.get('/category/:category', async (req, res) => {
 });
 
 // Update single setting
-router.put('/:key', async (req, res) => {
+router.put('/:key', requireAdmin, async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -51,7 +52,7 @@ router.put('/:key', async (req, res) => {
 });
 
 // Update multiple settings (upsert missing keys)
-router.post('/batch-update', async (req, res) => {
+router.post('/batch-update', requireAdmin, async (req, res) => {
   try {
     const updates = req.body;
     if (!updates || typeof updates !== 'object') return res.status(400).json({ error: 'Invalid updates format' });
@@ -139,7 +140,7 @@ router.post('/truck-owners', async (req, res) => {
 });
 
 // Deposit: add amount to owner's balance (admin)
-router.post('/truck-owners/:id/deposit/add', async (req, res) => {
+router.post('/truck-owners/:id/deposit/add', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { amount } = req.body;
@@ -158,7 +159,7 @@ router.post('/truck-owners/:id/deposit/add', async (req, res) => {
 });
 
 // Deposit: deduct amount from owner's balance (admin/manual)
-router.post('/truck-owners/:id/deposit/deduct', async (req, res) => {
+router.post('/truck-owners/:id/deposit/deduct', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { amount, receipt_id } = req.body;
@@ -176,7 +177,7 @@ router.post('/truck-owners/:id/deposit/deduct', async (req, res) => {
   }
 });
 
-router.put('/truck-owners/:id/deposit/set', async (req, res) => {
+router.put('/truck-owners/:id/deposit/set', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { amount } = req.body;
@@ -196,7 +197,7 @@ router.put('/truck-owners/:id/deposit/set', async (req, res) => {
 });
 
 // Update truck owner by ID
-router.put('/truck-owners/:id', async (req, res) => {
+router.put('/truck-owners/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, phone, address, vehicle_number, is_partner, partner_rate } = req.body;
@@ -218,7 +219,7 @@ router.put('/truck-owners/:id', async (req, res) => {
 });
 
 // Toggle partner status
-router.put('/truck-owners/:id/toggle-partner', async (req, res) => {
+router.put('/truck-owners/:id/toggle-partner', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { is_partner, partner_rate } = req.body;
@@ -233,7 +234,7 @@ router.put('/truck-owners/:id/toggle-partner', async (req, res) => {
 });
 
 // Delete truck owner
-router.delete('/truck-owners/:id', async (req, res) => {
+router.delete('/truck-owners/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const owner = await TruckOwners.findByPk(id);
@@ -247,7 +248,7 @@ router.delete('/truck-owners/:id', async (req, res) => {
 });
 
 // Get partner stats
-router.get('/partner-stats', async (req, res) => {
+router.get('/partner-stats', requireAdmin, async (req, res) => {
   try {
     const partnerCount = await TruckOwners.count({ where: { is_partner: 1, is_active: 1 } });
     const regularCount = await TruckOwners.count({ where: { is_partner: 0, is_active: 1 } });
@@ -276,7 +277,7 @@ router.get('/partner-stats', async (req, res) => {
 });
 
 // Backup database with improved error handling
-router.get('/backup', async (req, res) => {
+router.get('/backup', requireAdmin, async (req, res) => {
   try {
     const backupData = {
       timestamp: new Date().toISOString(),
@@ -310,7 +311,7 @@ router.get('/backup', async (req, res) => {
 });
 
 // Restore from backup
-router.post('/restore', async (req, res) => {
+router.post('/restore', requireAdmin, async (req, res) => {
   try {
     const { backupData } = req.body;
     
@@ -351,16 +352,9 @@ router.post('/restore', async (req, res) => {
 // USER MANAGEMENT ROUTES (Admin only)
 // =====================
 
-// Middleware to check admin role
-const checkAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  next();
-};
 
 // Get all users
-router.get('/users', checkAdmin, async (req, res) => {
+router.get('/users', requireAdmin, async (req, res) => {
   try {
     const users = await Users.findAll({ order: [['id', 'DESC']], attributes: ['id','username','full_name','role','is_active'] });
     return res.json(users);
@@ -371,7 +365,7 @@ router.get('/users', checkAdmin, async (req, res) => {
 });
 
 // Create new user
-router.post('/users', checkAdmin, async (req, res) => {
+router.post('/users', requireAdmin, async (req, res) => {
   try {
     const { username, password, full_name, role } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
@@ -390,7 +384,7 @@ router.post('/users', checkAdmin, async (req, res) => {
 });
 
 // Update user
-router.put('/users/:id', checkAdmin, async (req, res) => {
+router.put('/users/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { full_name, role, password, is_active } = req.body;
@@ -415,7 +409,7 @@ router.put('/users/:id', checkAdmin, async (req, res) => {
 });
 
 // Delete user (soft delete)
-router.delete('/users/:id', checkAdmin, async (req, res) => {
+router.delete('/users/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const user = await Users.findByPk(id);

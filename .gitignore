@@ -7,3 +7,4 @@ server/database/
 *.db
 dist/
 client/dist/
+server/backups/
