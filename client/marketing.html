@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ghat Manager Cloud | Sand Mining Billing System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Smart cloud solution for sand mining businesses. Manage receipts, trucks, reports & GST with ease." />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
+
+  <style>
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-gray-100 text-gray-800">
+
+<!-- HERO SECTION -->
+<section class="max-w-7xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
+  <div>
+    <h1 class="text-4xl md:text-5xl font-extrabold text-blue-700">
+      Ghat Manager Cloud
+    </h1>
+    <h2 class="text-2xl mt-4 font-semibold">
+      Smart Cloud Solution for Sand Mining Businesses
+    </h2>
+    <p class="mt-4 text-gray-600">
+      Transform your sand mining operations with modern cloud technology.
+      Work faster, safer, and smarter.
+    </p>
+
+    <div class="mt-8 flex flex-wrap gap-4">
+      <a href="#pricing" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700">
+        Start 14-Day Free Trial
+      </a>
+      <a href="mailto:sayyedghazi@gmail.com" class="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50">
+        Contact Sales
+      </a>
+    </div>
+
+    <p class="mt-4 text-sm text-gray-500">
+      No credit card required
+    </p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-xl p-6">
+    <img src="https://via.placeholder.com/600x350?text=Dashboard+Preview" alt="Dashboard Preview" class="rounded-lg">
+  </div>
+</section>
+
+<!-- KEY BENEFITS -->
+<section class="max-w-7xl mx-auto px-6 py-12">
+  <h3 class="text-3xl font-bold text-center mb-10">Why Choose Ghat Manager?</h3>
+
+  <div class="grid md:grid-cols-3 gap-8">
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <i class="fa-solid fa-cloud text-4xl text-blue-600"></i>
+      <h4 class="text-xl font-bold mt-4">Access Anywhere</h4>
+      <p class="text-gray-600 mt-2">
+        Work from ghat, office, or home with real-time cloud access.
+      </p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <i class="fa-solid fa-money-bill-wave text-4xl text-green-600"></i>
+      <h4 class="text-xl font-bold mt-4">Save & Earn More</h4>
+      <p class="text-gray-600 mt-2">
+        Reduce paper cost, prevent errors, improve cash flow.
+      </p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <i class="fa-solid fa-shield-halved text-4xl text-indigo-600"></i>
+      <h4 class="text-xl font-bold mt-4">Bank-Level Security</h4>
+      <p class="text-gray-600 mt-2">
+        Encrypted data, daily backups, 99.9% uptime.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES GRID -->
+<section class="bg-white py-16">
+  <div class="max-w-7xl mx-auto px-6">
+    <h3 class="text-3xl font-bold text-center mb-12">Powerful Features</h3>
+
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div class="p-4 border rounded-lg">✔ Quick Receipt with Thermal & A4 Print</div>
+      <div class="p-4 border rounded-lg">✔ Truck Owner & Partner Rate Management</div>
+      <div class="p-4 border rounded-lg">✔ Real-time Dashboard & Daily Register</div>
+      <div class="p-4 border rounded-lg">✔ Deposit Balance Deduction & History</div>
+      <div class="p-4 border rounded-lg">✔ Client & Credit Reports with Filters</div>
+      <div class="p-4 border rounded-lg">✔ MySQL Storage with Auto Backups</div>
+      <div class="p-4 border rounded-lg">✔ Role-Based Access (Admin/User)</div>
+      <div class="p-4 border rounded-lg">✔ Settings: Rates, Receipt Prefix, Printing</div>
+      <div class="p-4 border rounded-lg">✔ Secure JWT Login & Password Reset</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="max-w-5xl mx-auto px-6 py-16 text-center">
+  <h3 class="text-3xl font-bold mb-10">Trusted by Mining Businesses</h3>
+
+  <div id="testimonial" class="bg-white p-8 rounded-xl shadow">
+    <p class="text-xl italic" id="testimonialText">
+      “Reduced daily closing time from 2 hours to 15 minutes.”
+    </p>
+    <p class="mt-4 font-bold text-blue-600" id="testimonialAuthor">
+      – Rajesh Mining Co., Yavatmal
+    </p>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="bg-blue-50 py-16">
+  <div class="max-w-7xl mx-auto px-6">
+    <h3 class="text-3xl font-bold text-center mb-12">Simple Pricing</h3>
+
+    <div class="grid md:grid-cols-3 gap-8">
+      <div class="bg-white p-8 rounded-xl shadow text-center">
+        <h4 class="text-xl font-bold">Basic</h4>
+        <p class="text-3xl font-extrabold mt-4">₹999</p>
+        <p class="text-gray-500">per month</p>
+        <ul class="mt-6 space-y-2 text-sm">
+          <li>✔ 500 Receipts</li>
+          <li>✔ 5 Users</li>
+        </ul>
+        <button class="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg">
+          Start Free Trial
+        </button>
+      </div>
+
+      <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-blue-600 text-center scale-105">
+        <h4 class="text-xl font-bold">Professional</h4>
+        <p class="text-3xl font-extrabold mt-4">₹1,999</p>
+        <p class="text-gray-500">Most Popular</p>
+        <ul class="mt-6 space-y-2 text-sm">
+          <li>✔ Unlimited Receipts</li>
+          <li>✔ 10 Users</li>
+        </ul>
+        <button class="mt-6 w-full bg-green-600 text-white py-2 rounded-lg">
+          Start Free Trial
+        </button>
+      </div>
+
+      <div class="bg-white p-8 rounded-xl shadow text-center">
+        <h4 class="text-xl font-bold">Enterprise</h4>
+        <p class="text-3xl font-extrabold mt-4">₹3,999</p>
+        <p class="text-gray-500">Multiple Locations</p>
+        <ul class="mt-6 space-y-2 text-sm">
+          <li>✔ Unlimited Everything</li>
+          <li>✔ Priority Support</li>
+        </ul>
+    <a href="tel:9503698738" class="mt-6 block w-full bg-blue-600 text-white py-2 rounded-lg text-center">Call 9503698738</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="max-w-5xl mx-auto px-6 py-16">
+  <h3 class="text-3xl font-bold text-center mb-10">Frequently Asked Questions</h3>
+
+  <div class="space-y-4">
+    <details class="bg-white p-4 rounded-lg shadow">
+      <summary class="font-semibold cursor-pointer">
+        Is my data safe in cloud?
+      </summary>
+      <p class="mt-2 text-gray-600">
+        Yes! We use bank-level encryption with automatic daily backups.
+      </p>
+    </details>
+
+    <details class="bg-white p-4 rounded-lg shadow">
+      <summary class="font-semibold cursor-pointer">
+        What if internet goes down?
+      </summary>
+      <p class="mt-2 text-gray-600">
+        The system works offline for 24 hours and syncs automatically.
+      </p>
+    </details>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-blue-600 text-white py-16 text-center">
+  <h3 class="text-3xl font-bold">Ready to Modernize Your Ghat?</h3>
+  <p class="mt-4">Start your 14-day free trial today.</p>
+
+  <div class="mt-6 flex justify-center gap-4">
+    <button class="bg-white text-blue-600 px-6 py-3 rounded-lg font-bold">
+      Start Free Trial
+    </button>
+    <button class="border border-white px-6 py-3 rounded-lg">
+      Contact Sales
+    </button>
+  </div>
+
+  <p class="mt-4 text-sm opacity-80">
+    📞 <a href="tel:9503698738" class="underline">9503698738</a> | ✉️ <a href="mailto:sayyedghazi@gmail.com" class="underline">sayyedghazi@gmail.com</a>
+  </p>
+</section>
+
+<!-- TESTIMONIAL SCRIPT -->
+<script>
+  const testimonials = [
+    {
+      text: "Reduced daily closing time from 2 hours to 15 minutes.",
+      author: "– Rajesh Mining Co., Yavatmal"
+    },
+    {
+      text: "Recovered ₹15,000 in first month from better tracking.",
+      author: "– Ghat Traders, Nagpur"
+    },
+    {
+      text: "Complete peace of mind with daily backups.",
+      author: "– Sai Suppliers"
+    }
+  ];
+
+  let index = 0;
+  setInterval(() => {
+    index = (index + 1) % testimonials.length;
+    document.getElementById("testimonialText").innerText = testimonials[index].text;
+    document.getElementById("testimonialAuthor").innerText = testimonials[index].author;
+  }, 4000);
+</script>
+
+</body>
+</html>
