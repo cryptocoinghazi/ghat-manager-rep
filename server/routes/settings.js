@@ -426,4 +426,22 @@ router.delete('/users/:id', requireAdmin, async (req, res) => {
   }
 });
 
+router.post('/users/:id/reset-password', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword, confirmPassword } = req.body;
+    if (!newPassword || !confirmPassword) return res.status(400).json({ error: 'New password and confirm password are required' });
+    if (newPassword !== confirmPassword) return res.status(400).json({ error: 'Passwords do not match' });
+    const valid = newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword) && /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword);
+    if (!valid) return res.status(400).json({ error: 'Password does not meet requirements' });
+    const user = await Users.findByPk(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.update({ password_hash: passwordHash });
+    return res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
 export default router;

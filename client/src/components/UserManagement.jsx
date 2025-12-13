@@ -8,6 +8,9 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetUser, setResetUser] = useState(null);
+  const [resetForm, setResetForm] = useState({ newPassword: '', confirmPassword: '' });
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -84,6 +87,51 @@ const UserManagement = () => {
       role: user.role
     });
     setShowModal(true);
+  };
+
+  const openResetModal = (user) => {
+    setResetUser(user);
+    setResetForm({ newPassword: '', confirmPassword: '' });
+    setShowResetModal(true);
+  };
+
+  const generateStrongPassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-={}[]|:;<>?,.';
+    let pwd = '';
+    for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    setResetForm(prev => ({ ...prev, newPassword: pwd, confirmPassword: pwd }));
+  };
+
+  const validateStrong = (p) => {
+    return p.length >= 8 && /[A-Z]/.test(p) && /[a-z]/.test(p) && /\d/.test(p) && /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p);
+  };
+
+  const handleResetPassword = async () => {
+    try {
+      if (!resetForm.newPassword || !resetForm.confirmPassword) {
+        toast.error('Enter new and confirm password');
+        return;
+      }
+      if (resetForm.newPassword !== resetForm.confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
+      if (!validateStrong(resetForm.newPassword)) {
+        toast.error('Password does not meet requirements');
+        return;
+      }
+      await axios.post(`/api/settings/users/${resetUser.id}/reset-password`, {
+        newPassword: resetForm.newPassword,
+        confirmPassword: resetForm.confirmPassword
+      });
+      toast.success('Password reset successfully');
+      setShowResetModal(false);
+      setResetUser(null);
+      setResetForm({ newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error(error.response?.data?.error || 'Failed to reset password');
+    }
   };
 
   const handleDelete = async (user) => {
@@ -187,6 +235,13 @@ const UserManagement = () => {
                       title="Edit user"
                     >
                       <FiEdit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => openResetModal(user)}
+                      className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Reset password"
+                    >
+                      🔒
                     </button>
                     <button
                       onClick={() => handleDelete(user)}
@@ -298,6 +353,55 @@ const UserManagement = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900">
+                Reset Password
+              </h3>
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiX className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600">Username</p>
+                <p className="text-sm font-medium">{resetUser?.username}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={resetForm.newPassword}
+                  onChange={(e) => setResetForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={resetForm.confirmPassword}
+                  onChange={(e) => setResetForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Confirm password"
+                />
+              </div>
+              <p className="text-xs text-gray-500">Minimum 8 characters, include uppercase, number, and special character.</p>
+              <div className="flex space-x-3 pt-2">
+                <button onClick={generateStrongPassword} className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Generate Strong Password</button>
+                <button onClick={handleResetPassword} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Reset Password</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

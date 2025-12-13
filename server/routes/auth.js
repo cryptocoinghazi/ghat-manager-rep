@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { Users } from '../models/index.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'ghat-manager-secret-key-2024';
@@ -200,3 +201,32 @@ router.post('/register', async (req, res) => {
 });
 
 export default router;
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+    const valid = newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword) && /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword);
+    if (!valid) {
+      return res.status(400).json({ error: 'Password does not meet requirements' });
+    }
+    const user = await Users.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const pwField = user.password_hash || user.password;
+    const ok = await bcrypt.compare(currentPassword, pwField);
+    if (!ok) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await user.update({ password_hash: hashed });
+    return res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to change password' });
+  }
+});
