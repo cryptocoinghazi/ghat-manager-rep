@@ -35,7 +35,7 @@ async function captureScreenshots(username, password) {
     // 2. Navigate to app
     console.log('🌐 Navigating to app...');
     await page.goto('http://localhost:5000', { 
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded',
       timeout: 30000 
     });
     
@@ -46,75 +46,67 @@ async function captureScreenshots(username, password) {
     console.log(`📍 Current URL: ${currentUrl}`);
     
     // Check if already logged in (on dashboard)
+    const initialContent = await page.content();
     if (currentUrl.includes('/dashboard') || 
-        (await page.content()).includes('Dashboard') ||
-        (await page.content()).includes('Today\'s Trucks')) {
+        initialContent.includes('Welcome back') ||
+        initialContent.includes('New Receipt')) {
       console.log('✅ Already on dashboard (might be logged in)');
     } else {
       // 4. Try to find and click login
       console.log('🔍 Looking for login button...');
-      
-      // Try different login button selectors
-      const loginSelectors = [
-        'button:contains("Login")',
-        'button:contains("LOGIN")',
-        'a:contains("Login")',
-        '[href*="login"]'
-      ];
-      
-      let loginClicked = false;
-      for (const selector of loginSelectors) {
-        try {
-          const loginBtn = await page.$(selector);
-          if (loginBtn) {
-            console.log(`✅ Found login element: ${selector}`);
-            await loginBtn.click();
-            await delay(2000);
-            loginClicked = true;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-      
-      if (!loginClicked) {
-        console.log('⚠️ Could not find login button, trying to find form directly...');
-      }
+      // Explicitly look for our topbar button
+      await page.waitForSelector('button', { timeout: 5000 }).catch(() => {});
+      const loginClicked = await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const target = btns.find(b => (b.innerText || '').includes('Login to dashboard'));
+        if (target) { target.click(); return true; }
+        return false;
+      });
+      if (!loginClicked) console.log('⚠️ Login button not found, proceeding to check for form');
       
       // 5. Look for login form
       console.log('🔍 Looking for login form...');
       
       // Wait a bit for form to appear
-      await delay(2000);
+      await delay(1000);
       
       // Check for form fields
-      const usernameField = await page.$('input[name="username"], input[type="text"], input[placeholder*="username"], input[placeholder*="Username"]');
-      const passwordField = await page.$('input[name="password"], input[type="password"], input[placeholder*="password"], input[placeholder*="Password"]');
+      const usernameField = await page.$('input[type="text"]');
+      const passwordField = await page.$('input[type="password"]');
       
       if (usernameField && passwordField) {
         console.log('✅ Found username/password fields');
         
         // Fill credentials
-        await usernameField.type(username);
-        await passwordField.type(password);
+        await usernameField.click({ clickCount: 3 });
+        await usernameField.type(username, { delay: 10 });
+        await passwordField.type(password, { delay: 10 });
         
         // Find and click submit
-        const submitButton = await page.$('button[type="submit"], button:contains("Sign In"), input[type="submit"]');
+        const submitFound = await page.evaluate(() => {
+          const btns = Array.from(document.querySelectorAll('button'));
+          const target = btns.find(b => (b.innerText || '').includes('Sign In'));
+          if (target) { target.click(); return true; }
+          return false;
+        });
         
-        if (submitButton) {
+        if (submitFound) {
           console.log('✅ Found submit button, logging in...');
-          await submitButton.click();
           
           // Wait for navigation/redirect
-          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 10000 })
-            .catch(() => console.log('Navigation timeout, continuing...'));
-          
-          await delay(3000);
+          await page.waitForFunction(() => {
+            const body = document.body.innerText || '';
+            return body.includes('Welcome back') || body.includes('New Receipt');
+          }, { timeout: 15000 }).catch(() => console.log('Login verification timeout'));
+          await delay(800);
         } else {
           console.log('⚠️ No submit button found, trying Enter key...');
           await passwordField.press('Enter');
-          await delay(3000);
+          await page.waitForFunction(() => {
+            const body = document.body.innerText || '';
+            return body.includes('Welcome back') || body.includes('New Receipt');
+          }, { timeout: 15000 }).catch(() => console.log('Login verification timeout'));
+          await delay(800);
         }
       } else {
         console.log('❌ Could not find login form fields');
@@ -131,8 +123,8 @@ async function captureScreenshots(username, password) {
     // Check for dashboard indicators
     const pageContent = await page.content();
     const isDashboard = pageContent.includes('Dashboard') || 
-                       pageContent.includes('Today\'s Trucks') ||
-                       pageContent.includes('Quick Receipt') ||
+                       pageContent.includes('Welcome back') ||
+                       pageContent.includes('New Receipt') ||
                        newUrl.includes('/dashboard');
     
     if (isDashboard) {
@@ -175,7 +167,7 @@ async function captureScreenshots(username, password) {
     
     // Quick Receipt page
     console.log('  2. Quick Receipt page...');
-    await page.goto('http://localhost:5000/receipts/new', { waitUntil: 'networkidle2' });
+    await page.goto('http://localhost:5000/receipt', { waitUntil: 'networkidle2' });
     await delay(1000);
     
     // Fill some sample data for better screenshot
@@ -205,7 +197,7 @@ async function captureScreenshots(username, password) {
     
     // Daily Register
     console.log('  3. Daily Register...');
-    await page.goto('http://localhost:5000/receipts', { waitUntil: 'networkidle2' });
+    await page.goto('http://localhost:5000/register', { waitUntil: 'networkidle2' });
     await delay(1000);
     await page.screenshot({ 
       path: join(screenshotsDir, 'daily-register.png'),
@@ -219,11 +211,13 @@ async function captureScreenshots(username, password) {
     
     // Try to click on Truck Owners tab if it exists
     try {
-      const ownersTab = await page.$x("//button[contains(., 'Truck Owners') or contains(., 'Owners')]");
-      if (ownersTab.length > 0) {
-        await ownersTab[0].click();
-        await delay(1000);
-      }
+      await page.waitForSelector('button', { timeout: 3000 });
+      await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const target = btns.find(b => (b.innerText || '').includes('Truck Owners'));
+        if (target) target.click();
+      });
+      await delay(800);
     } catch (e) {
       // Continue without clicking
     }
@@ -241,6 +235,14 @@ async function captureScreenshots(username, password) {
       path: join(screenshotsDir, 'reports.png'),
       fullPage: true 
     });
+    // Deposit report tab
+    console.log('  5b. Reports - Deposit...');
+    await page.goto('http://localhost:5000/reports/deposit', { waitUntil: 'networkidle2' });
+    await delay(1000);
+    await page.screenshot({ 
+      path: join(screenshotsDir, 'reports-deposit.png'),
+      fullPage: true 
+    });
     
     // Settings
     console.log('  6. Settings...');
@@ -250,6 +252,12 @@ async function captureScreenshots(username, password) {
       path: join(screenshotsDir, 'settings.png'),
       fullPage: true 
     });
+
+    // Compatibility copies for marketing wiring
+    try {
+      await fs.copyFile(join(screenshotsDir, 'receipt-form.png'), join(screenshotsDir, 'receipt-a4.png'));
+      await fs.copyFile(join(screenshotsDir, 'truck-owners.png'), join(screenshotsDir, 'settings-truck-owners.png'));
+    } catch {}
     
     // 9. Print success message
     console.log('\n✅ Screenshots captured successfully!');
@@ -259,7 +267,10 @@ async function captureScreenshots(username, password) {
     console.log('   - daily-register.png');
     console.log('   - truck-owners.png');
     console.log('   - reports.png');
+    console.log('   - reports-deposit.png');
     console.log('   - settings.png');
+    console.log('   - settings-truck-owners.png');
+    console.log('   - receipt-a4.png');
     
     await browser.close();
     
