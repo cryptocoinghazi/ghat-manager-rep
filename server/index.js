@@ -4,8 +4,10 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { syncModels, sequelize } from './models/index.js';
+import { syncModels, sequelize, Settings } from './models/index.js';
+import mysqldump from 'mysqldump';
 import { authenticateToken, requireAdmin } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -169,6 +171,55 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔗 External URL: ${process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || 'Not configured'}`);
   console.log(`👤 Default Users: admin/admin123, user/user123`);
 });
+
+const backupsDir = path.resolve(__dirname, './backups');
+if (!fs.existsSync(backupsDir)) {
+  fs.mkdirSync(backupsDir, { recursive: true });
+}
+
+let lastBackupDateSetting = await Settings.findByPk('auto_backup_last_run');
+let lastBackupDate = lastBackupDateSetting ? String(lastBackupDateSetting.value) : null;
+
+async function performBackup() {
+  const file = path.join(backupsDir, `backup-${Date.now()}.sql`);
+  await mysqldump({
+    connection: {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 3306
+    },
+    dumpToFile: file
+  });
+}
+
+async function checkAutoBackup() {
+  const enabledSetting = await Settings.findByPk('auto_backup_enabled');
+  const timeSetting = await Settings.findByPk('auto_backup_time');
+  const enabled = !!enabledSetting && (String(enabledSetting.value) === 'true' || String(enabledSetting.value) === '1');
+  const timeVal = timeSetting && timeSetting.value ? String(timeSetting.value) : '02:00';
+  if (!enabled) return;
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const currentTime = `${hh}:${mm}`;
+  if (currentTime === timeVal && lastBackupDate !== today) {
+    try {
+      await performBackup();
+      lastBackupDate = today;
+      const existing = await Settings.findByPk('auto_backup_last_run');
+      if (existing) {
+        await existing.update({ value: today, category: 'backup', updated_at: new Date() });
+      } else {
+        await Settings.create({ key: 'auto_backup_last_run', value: today, category: 'backup', updated_at: new Date() });
+      }
+    } catch {}
+  }
+}
+
+setInterval(checkAutoBackup, 60000);
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

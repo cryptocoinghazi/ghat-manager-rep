@@ -35,7 +35,7 @@ const Reports = ({ initialTab }) => {
   const [loading, setLoading] = useState(false);
   const [creditFilters, setCreditFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
   const [financialFilters, setFinancialFilters] = useState({ preset: 'Today', startDate: '', endDate: '' });
-  const [clientFilters, setClientFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
+  const [clientFilters, setClientFilters] = useState({ preset: 'This Month', startDate: '', endDate: '', truckOwner: 'all' });
   const [expenseFilters, setExpenseFilters] = useState({ preset: 'This Month', startDate: '', endDate: '', category: 'all' });
   const [partnerFilters, setPartnerFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
   const [partnerOwnerQuery, setPartnerOwnerQuery] = useState('');
@@ -311,7 +311,8 @@ const Reports = ({ initialTab }) => {
           response = await axios.get('/api/reports/credit-report', {
             params: {
               startDate: clientFilters.startDate || dateRange.startDate,
-              endDate: clientFilters.endDate || dateRange.endDate
+              endDate: clientFilters.endDate || dateRange.endDate,
+              truckOwner: clientFilters.truckOwner
             }
           });
           setReportsData(prev => ({ ...prev, client: response.data }));
@@ -1251,7 +1252,7 @@ const Reports = ({ initialTab }) => {
               Client Report
             </h3>
             <p className="text-sm text-gray-500">
-              Customer credit analysis from {formatDate(dateRange.startDate)} to {formatDate(dateRange.endDate)}
+              Customer credit analysis from {formatDate(clientFilters.startDate || dateRange.startDate)} to {formatDate(clientFilters.endDate || dateRange.endDate)}
             </p>
           </div>
           <div className="flex space-x-2">
@@ -1261,6 +1262,13 @@ const Reports = ({ initialTab }) => {
             >
               <FiDownload className="h-4 w-4" />
               <span>Export CSV</span>
+            </button>
+            <button
+              onClick={fetchReportData}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm"
+            >
+              <FiRefreshCw className="h-4 w-4" />
+              <span>Fetch</span>
             </button>
           </div>
         </div>
@@ -1275,7 +1283,7 @@ const Reports = ({ initialTab }) => {
               <option>Custom Range</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-2 md:col-span-3">
+          <div className="grid grid-cols-3 gap-2 md:col-span-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
               <input type="date" value={clientFilters.startDate} onChange={(e) => setClientFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
@@ -1283,6 +1291,15 @@ const Reports = ({ initialTab }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
               <input type="date" value={clientFilters.endDate} onChange={(e) => setClientFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Customer</label>
+              <select value={clientFilters.truckOwner} onChange={(e) => setClientFilters(prev => ({ ...prev, truckOwner: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="all">All Customers</option>
+                {owners.map(o => (
+                  <option key={o.id} value={o.name}>{o.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

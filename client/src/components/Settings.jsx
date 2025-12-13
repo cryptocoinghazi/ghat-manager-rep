@@ -777,51 +777,6 @@ const Settings = ({ settings, fetchSettings }) => {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Management</h3>
             
-            {/* Backup Section */}
-            <div className="card p-6 mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <FiDownload className="h-5 w-5 mr-2 text-primary-600" />
-                Backup Data
-              </h4>
-              <p className="text-sm text-gray-600 mb-4">
-                Create a backup of all your data including receipts, customers, and settings.
-              </p>
-              <div className="flex space-x-4">
-                <button
-                  onClick={handleCreateBackup}
-                  className="btn-primary flex items-center space-x-2"
-                >
-                  <FiDownload className="h-5 w-5" />
-                  <span>Create Backup</span>
-                </button>
-                
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleRestoreBackup}
-                    className="hidden"
-                    id="restore-file"
-                  />
-                  <label
-                    htmlFor="restore-file"
-                    className="btn-secondary flex items-center space-x-2 cursor-pointer"
-                  >
-                    <FiUpload className="h-5 w-5" />
-                    <span>Restore Backup</span>
-                  </label>
-                </div>
-              </div>
-              
-              {backupData && (
-                <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-800">
-                    Last backup created: {new Date(backupData.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              )}
-            </div>
-            
             {/* Reset Section */}
             <div className="card p-6 mb-6">
               <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
@@ -846,6 +801,36 @@ const Settings = ({ settings, fetchSettings }) => {
                   <p className="text-sm text-gray-600 mb-2">Current Database</p>
                   <p className="text-sm font-medium">MySQL</p>
                   <p className="text-xs text-gray-500">Status: {isDbConnected ? 'Connected' : 'Unknown'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Auto Backup</label>
+                  <select
+                    name="auto_backup_enabled"
+                    value={formData.auto_backup_enabled || 'false'}
+                    onChange={handleInputChange}
+                    className="input-field"
+                  >
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Backup Time</label>
+                  <input
+                    type="time"
+                    name="auto_backup_time"
+                    value={formData.auto_backup_time || '02:00'}
+                    onChange={handleInputChange}
+                    className="input-field"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Runs daily at set time</p>
+                </div>
+                <div>
+                  {formData.auto_backup_last_run && (
+                    <p className="text-xs text-gray-500 mt-6">Last run: {formData.auto_backup_last_run}</p>
+                  )}
                 </div>
               </div>
               <div className="mt-4 flex items-center space-x-3">

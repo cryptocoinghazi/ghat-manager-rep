@@ -68,7 +68,10 @@ router.post('/batch-update', async (req, res) => {
       printer_width: 'receipt',
       auto_print: 'receipt',
       print_duplicate: 'receipt',
-      include_barcode: 'receipt'
+      include_barcode: 'receipt',
+      auto_backup_enabled: 'backup',
+      auto_backup_time: 'backup',
+      auto_backup_last_run: 'backup'
     };
     const t = await sequelize.transaction();
     try {

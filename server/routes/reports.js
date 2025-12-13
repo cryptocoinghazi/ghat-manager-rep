@@ -134,10 +134,14 @@ router.get('/partner-royalty', async (req, res) => {
 // Get credit report
 router.get('/credit-report', async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, truckOwner } = req.query;
     const end = endDate || new Date().toISOString().split('T')[0];
     const start = startDate || '2024-01-01';
     
+    let whereClause = `credit_amount > 0 AND DATE(date_time) BETWEEN ? AND ? AND is_active = 1`;
+    const params = [start, end];
+    if (truckOwner && truckOwner !== 'all') { whereClause += ' AND truck_owner = ?'; params.push(truckOwner); }
+
     const [creditReport] = await sequelize.query(`
       SELECT 
         truck_owner,
@@ -146,13 +150,11 @@ router.get('/credit-report', async (req, res) => {
         MIN(date_time) as oldest_credit,
         MAX(date_time) as latest_credit
       FROM receipts 
-      WHERE credit_amount > 0
-        AND DATE(date_time) BETWEEN ? AND ?
-        AND is_active = 1
+      WHERE ${whereClause}
       GROUP BY truck_owner
       HAVING total_credit > 0
       ORDER BY total_credit DESC
-    `, { replacements: [start, end] });
+    `, { replacements: params });
     
     // Get credit aging
     const [creditAging] = await sequelize.query(`
@@ -165,12 +167,10 @@ router.get('/credit-report', async (req, res) => {
         END as aging_bucket,
         SUM(credit_amount) as amount
       FROM receipts 
-      WHERE credit_amount > 0
-        AND DATE(date_time) BETWEEN ? AND ?
-        AND is_active = 1
+      WHERE ${whereClause}
       GROUP BY truck_owner, aging_bucket
       ORDER BY truck_owner, aging_bucket
-    `, { replacements: [start, end] });
+    `, { replacements: params });
     
     res.json({
       creditReport,
