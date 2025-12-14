@@ -7,6 +7,14 @@ import { generatePDF } from '../utils/pdfGenerator';
 import { printThermalReceipt } from '../utils/thermalPrinter';
 import { refreshDashboardStats } from './Layout';
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'paid': return 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium';
+      case 'partial': return 'bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium';
+      case 'unpaid': return 'bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium';
+      default: return 'bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium';
+    }
+  };
 const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   // Fix: Get flat settings if settings has nested structure
   const flatSettings = settings?.flat || settings || {};
@@ -42,6 +50,35 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const [vehicleSuggestions, setVehicleSuggestions] = useState([]);
   const [ownerSuggestions, setOwnerSuggestions] = useState([]);
   const [useDepositBalance, setUseDepositBalance] = useState(false);
+  const [customDepositDeduction, setCustomDepositDeduction] = useState('');
+
+  // Auto-suggest deposit deduction = remaining after cash, capped by available
+  useEffect(() => {
+    if (useDepositBalance && selectedOwnerInfo) {
+      const total = parseFloat(calculations.totalBill || 0);
+      const cash = parseFloat(formData.cash_paid || 0);
+      const remaining = Math.max(0, total - cash);
+      const available = parseFloat(selectedOwnerInfo.deposit_balance || 0);
+      const suggested = Math.min(remaining, available);
+      const current = parseFloat(customDepositDeduction || '0') || 0;
+      if (!customDepositDeduction || current > available || current > remaining) {
+        setCustomDepositDeduction(suggested ? suggested.toString() : '');
+      }
+    } else {
+      setCustomDepositDeduction('');
+    }
+  }, [useDepositBalance, selectedOwnerInfo, formData.cash_paid, calculations.totalBill]);
+
+  const getPaymentSummary = () => {
+    const total = parseFloat(calculations.totalBill || 0);
+    const cashPaid = parseFloat(formData.cash_paid || 0);
+    const available = parseFloat(selectedOwnerInfo?.deposit_balance || 0);
+    const requested = parseFloat(customDepositDeduction || '0') || 0;
+    const depositUsed = useDepositBalance ? Math.max(0, Math.min(requested, available, total)) : 0;
+    const paid = cashPaid + depositUsed;
+    const credit = Math.max(0, total - paid);
+    return { total, cashPaid, depositUsed, paid, credit };
+  };
 
   // Calculate values when form changes
   useEffect(() => {
@@ -416,11 +453,10 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       if (useDepositBalance && selectedOwnerInfo) {
         const available = parseFloat(selectedOwnerInfo.deposit_balance || 0);
         const totalBill = calculations.totalBill;
-        const deductAmount = Math.min(totalBill, available);
-        const remainingAmount = totalBill - deductAmount;
-        receiptData.payment_method = 'deposit';
+        const requested = parseFloat(customDepositDeduction || '0') || 0;
+        const deductAmount = Math.max(0, Math.min(requested, available, totalBill));
+        receiptData.payment_method = deductAmount > 0 ? 'deposit' : (receiptData.cash_paid > 0 ? 'cash' : 'credit');
         receiptData.deposit_deducted = deductAmount;
-        receiptData.cash_paid = remainingAmount;
       }
 
       console.log('Saving receipt:', receiptData);
@@ -471,7 +507,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     const lcValPreview = parseFloat(formData.loading_charge);
     const loadingChargePreview = Number.isFinite(lcValPreview) ? lcValPreview : parseFloat(flatSettings.loading_charge || 0);
     const depositAvailable = parseFloat(selectedOwnerInfo?.deposit_balance || 0);
-    const depositUsed = useDepositBalance ? Math.min(totalAmount, depositAvailable) : 0;
+    const requested = parseFloat(customDepositDeduction || '0') || 0;
+    const depositUsed = useDepositBalance ? Math.max(0, Math.min(requested, depositAvailable, totalAmount)) : 0;
     const paidAmount = cashPaid + depositUsed;
     let paymentMethod = undefined;
     if (depositUsed > 0 && paidAmount < totalAmount) {
@@ -505,44 +542,85 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     generatePDF(tempReceipt, flatSettings);
   };
 
-  const handleThermalPrint = () => {
-    const totalAmount = calculations.totalBill;
-    const cashPaid = parseFloat(formData.cash_paid) || 0;
-    const lcValThermal = parseFloat(formData.loading_charge);
-    const loadingChargeThermal = Number.isFinite(lcValThermal) ? lcValThermal : parseFloat(flatSettings.loading_charge || 0);
-    const depositAvailable = parseFloat(selectedOwnerInfo?.deposit_balance || 0);
-    const depositUsed = useDepositBalance ? Math.min(totalAmount, depositAvailable) : 0;
-    const paidAmount = cashPaid + depositUsed;
-    let paymentMethod = undefined;
-    if (depositUsed > 0 && paidAmount < totalAmount) {
-      paymentMethod = 'partial';
-    } else if (depositUsed > 0 && paidAmount >= totalAmount) {
-      paymentMethod = 'deposit';
-    } else if (paidAmount >= totalAmount) {
-      paymentMethod = 'cash';
-    } else if (paidAmount > 0 && paidAmount < totalAmount) {
-      paymentMethod = 'partial';
-    } else {
-      paymentMethod = 'credit';
+  const handleThermalPrint = async () => {
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
+      return;
     }
 
-    const tempReceipt = {
-      receipt_no: receiptNumber,
-      date_time: new Date().toISOString(),
-      truck_owner: formData.truck_owner || 'Sample Owner',
-      vehicle_number: formData.vehicle_number || 'MH-31-XXXX',
-      brass_qty: parseFloat(formData.brass_qty) || 1,
-      rate: parseFloat(formData.rate) || 1200,
-      loading_charge: loadingChargeThermal,
-      total_amount: totalAmount,
-      cash_paid: cashPaid,
-      credit_amount: Math.max(0, totalAmount - paidAmount),
-      is_partner: selectedOwnerInfo?.is_partner || false,
-      deposit_deducted: depositUsed,
-      payment_method: paymentMethod
-    };
+    setIsSaving(true);
+    try {
+      const ownerExists = truckOwners?.some(owner => 
+        owner.name === formData.truck_owner || 
+        owner.truck_owner === formData.truck_owner
+      );
 
-    printThermalReceipt(tempReceipt, flatSettings);
+      let finalOwnerInfo = selectedOwnerInfo;
+      if (!ownerExists) {
+        toast.loading(`Adding new owner: ${formData.truck_owner}...`);
+        const newOwner = await createNewTruckOwner(formData.truck_owner, formData.vehicle_number);
+        if (newOwner) {
+          finalOwnerInfo = newOwner;
+          toast.dismiss();
+        } else {
+          throw new Error('Failed to create new truck owner');
+        }
+      }
+
+      const now = new Date();
+      const totalAmount = calculations.totalBill;
+      const cashPaid = parseFloat(formData.cash_paid || 0);
+      const lcValThermal = parseFloat(formData.loading_charge);
+      const loadingChargeThermal = Number.isFinite(lcValThermal) ? lcValThermal : parseFloat(flatSettings.loading_charge || 0);
+      const depositAvailable = parseFloat(finalOwnerInfo?.deposit_balance || 0);
+      const requested = parseFloat(customDepositDeduction || '0') || 0;
+      const depositUsed = useDepositBalance ? Math.max(0, Math.min(requested, depositAvailable, totalAmount)) : 0;
+
+      const receiptData = {
+        receipt_no: receiptNumber,
+        truck_owner: formData.truck_owner,
+        vehicle_number: formData.vehicle_number.toUpperCase(),
+        brass_qty: parseFloat(formData.brass_qty),
+        rate: parseFloat(formData.rate),
+        loading_charge: loadingChargeThermal,
+        cash_paid: cashPaid,
+        notes: formData.notes || '',
+        date_time: now.toISOString(),
+        payment_method: depositUsed > 0 ? 'deposit' : (cashPaid > 0 ? 'cash' : 'credit'),
+        deposit_deducted: depositUsed
+      };
+
+      const response = await axios.post('/api/receipts', receiptData);
+      if (response.data.receipt) {
+        generatePDF(response.data.receipt, { ...flatSettings, __silent: true });
+        printThermalReceipt(response.data.receipt, flatSettings);
+
+        setFormData({
+          truck_owner: '',
+          vehicle_number: '',
+          brass_qty: '',
+          rate: flatSettings.default_rate || '1200',
+          loading_charge: flatSettings.loading_charge || '150',
+          cash_paid: '',
+          notes: ''
+        });
+        setIsRateOverridden(false);
+        setOriginalRate(null);
+        setSelectedOwnerInfo(null);
+        setVehicleSuggestions([]);
+        setOwnerSuggestions([]);
+        setCustomDepositDeduction('');
+        fetchNextReceiptNumber();
+        fetchRecentTransactions();
+        toast.success('Receipt saved and printed');
+        refreshDashboardStats();
+      }
+    } catch (error) {
+      console.error('Error saving & printing receipt:', error);
+      toast.error(error.response?.data?.error || 'Failed to save & print receipt');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -919,8 +997,19 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       <p className="text-sm">
                         Available Balance: <span className="font-bold">₹{selectedOwnerInfo.deposit_balance || 0}</span>
                       </p>
+                      <div className="mt-2">
+                        <label className="block text-sm font-medium text-gray-700">Custom Deduction Amount</label>
+                        <input
+                          type="number"
+                          value={customDepositDeduction}
+                          onChange={(e) => setCustomDepositDeduction(e.target.value)}
+                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          min="0"
+                          max={selectedOwnerInfo.deposit_balance || 0}
+                        />
+                      </div>
                       <p className="text-sm mt-1">
-                        Will deduct: <span className="font-bold">₹{Math.min(calculations.totalBill, selectedOwnerInfo.deposit_balance || 0)}</span>
+                        Will deduct: <span className="font-bold">₹{customDepositDeduction || Math.min(calculations.totalBill, selectedOwnerInfo.deposit_balance || 0)}</span>
                       </p>
                     </div>
                   )}
@@ -978,19 +1067,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                           ₹{transaction.total_amount?.toFixed(2) || '0.00'}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            transaction.cash_paid >= transaction.total_amount 
-                              ? 'bg-green-100 text-green-800'
-                              : transaction.cash_paid > 0
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {transaction.cash_paid >= transaction.total_amount 
-                              ? 'Paid' 
-                              : transaction.cash_paid > 0
-                              ? 'Partial'
-                              : 'Unpaid'
-                            }
+                          <span className={getStatusColor(transaction.payment_status)}>
+                        {transaction.payment_status?.toUpperCase() || 'UNKNOWN'}
                           </span>
                         </td>
                       </tr>
@@ -1048,20 +1126,19 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 </span>
               </div>
               
-              <div className="border-t border-gray-200 pt-4">
-                <div className={`flex justify-between items-center py-2 ${
-                  calculations.creditAmount > 0 ? 'text-red-600' : 
-                  calculations.creditAmount < 0 ? 'text-orange-600' : 'text-green-600'
-                }`}>
-                  <span className="font-medium">
-                    {calculations.creditAmount > 0 ? 'Credit (Udhaar):' : 
-                     calculations.creditAmount < 0 ? 'Return:' : 'Balance:'}
-                  </span>
-                  <span className="text-2xl font-bold">
-                    {formatCurrency(Math.abs(calculations.creditAmount))}
-                  </span>
-                </div>
-              </div>
+              {(() => {
+                const ps = getPaymentSummary();
+                const cls = ps.credit > 0 ? 'text-red-600' : ps.credit < 0 ? 'text-orange-600' : 'text-green-600';
+                const label = ps.credit > 0 ? 'Credit (Udhaar):' : ps.credit < 0 ? 'Return:' : 'Balance:';
+                return (
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className={`flex justify-between items-center py-2 ${cls}`}>
+                      <span className="font-medium">{label}</span>
+                      <span className="text-2xl font-bold">{formatCurrency(Math.abs(ps.credit))}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             
             {/* Owner Information */}
@@ -1093,15 +1170,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               </div>
             )}
             
-            {/* Save Button */}
-            <button
-              onClick={handleSaveReceipt}
-              disabled={isSaving || !formData.truck_owner || !formData.vehicle_number || !formData.brass_qty}
-              className="mt-8 w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-center space-x-3 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md"
-            >
-              <FiSave className="h-5 w-5" />
-              <span>{isSaving ? 'Saving...' : 'Save & Print Receipt'}</span>
-            </button>
+            
           </div>
 
           {/* Today's Summary Card */}

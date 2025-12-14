@@ -576,48 +576,16 @@ export function generatePDF(receiptData, settings = {}) {
     doc.setFont('helvetica', 'normal');
     doc.text(`${brassQty} ${data.unit}`, 45, y);
 
-    y += 7;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Rate:', 15, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Rs ${rate} per ${data.unit}`, 45, y);
-
-    y += 17;
+    y += 12;
 
     doc.line(15, y, doc.internal.pageSize.width - 15, y);
     y += 8;
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL AMOUNT:', 15, y);
-
-    doc.setFontSize(12);
-    doc.text(`Rs ${totalAmount.toFixed(2)}`, 60, y);
-
-    doc.setFontSize(10);
-    y += 10;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cash Paid:', 15, y);
-
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Rs ${cashPaid.toFixed(2)}`, 45, y);
-
-    y += 10;
-
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
 
-    if (creditAmount <= 0) {
-      doc.setTextColor(0, 128, 0);
-      doc.text('PAID IN FULL', doc.internal.pageSize.width / 2, y, { align: 'center' });
-    } else if (paidAmount > 0 && paidAmount < totalAmount) {
-      doc.setTextColor(255, 165, 0);
-      doc.text('PARTIAL PAYMENT', doc.internal.pageSize.width / 2, y, { align: 'center' });
-    } else {
-      doc.setTextColor(255, 0, 0);
-      doc.text('ON CREDIT', doc.internal.pageSize.width / 2, y, { align: 'center' });
-    }
+    doc.setTextColor(0, 0, 0);
+    doc.text('Gate Pass', doc.internal.pageSize.width / 2, y, { align: 'center' });
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
@@ -653,16 +621,16 @@ export function generatePDF(receiptData, settings = {}) {
 
     const fileName = `${data.receipt_no || 'receipt'}_${dateStr.replace(/\//g, '-')}.pdf`;
 
-    const pdfBlob = doc.output('blob');
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-
-    const printWindow = window.open(pdfUrl);
-
-    if (printWindow) {
-      printWindow.focus();
-    } else {
-      doc.save(fileName);
-      alert("PDF downloaded!");
+    if (!settings.__silent) {
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const printWindow = window.open(pdfUrl);
+      if (printWindow) {
+        printWindow.focus();
+      } else {
+        doc.save(fileName);
+        alert("PDF downloaded!");
+      }
     }
 
     return fileName;

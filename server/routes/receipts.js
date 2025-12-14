@@ -106,7 +106,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Valid brass quantity and rate are required' });
     }
 
-    // Check if owner is a partner and determine rate
+    // Check if owner is a partner and determine rate (respect overrides)
     let finalOwnerType = owner_type || 'regular';
     let finalRate = rateVal;
     let finalAppliedRate = applied_rate;
@@ -114,9 +114,13 @@ router.post('/', async (req, res) => {
       const ownerRecord = await TruckOwners.findOne({ where: { name: truck_owner, is_active: 1 } });
       if (ownerRecord && ownerRecord.is_partner) {
         finalOwnerType = 'partner';
-        if (ownerRecord.partner_rate && !applied_rate) {
-          finalRate = parseFloat(ownerRecord.partner_rate);
-          finalAppliedRate = ownerRecord.partner_rate;
+        if (typeof applied_rate !== 'undefined' && applied_rate !== null) {
+          finalAppliedRate = parseFloat(applied_rate);
+          finalRate = finalAppliedRate;
+        } else {
+          // Use the provided rate as applied rate; do not override with default partner rate
+          finalAppliedRate = rateVal;
+          finalRate = rateVal;
         }
       }
     }
@@ -126,7 +130,7 @@ router.post('/', async (req, res) => {
     const totalAmount = totalMaterialCost + parseFloat(loading_charge || 0);
     let cashPaidValue = parseFloat(cash_paid || 0);
     const depositDeductedValue = parseFloat(deposit_deducted || 0);
-    const creditAmount = totalAmount - cashPaidValue;
+    let creditAmount = Math.max(0, totalAmount - cashPaidValue);
     let paymentStatus;
     let paymentMethod = payment_method || 'cash';
     // If deposit used, ensure owner has enough balance and deduct
@@ -142,10 +146,12 @@ router.post('/', async (req, res) => {
       await ownerForDeposit.update({ deposit_balance: available - toDeduct });
       await DepositTransactions.create({ owner_id: ownerForDeposit.id, type: 'deduct', amount: toDeduct, previous_balance: available, new_balance: available - toDeduct, receipt_no: receipt_no || '', notes: 'Receipt deduction' });
       paymentStatus = (cashPaidValue >= remainingAfterDeposit) ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
+      creditAmount = Math.max(0, totalAmount - cashPaidValue - toDeduct);
     } else {
       paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
                       cashPaidValue > 0 ? 'partial' : 'unpaid';
       paymentMethod = cashPaidValue >= totalAmount ? 'cash' : (cashPaidValue > 0 ? 'cash' : 'credit');
+      creditAmount = Math.max(0, totalAmount - cashPaidValue);
     }
 
     // FIX: Validate and normalize timestamp

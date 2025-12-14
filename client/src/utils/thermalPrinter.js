@@ -94,11 +94,7 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
 
   const txnLines = [
     buildSectionLines([
-      ['QTY', `${qty} ${unit}`],
-      ['RATE', `${currency}${rate.toFixed(2)}/${unit.toLowerCase()}`],
-      ['MATERIAL', formatAmount(currency, material)],
-      ['LOADING', formatAmount(currency, loading)],
-      ['TOTAL', formatAmount(currency, total)]
+      ['QTY', `${qty} ${unit}`]
     ], widthChars),
     '-'.repeat(widthChars)
   ].join('\n');
@@ -111,15 +107,7 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
     return 'CREDIT';
   })();
 
-  const payLines = [
-    buildSectionLines([
-      ['PAYMENT', inferredMethod],
-      ['CASH PAID', formatAmount(currency, cash)],
-      ['DEPOSIT USED', formatAmount(currency, depositUsed)],
-      ['BALANCE', formatAmount(currency, balance)]
-    ], widthChars),
-    '-'.repeat(widthChars)
-  ].join('\n');
+  const payLines = '';
 
   const footerLines = [
     'Thank You!',
