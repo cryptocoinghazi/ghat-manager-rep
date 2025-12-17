@@ -260,23 +260,23 @@ export async function initializeDatabase() {
   // Create default admin user if it doesn't exist
   const admin = await db.get("SELECT * FROM users WHERE username='admin'");
   if (!admin) {
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('Mansoor@9999', 10);
     await db.run(
       "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
       ['admin', hashedPassword, 'admin']
     );
-    console.log("✅ Default admin created: username='admin', password='admin123'");
+    console.log("✅ Default admin created: username='admin', password='Mansoor@9999'");
   }
 
   // Create default regular user
   const user = await db.get("SELECT * FROM users WHERE username='user'");
   if (!user) {
-    const hashedPassword = await bcrypt.hash('user123', 10);
+    const hashedPassword = await bcrypt.hash('Mansoor@9999', 10);
     await db.run(
       "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
       ['user', hashedPassword, 'user']
     );
-    console.log("✅ Default user created: username='user', password='user123'");
+    console.log("✅ Default user created: username='user', password='Mansoor@9999'");
   }
 
   return db;
@@ -617,8 +617,8 @@ const Login = () => {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800 font-medium">Demo Credentials:</p>
               <div className="mt-1 text-xs text-blue-700">
-                <p>Admin: username="admin", password="admin123"</p>
-                <p>User: username="user", password="user123"</p>
+                <p>Admin: username="admin", password="Mansoor@9999"</p>
+                <p>User: username="user", password="Mansoor@9999"</p>
               </div>
             </div>
 
@@ -1245,9 +1245,9 @@ Frontend: http://localhost:5173
 Backend API: http://localhost:3000
 
 4.4 Default credentials:
-Admin: username=admin, password=admin123
+Admin: username=admin, password=Mansoor@9999
 
-User: username=user, password=user123
+User: username=user, password=Mansoor@9999
 
 Key Features Implemented:
 ✅ Authentication System:

@@ -116,14 +116,14 @@ export async function initializeDatabase() {
     const adminExists = await db.get("SELECT * FROM users WHERE username = 'admin'");
     if (!adminExists) {
       try {
-        const hashedPassword = await bcrypt.hash('admin123', 10);
+        const hashedPassword = await bcrypt.hash('Mansoor@9999', 10);
         const result = await db.run(
           "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
           ['admin', hashedPassword, 'admin']
         );
         console.log('✅ Admin user created');
         console.log('   👤 Username: admin');
-        console.log('   🔑 Password: admin123');
+        console.log('   🔑 Password: Mansoor@9999');
         console.log('   👑 Role: admin');
       } catch (err) {
         console.error('❌ Error creating admin:', err.message);
@@ -134,14 +134,14 @@ export async function initializeDatabase() {
     const userExists = await db.get("SELECT * FROM users WHERE username = 'user'");
     if (!userExists) {
       try {
-        const hashedPassword = await bcrypt.hash('user123', 10);
+        const hashedPassword = await bcrypt.hash('Mansoor@9999', 10);
         const result = await db.run(
           "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)",
           ['user', hashedPassword, 'user']
         );
         console.log('✅ Regular user created');
         console.log('   👤 Username: user');
-        console.log('   🔑 Password: user123');
+        console.log('   🔑 Password: Mansoor@9999');
         console.log('   👤 Role: user');
       } catch (err) {
         console.error('❌ Error creating user:', err.message);
@@ -190,8 +190,8 @@ export async function initializeDatabase() {
       \`);
       
       // Create default users
-      const hashedAdmin = await bcrypt.hash('admin123', 10);
-      const hashedUser = await bcrypt.hash('user123', 10);
+      const hashedAdmin = await bcrypt.hash('Mansoor@9999', 10);
+      const hashedUser = await bcrypt.hash('Mansoor@9999', 10);
       
       await db.run(
         "INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?), (?, ?, ?)",
@@ -866,8 +866,8 @@ const Login = () => {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800 font-medium">Demo Credentials:</p>
               <div className="mt-1 text-xs text-blue-700 space-y-1">
-                <p><span className="font-semibold">Admin:</span> username = "admin", password = "admin123"</p>
-                <p><span className="font-semibold">User:</span> username = "user", password = "user123"</p>
+                <p><span className="font-semibold">Admin:</span> username = "admin", password = "Mansoor@9999"</p>
+                <p><span className="font-semibold">User:</span> username = "user", password = "Mansoor@9999"</p>
               </div>
             </div>
 
@@ -1139,7 +1139,7 @@ After deployment, add these environment variables in Railway Dashboard:
    \`\`\`bash
    curl -X POST https://your-project-name.railway.app/api/auth/login \\
      -H "Content-Type: application/json" \\
-     -d '{"username":"admin","password":"admin123"}'
+     -d '{"username":"admin","password":"Mansoor@9999"}'
    \`\`\`
 
 3. **View admin info:**
@@ -1155,8 +1155,8 @@ After deployment, add these environment variables in Railway Dashboard:
    \`\`\`
 
 2. **Default Credentials:**
-   - 👑 **Admin:** \`admin\` / \`admin123\`
-   - 👤 **User:** \`user\` / \`user123\`
+   - 👑 **Admin:** \`admin\` / \`Mansoor@9999\`
+   - 👤 **User:** \`user\` / \`Mansoor@9999\`
 
    ⚠️ **IMPORTANT:** Change these passwords immediately after first login!
 

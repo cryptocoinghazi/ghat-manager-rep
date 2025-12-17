@@ -163,7 +163,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌍 Render: ${process.env.RENDER_SERVICE_NAME || 'Not on Render'}`);
   console.log(`🎯 API Base: http://localhost:${PORT}/api`);
   console.log(`🔗 External URL: ${process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_STATIC_URL || 'Not configured'}`);
-  console.log(`👤 Default Users: admin/admin123, user/user123`);
+  console.log(`👤 Default Users: admin/Mansoor@9999, user/Mansoor@9999`);
 });
 
 const backupsDir = path.resolve(__dirname, './backups');

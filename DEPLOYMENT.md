@@ -73,7 +73,7 @@ After deployment, add these environment variables in Railway Dashboard:
    ```bash
    curl -X POST https://your-project-name.railway.app/api/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"username":"admin","password":"admin123"}'
+     -d '{"username":"admin","password":"Mansoor@9999"}'
    ```
 
 3. **View admin info:**
@@ -89,8 +89,8 @@ After deployment, add these environment variables in Railway Dashboard:
    ```
 
 2. **Default Credentials:**
-   - **Admin:** `admin` / `admin123`
-   - **User:** `user` / `user123`
+   - **Admin:** `admin` / `Mansoor@9999`
+   - **User:** `user` / `Mansoor@9999`
 
    **IMPORTANT:** Change these passwords immediately after first login!
 

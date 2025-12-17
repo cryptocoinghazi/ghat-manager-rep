@@ -102,7 +102,7 @@ index 2222222..3333333 100644
 +  console.log(`🌍 Render Service: ${process.env.RENDER_SERVICE_NAME || 'Not on Render'}`);
 +  console.log(`🔗 External URL: ${process.env.RENDER_EXTERNAL_URL || 'Not configured'}`);
 +  console.log(`🎯 Test Endpoint: http://localhost:${PORT}/api/test`);
-+  console.log(`👤 Default Users: admin/admin123, user/user123`);
++  console.log(`👤 Default Users: admin/Mansoor@9999, user/Mansoor@9999`);
  });
 diff --git a/server/db.js b/server/db.js
 index f2f2f2f..g3g3g3g 100644
@@ -145,17 +145,17 @@ index f2f2f2f..g3g3g3g 100644
 +  // Create default admin user
    const exists = await findUserByUsername("admin");
    if (!exists) {
-     const password = await bcrypt.hash("admin123", 10);
+     const password = await bcrypt.hash("Mansoor@9999", 10);
      await createUser({ username: "admin", password, role: "admin" });
-     console.log("✓ Default admin created (admin/admin123)");
+     console.log("✓ Default admin created (admin/Mansoor@9999)");
    }
  
 +  // Create default regular user
 +  const userExists = await findUserByUsername("user");
 +  if (!userExists) {
-+    const userPassword = await bcrypt.hash("user123", 10);
++    const userPassword = await bcrypt.hash("Mansoor@9999", 10);
 +    await createUser({ username: "user", password: userPassword, role: "user" });
-+    console.log("✓ Default user created (user/user123)");
++    console.log("✓ Default user created (user/Mansoor@9999)");
 +  }
 +
 +  // Verify users were created
@@ -500,7 +500,7 @@ After Patch is Applied:
 curl https://ghat-manager-rep.onrender.com/api/test
 curl -X POST https://ghat-manager-rep.onrender.com/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"admin","password":"Mansoor@9999"}'
 
 # Test CORS headers
 curl -I -X OPTIONS https://ghat-manager-rep.onrender.com/api/auth/login \
