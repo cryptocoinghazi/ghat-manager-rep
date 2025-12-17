@@ -167,24 +167,31 @@ ${duplicateNote}
 
 export const printThermalReceipt = (receipt, settings = {}) => {
   const html = generateThermalReceiptHTML(receipt, settings);
-  const w = window.open('', '_blank');
+  // Open a small window to suggest thermal size
+  const w = window.open('', '_blank', 'width=400,height=600,toolbar=0,scrollbars=0,status=0');
   if (!w) return;
   w.document.write(`
+  <!DOCTYPE html>
   <html>
     <head>
       <title>Receipt ${receipt.receipt_no || ''}</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
       ${html}
       <script>
         window.onload = () => {
-          try { window.print(); } catch (e) {}
-          setTimeout(() => window.close(), 1200);
+          try { 
+            window.print(); 
+          } catch (e) { console.error(e); }
+          // Close after a delay to ensure print dialog has time to open
+          setTimeout(() => window.close(), 500);
         };
       <\/script>
     </body>
   </html>
   `);
+  w.document.close();
 };
 
 export default printThermalReceipt;

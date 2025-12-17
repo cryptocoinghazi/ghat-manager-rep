@@ -95,11 +95,13 @@ const GstReports = () => {
   };
 
   const handlePrint = (receipt) => {
+    toast.success('Printing Thermal Receipt...');
     const flatSettings = settings.flat || settings || {};
     printThermalReceipt(receipt, flatSettings);
   };
 
   const handlePreview = (receipt) => {
+    toast.loading('Generating Tax Invoice PDF...');
     const flatSettings = settings.flat || settings || {};
     generatePDF(receipt, flatSettings);
   };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FiPrinter, FiSave, FiRefreshCw, FiUserPlus } from 'react-icons/fi';
-import { FaCalculator } from 'react-icons/fa';
+import { FaCalculator, FaEye, FaPrint } from 'react-icons/fa';
 import { generatePDF } from '../utils/pdfGenerator';
 import { printThermalReceipt } from '../utils/thermalPrinter';
 import { refreshDashboardStats } from './Layout';
@@ -677,6 +677,16 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     return date.toLocaleString('en-IN', options);
   };
 
+  const handlePrintTransaction = (receipt) => {
+    toast.success('Printing Thermal Receipt...');
+    printThermalReceipt(receipt, flatSettings);
+  };
+
+  const handlePreviewTransaction = (receipt) => {
+    toast.loading('Generating Receipt PDF...');
+    generatePDF(receipt, flatSettings);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1045,6 +1055,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Rate</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1070,6 +1081,24 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                           <span className={getStatusColor(transaction.payment_status)}>
                         {transaction.payment_status?.toUpperCase() || 'UNKNOWN'}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-3">
+                            <button 
+                              onClick={() => handlePreviewTransaction(transaction)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="View/Print A4"
+                            >
+                              <FaEye className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handlePrintTransaction(transaction)}
+                              className="text-gray-600 hover:text-gray-900"
+                              title="Print Thermal"
+                            >
+                              <FaPrint className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

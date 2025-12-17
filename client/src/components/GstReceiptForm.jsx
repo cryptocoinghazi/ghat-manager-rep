@@ -60,6 +60,34 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   }, []);
 
   useEffect(() => {
+    const onKeyDown = (e) => {
+      const key = (e.key || '').toLowerCase();
+      if (e.ctrlKey && !e.shiftKey && key === 'p') {
+        e.preventDefault();
+        if (validateForm()) {
+          handleThermalPrint();
+        } else {
+          toast.error('Fix validation errors before printing');
+        }
+      }
+      if (e.ctrlKey && e.shiftKey && key === 'p') {
+        e.preventDefault();
+        if (validateForm()) {
+          handlePrintPreview();
+        } else {
+          toast.error('Fix validation errors before printing');
+        }
+      }
+      if (e.ctrlKey && key === 's') {
+        e.preventDefault();
+        handleSaveReceipt();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [formData, calculations, errors, receiptNumber, selectedOwnerInfo]);
+
+  useEffect(() => {
     if (useDepositBalance && selectedOwnerInfo) {
       const total = parseFloat(calculations.totalBill || 0);
       const cash = parseFloat(formData.cash_paid || 0);
@@ -187,6 +215,20 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   };
 
+  const handleFullPayment = () => {
+    setFormData(prev => ({
+      ...prev,
+      cash_paid: calculations.totalBill.toString()
+    }));
+  };
+
+  const handleCreditOnly = () => {
+    setFormData(prev => ({
+      ...prev,
+      cash_paid: '0'
+    }));
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -216,6 +258,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   };
 
   const handlePrintPreview = () => {
+    toast.loading('Generating Tax Invoice PDF...');
     // Create temporary receipt object for preview
     const now = new Date();
     const brassQty = parseFloat(formData.brass_qty) || 0;
@@ -260,6 +303,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       toast.error('Please fix form errors');
       return;
     }
+    toast.success('Printing Thermal Receipt...');
     await handleSaveReceipt();
   };
 
@@ -501,14 +545,30 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               {/* Payment */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Cash Paid</label>
-                <input
-                  type="number"
-                  name="cash_paid"
-                  value={formData.cash_paid}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
-                  placeholder="0"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    name="cash_paid"
+                    value={formData.cash_paid}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
+                    placeholder="0"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleFullPayment}
+                      className="py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                    >
+                      Full Payment
+                    </button>
+                    <button
+                      onClick={handleCreditOnly}
+                      className="py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      Credit Only
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Deposit Option */}
