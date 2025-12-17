@@ -35,7 +35,7 @@ router.get('/partner-royalty', async (req, res) => {
       LEFT JOIN truck_owners t ON r.truck_owner = t.name
       WHERE DATE(r.date_time) BETWEEN ? AND ?
         AND r.is_active = 1
-      GROUP BY r.truck_owner
+      GROUP BY r.truck_owner, t.is_partner, t.partner_rate, r.owner_type
       ORDER BY total_amount DESC
     `, { replacements: [start, end] });
     

@@ -8,3 +8,4 @@ server/database/
 dist/
 client/dist/
 server/backups/
+digitalkey.pub
