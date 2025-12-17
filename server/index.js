@@ -32,27 +32,21 @@ const allowedOrigins = [
   'https://*.onrender.com',                   // Allow all Render subdomains
    process.env.FRONTEND_URL,
   process.env.RAILWAY_STATIC_URL,
-  process.env.RENDER_EXTERNAL_URL
+  process.env.RENDER_EXTERNAL_URL,
+  'http://143.110.243.101'
 ].filter(Boolean);
 
+
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin) || 
-        origin.endsWith('.railway.app') ||
-        origin.endsWith('.onrender.com') ||
-        process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['http://143.110.243.101', 'http://localhost']
+    : '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+
 app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
