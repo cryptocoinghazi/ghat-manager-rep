@@ -524,8 +524,17 @@ export function generatePDF(receiptData, settings = {}) {
 
     let y = 35;
 
+    // GST Header if applicable
+    const isGst = !!data.gst_rate;
+    if (isGst) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TAX INVOICE', doc.internal.pageSize.width / 2, y - 4, { align: 'center' });
+        doc.setFontSize(10);
+    }
+
     doc.setFont('helvetica', 'bold');
-    doc.text('Receipt No:', 15, y);
+    doc.text(isGst ? 'Invoice No:' : 'Receipt No:', 15, y);
 
     doc.setFont('helvetica', 'normal');
     doc.text(data.receipt_no || 'GMS008', 40, y);
@@ -548,7 +557,7 @@ export function generatePDF(receiptData, settings = {}) {
     y += 10;
 
     doc.setFont('helvetica', 'bold');
-    doc.text('Truck Owner:', 15, y);
+    doc.text(isGst ? 'Billed To:' : 'Truck Owner:', 15, y);
     doc.setFont('helvetica', 'normal');
     doc.text(data.truck_owner || 'N/A', 45, y);
 
@@ -565,16 +574,66 @@ export function generatePDF(receiptData, settings = {}) {
     const rate = parseFloat(data.rate) || 0;
     const loadingCharge = parseFloat(data.loading_charge) || 0;
     const materialCost = brassQty * rate;
-    const totalAmount = materialCost + loadingCharge;
+    
+    // GST Calculations
+    const gstRate = parseFloat(data.gst_rate) || 0;
+    const totalBeforeGst = parseFloat(data.total_before_gst) || (materialCost + loadingCharge);
+    const cgstAmount = parseFloat(data.cgst_amount) || (totalBeforeGst * (gstRate/2) / 100);
+    const sgstAmount = parseFloat(data.sgst_amount) || (totalBeforeGst * (gstRate/2) / 100);
+    const totalAmount = parseFloat(data.total_amount) || (totalBeforeGst + cgstAmount + sgstAmount);
+
     const cashPaid = parseFloat(data.cash_paid) || 0;
     const depositPaid = parseFloat(data.deposit_deducted || 0);
     const paidAmount = cashPaid + depositPaid;
-    const creditAmount = totalAmount - paidAmount;
+    const creditAmount = Math.max(0, totalAmount - paidAmount);
 
     doc.setFont('helvetica', 'bold');
     doc.text('Quantity:', 15, y);
     doc.setFont('helvetica', 'normal');
     doc.text(`${brassQty} ${data.unit}`, 45, y);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rate:', 85, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${formatCurrencyPDF(rate)}/${data.unit}`, 105, y);
+
+    y += 8;
+
+    if (isGst) {
+        y += 4;
+        doc.line(15, y, doc.internal.pageSize.width - 15, y);
+        y += 6;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Particulars', 15, y);
+        doc.text('Amount', 110, y, { align: 'right' });
+        
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        
+        doc.text('Taxable Value (Material + Loading)', 15, y);
+        doc.text(formatCurrencyPDF(totalBeforeGst), 110, y, { align: 'right' });
+        y += 6;
+        
+        doc.text(`CGST (${gstRate/2}%)`, 15, y);
+        doc.text(formatCurrencyPDF(cgstAmount), 110, y, { align: 'right' });
+        y += 6;
+        
+        doc.text(`SGST (${gstRate/2}%)`, 15, y);
+        doc.text(formatCurrencyPDF(sgstAmount), 110, y, { align: 'right' });
+        y += 6;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Total Amount', 15, y);
+        doc.text(formatCurrencyPDF(totalAmount), 110, y, { align: 'right' });
+        
+        y += 4;
+    } else {
+        // Regular logic
+        const regTotal = materialCost + loadingCharge;
+        doc.text('Total Amount:', 15, y);
+        doc.text(formatCurrencyPDF(regTotal), 45, y);
+    }
 
     y += 12;
 
@@ -585,7 +644,7 @@ export function generatePDF(receiptData, settings = {}) {
     doc.setFont('helvetica', 'bold');
 
     doc.setTextColor(0, 0, 0);
-    doc.text('Gate Pass', doc.internal.pageSize.width / 2, y, { align: 'center' });
+    doc.text(isGst ? 'Tax Invoice' : 'Gate Pass', doc.internal.pageSize.width / 2, y, { align: 'center' });
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);

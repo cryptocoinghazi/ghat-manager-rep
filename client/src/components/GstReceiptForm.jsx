@@ -156,10 +156,18 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const handleQuickFill = (ownerName) => {
     const ownerInfo = gstTruckOwners.find(owner => owner.name === ownerName);
     setSelectedOwnerInfo(ownerInfo || null);
+    
+    // Partner Rate Logic
+    let appliedRate = flatSettings.default_rate || '1200';
+    if (ownerInfo?.is_partner) {
+      appliedRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || appliedRate;
+    }
+
     setFormData(prev => ({
       ...prev,
       truck_owner: ownerName,
       vehicle_number: ownerInfo?.vehicle_number || '',
+      rate: appliedRate
     }));
     document.getElementById('vehicle_number')?.focus();
   };
@@ -207,6 +215,54 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handlePrintPreview = () => {
+    // Create temporary receipt object for preview
+    const now = new Date();
+    const brassQty = parseFloat(formData.brass_qty) || 0;
+    const rate = parseFloat(formData.rate) || 0;
+    const loadingCharge = parseFloat(formData.loading_charge) || 0;
+    const gstRate = parseFloat(formData.gst_rate) || 5;
+
+    const baseAmount = brassQty * rate;
+    const totalBeforeGst = baseAmount + loadingCharge;
+    const gstAmount = (totalBeforeGst * gstRate) / 100;
+    const cgst = gstAmount / 2;
+    const sgst = gstAmount / 2;
+    const totalBill = totalBeforeGst + gstAmount;
+
+    const depositUsed = useDepositBalance && selectedOwnerInfo ? 
+      Math.min(parseFloat(customDepositDeduction || '0'), parseFloat(selectedOwnerInfo.deposit_balance || 0), totalBill) : 0;
+    const cashPaid = parseFloat(formData.cash_paid || 0);
+
+    const tempReceipt = {
+      receipt_no: receiptNumber,
+      truck_owner: formData.truck_owner || 'Preview Client',
+      vehicle_number: formData.vehicle_number || 'MH-XX-0000',
+      brass_qty: brassQty,
+      rate: rate,
+      loading_charge: loadingCharge,
+      gst_rate: gstRate,
+      cgst_amount: cgst,
+      sgst_amount: sgst,
+      total_before_gst: totalBeforeGst,
+      total_amount: totalBill,
+      cash_paid: cashPaid,
+      deposit_deducted: depositUsed,
+      date_time: now.toISOString(),
+      is_partner: selectedOwnerInfo?.is_partner
+    };
+
+    generatePDF(tempReceipt, flatSettings);
+  };
+
+  const handleThermalPrint = async () => {
+    if (!validateForm()) {
+      toast.error('Please fix form errors');
+      return;
+    }
+    await handleSaveReceipt();
+  };
+
   const handleSaveReceipt = async () => {
     if (!validateForm()) {
       toast.error('Please fix form errors');
@@ -229,7 +285,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         cash_paid: parseFloat(formData.cash_paid || 0),
         notes: formData.notes || '',
         date_time: now.toISOString(),
-        payment_method: depositUsed > 0 ? 'deposit' : (parseFloat(formData.cash_paid) >= calculations.totalBill ? 'cash' : 'credit'),
+        payment_method: depositUsed > 0 ? 'deposit' : (parseFloat(formData.cash_paid) >= calculations.totalBill ? 'paid' : 'credit'),
         deposit_deducted: depositUsed,
         gst_rate: parseFloat(formData.gst_rate)
       };
@@ -237,8 +293,12 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       const response = await axios.post('/api/gst-receipts', receiptData);
       
       if (response.data.receipt) {
-        // Here we could call a specific GST PDF generator
-        // generateGstPDF(response.data.receipt, flatSettings); 
+        // Auto Print based on settings or just do both/user choice?
+        // User asked for "receipts /invoice", implying printing.
+        // We'll generate PDF (A4/A5) and Thermal.
+        
+        generatePDF(response.data.receipt, flatSettings);
+        printThermalReceipt(response.data.receipt, flatSettings);
         
         setFormData({
           truck_owner: '',
@@ -255,7 +315,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         setOwnerSuggestions([]);
         fetchNextReceiptNumber();
         fetchRecentTransactions();
-        toast.success('GST Receipt saved successfully!');
+        toast.success('GST Receipt saved and printed!');
         refreshDashboardStats();
       }
     } catch (error) {
@@ -282,9 +342,26 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
           <h1 className="text-2xl font-bold text-gray-900">GST Billing</h1>
           <p className="text-gray-600">Create tax invoices for registered clients</p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-500">GST Receipt No.</p>
-          <p className="text-xl font-bold text-purple-600">{receiptNumber}</p>
+        <div className="flex items-center space-x-4">
+          <div className="text-right">
+            <p className="text-sm text-gray-500">GST Receipt No.</p>
+            <p className="text-xl font-bold text-purple-600">{receiptNumber}</p>
+          </div>
+          <button 
+            onClick={handleThermalPrint}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2"
+          >
+            <FiPrinter className="h-5 w-5" />
+            <span>Print Thermal</span>
+          </button>
+          <button 
+            onClick={handlePrintPreview}
+            className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
+            title="Switch to A4 format"
+          >
+            <FiPrinter className="h-5 w-5" />
+            <span>A4 Preview</span>
+          </button>
         </div>
       </div>
 
@@ -380,9 +457,12 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="rate"
                     value={formData.rate}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
+                    className={`w-full px-3 py-2 border ${selectedOwnerInfo?.is_partner ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'} rounded-lg focus:ring-purple-500`}
                     placeholder="Rate"
                   />
+                  {selectedOwnerInfo?.is_partner && (
+                    <p className="text-xs text-green-600 mt-1">Partner Rate Applied</p>
+                  )}
                 </div>
               </div>
 
