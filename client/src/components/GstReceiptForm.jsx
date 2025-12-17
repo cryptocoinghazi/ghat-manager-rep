@@ -299,18 +299,17 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   };
 
   const handleThermalPrint = async () => {
+    await handleSaveReceipt({ printThermal: true, silentPdf: true });
+  };
+
+  const handleSaveReceipt = async (options = { printThermal: false, silentPdf: false }) => {
     if (!validateForm()) {
       toast.error('Please fix form errors');
       return;
     }
-    toast.success('Printing Thermal Receipt...');
-    await handleSaveReceipt();
-  };
 
-  const handleSaveReceipt = async () => {
-    if (!validateForm()) {
-      toast.error('Please fix form errors');
-      return;
+    if (options.printThermal) {
+      toast.success('Printing Thermal Receipt...');
     }
 
     setIsSaving(true);
@@ -329,7 +328,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         cash_paid: parseFloat(formData.cash_paid || 0),
         notes: formData.notes || '',
         date_time: now.toISOString(),
-        payment_method: depositUsed > 0 ? 'deposit' : (parseFloat(formData.cash_paid) >= calculations.totalBill ? 'paid' : 'credit'),
+        payment_method: depositUsed > 0 ? 'deposit' : (parseFloat(formData.cash_paid || 0) > 0 ? 'cash' : 'credit'),
         deposit_deducted: depositUsed,
         gst_rate: parseFloat(formData.gst_rate)
       };
@@ -341,7 +340,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         // User asked for "receipts /invoice", implying printing.
         // We'll generate PDF (A4/A5) and Thermal.
         
-        generatePDF(response.data.receipt, flatSettings);
+        generatePDF(response.data.receipt, { ...flatSettings, __silent: true });
         printThermalReceipt(response.data.receipt, flatSettings);
         
         setFormData({
@@ -359,7 +358,9 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         setOwnerSuggestions([]);
         fetchNextReceiptNumber();
         fetchRecentTransactions();
-        toast.success('GST Receipt saved and printed!');
+        
+        const successMsg = options.printThermal ? 'GST Receipt saved and printed!' : 'GST Receipt saved successfully!';
+        toast.success(successMsg);
         refreshDashboardStats();
       }
     } catch (error) {
