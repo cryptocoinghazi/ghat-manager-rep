@@ -16,10 +16,6 @@ router.get('/summary', async (req, res) => {
 
     const receipts = await GstReceipts.findAll({
       where,
-      attributes: [
-        'receipt_no', 'date_time', 'truck_owner', 'vehicle_number',
-        'total_before_gst', 'cgst_amount', 'sgst_amount', 'igst_amount', 'total_amount'
-      ],
       order: [['date_time', 'ASC']]
     });
 
