@@ -12,6 +12,8 @@ import Login from './components/Login';
 import UserManagement from './components/UserManagement';
 import ExpenseManager from './components/ExpenseManager';
 import PartnerManagement from './components/PartnerManagement';
+import GstReceiptForm from './components/GstReceiptForm';
+import GstReports from './components/GstReports';
 
 const AdminRoute = ({ user, children }) => {
   if (user?.role !== 'admin') {
@@ -176,6 +178,20 @@ function App() {
             <Route path="partners" element={
               <AdminRoute user={user}>
                 <PartnerManagement />
+              </AdminRoute>
+            } />
+            <Route path="gst-billing" element={
+              <AdminRoute user={user}>
+                <GstReceiptForm 
+                  settings={settings}
+                  truckOwners={truckOwners}
+                  fetchTruckOwners={fetchTruckOwners}
+                />
+              </AdminRoute>
+            } />
+            <Route path="gst-reports" element={
+              <AdminRoute user={user}>
+                <GstReports />
               </AdminRoute>
             } />
           </Route>

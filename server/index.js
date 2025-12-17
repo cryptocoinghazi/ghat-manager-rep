@@ -60,12 +60,16 @@ import reportsRoutes from './routes/reports.js';
 import authRoutes from './routes/auth.js';
 import expenseRoutes from './routes/expenses.js';
 import databaseRoutes from './routes/database.js';
+import gstReceiptRoutes from './routes/gstReceipts.js';
+import gstReportRoutes from './routes/gstReports.js';
 
 // API Routes - Auth routes are public
 app.use('/api/auth', authRoutes);
 
 // Protected routes - require authentication
 app.use('/api/receipts', authenticateToken, receiptRoutes);
+app.use('/api/gst-receipts', authenticateToken, gstReceiptRoutes);
+app.use('/api/gst-reports', authenticateToken, requireAdmin, gstReportRoutes);
 app.use('/api/settings', authenticateToken, settingsRoutes);
 app.use('/api/reports', authenticateToken, requireAdmin, reportsRoutes);
 app.use('/api/expenses', authenticateToken, expenseRoutes);

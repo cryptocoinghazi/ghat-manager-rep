@@ -21,6 +21,7 @@
     "axios": "^1.13.2",
     "chai": "^5.3.3",
     "concurrently": "^8.2.0",
+    "dotenv": "^17.2.3",
     "mocha": "^11.7.5",
     "puppeteer": "^24.33.0"
   },

@@ -255,6 +255,21 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   };
 
+  const handleToggleGst = async (owner) => {
+    if (window.confirm(`Are you sure you want to ${owner.is_gst_client ? 'remove' : 'add'} ${owner.name} from GST clients?`)) {
+      try {
+        await axios.put(`/api/settings/truck-owners/${owner.id}/toggle-gst`, { 
+          is_gst_client: !owner.is_gst_client 
+        });
+        toast.success(`GST status updated for ${owner.name}`);
+        await fetchTruckOwners();
+      } catch (error) {
+        console.error('Error toggling GST status:', error);
+        toast.error('Failed to update GST status');
+      }
+    }
+  };
+
   const tabs = [
     { id: 'company', name: 'Company', icon: FiHome },
     { id: 'financial', name: 'Financial', icon: FaDollarSign },
@@ -729,6 +744,7 @@ const Settings = ({ settings, fetchSettings }) => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deposit Balance</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
@@ -740,7 +756,21 @@ const Settings = ({ settings, fetchSettings }) => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.contact || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.address || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{owner.deposit_balance || 0}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                             {owner.is_gst_client ? (
+                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">GST</span>
+                             ) : (
+                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Regular</span>
+                             )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleToggleGst(owner)}
+                              className={`p-2 rounded transition-colors mr-2 ${owner.is_gst_client ? 'text-purple-600 bg-purple-50 hover:bg-purple-100' : 'text-gray-400 hover:text-purple-600 hover:bg-gray-50'}`}
+                              title={owner.is_gst_client ? "Remove GST Status" : "Mark as GST Client"}
+                            >
+                              <FiShield className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => handleAddDeposit(owner)}
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded transition-colors mr-2"
