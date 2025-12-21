@@ -180,8 +180,8 @@ All endpoints except `/api/auth/*` require JWT authentication via `Authorization
 - created_at (TIMESTAMP)
 
 ## Default Login Credentials
-- **Admin**: username=`admin`, password=`admin123`
-- **User**: username=`user`, password=`user123`
+- **Admin**: username=`admin`, password=`Mansoor@9999`
+- **User**: username=`user`, password=`Mansoor@9999`
 
 **Important**: Change these default credentials before deploying to production!
 

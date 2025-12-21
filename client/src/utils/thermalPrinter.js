@@ -66,9 +66,9 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
 
   const headerLines = [
     '='.repeat(widthChars),
-    centerText('SAND MINING GATE PASS', widthChars),
+    centerText(receipt.gst_rate ? 'TAX INVOICE' : 'SAND MINING GATE PASS', widthChars),
     '='.repeat(widthChars),
-    padLine('Receipt', receipt.receipt_no || '-', widthChars),
+    padLine(receipt.gst_rate ? 'Invoice' : 'Receipt', receipt.receipt_no || '-', widthChars),
     padLine('Date', date, widthChars),
     padLine('Time', time, widthChars),
     '-'.repeat(widthChars)
@@ -76,7 +76,7 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
 
   const infoLines = [
     buildSectionLines([
-      ['OWNER', owner],
+      [receipt.gst_rate ? 'BILLED TO' : 'OWNER', owner],
       ['VEHICLE', vehicle],
       ['TYPE', (receipt.is_partner ? 'PARTNER' : 'REGULAR')]
     ], widthChars),
@@ -87,17 +87,42 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
   const rate = Number(receipt.rate || 0);
   const loading = Number(receipt.loading_charge || 0);
   const material = qty * rate;
-  const total = Number(receipt.total_amount || material + loading);
+  
+  // GST Calculations
+  const isGst = !!receipt.gst_rate;
+  const gstRate = Number(receipt.gst_rate || 0);
+  const totalBeforeGst = Number(receipt.total_before_gst) || (material + loading);
+  const cgst = Number(receipt.cgst_amount) || (totalBeforeGst * (gstRate/2) / 100);
+  const sgst = Number(receipt.sgst_amount) || (totalBeforeGst * (gstRate/2) / 100);
+  const total = Number(receipt.total_amount) || (totalBeforeGst + cgst + sgst);
+  
   const cash = Number(receipt.cash_paid || 0);
   const depositUsed = Number(receipt.deposit_deducted || 0);
   const balance = Math.max(0, total - cash - depositUsed);
 
-  const txnLines = [
-    buildSectionLines([
-      ['QTY', `${qty} ${unit}`]
-    ], widthChars),
-    '-'.repeat(widthChars)
-  ].join('\n');
+  let txnLines = '';
+  
+  if (isGst) {
+    txnLines = [
+      buildSectionLines([
+        ['QTY', `${qty} ${unit}`],
+        ['RATE', formatAmount(currency, rate)],
+        ['TAXABLE', formatAmount(currency, totalBeforeGst)],
+        [`CGST ${gstRate/2}%`, formatAmount(currency, cgst)],
+        [`SGST ${gstRate/2}%`, formatAmount(currency, sgst)],
+        ['TOTAL', formatAmount(currency, total)]
+      ], widthChars),
+      '-'.repeat(widthChars)
+    ].join('\n');
+  } else {
+    txnLines = [
+      buildSectionLines([
+        ['QTY', `${qty} ${unit}`],
+        ['TOTAL', formatAmount(currency, total)]
+      ], widthChars),
+      '-'.repeat(widthChars)
+    ].join('\n');
+  }
 
   const paidAmount = cash + depositUsed;
   const inferredMethod = (() => {
@@ -142,24 +167,31 @@ ${duplicateNote}
 
 export const printThermalReceipt = (receipt, settings = {}) => {
   const html = generateThermalReceiptHTML(receipt, settings);
-  const w = window.open('', '_blank');
+  // Open a small window to suggest thermal size
+  const w = window.open('', '_blank', 'width=400,height=600,toolbar=0,scrollbars=0,status=0');
   if (!w) return;
   w.document.write(`
+  <!DOCTYPE html>
   <html>
     <head>
       <title>Receipt ${receipt.receipt_no || ''}</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
       ${html}
       <script>
         window.onload = () => {
-          try { window.print(); } catch (e) {}
-          setTimeout(() => window.close(), 1200);
+          try { 
+            window.print(); 
+          } catch (e) { console.error(e); }
+          // Close after a delay to ensure print dialog has time to open
+          setTimeout(() => window.close(), 500);
         };
       <\/script>
     </body>
   </html>
   `);
+  w.document.close();
 };
 
 export default printThermalReceipt;

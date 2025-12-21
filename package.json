@@ -2,6 +2,7 @@
   "name": "ghat-manager",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
@@ -10,10 +11,19 @@
     "start": "cd server && npm start",
     "install-all": "npm install && cd server && npm install && cd ../client && npm install",
     "migrate": "cd server && npm run migrate",
-    "capture": "cd server && node scripts/capture-screenshots.js"
+    "capture": "cd server && node scripts/capture-screenshots.js",
+    "health": "cd server && node scripts/health-check.js",
+    "test": "mocha \"test/**/*.test.js\" --timeout 60000",
+    "test:api": "mocha \"test/api.*.test.js\" --timeout 60000",
+    "test:ui": "mocha \"test/ui.*.test.js\" --timeout 60000"
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "axios": "^1.13.2",
+    "chai": "^5.3.3",
+    "concurrently": "^8.2.0",
+    "dotenv": "^17.2.3",
+    "mocha": "^11.7.5",
+    "puppeteer": "^24.33.0"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

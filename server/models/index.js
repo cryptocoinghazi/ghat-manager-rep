@@ -23,6 +23,34 @@ export const Receipts = sequelize.define('receipts', {
   owner_id: { type: DataTypes.INTEGER }
 });
 
+export const GstReceipts = sequelize.define('gst_receipts', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  receipt_no: { type: DataTypes.STRING(64), unique: true, allowNull: false },
+  truck_owner: { type: DataTypes.STRING(255), allowNull: false },
+  vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
+  date_time: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  brass_qty: { type: DataTypes.DECIMAL(10,2), allowNull: false },
+  rate: { type: DataTypes.DECIMAL(10,2), allowNull: false },
+  loading_charge: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  
+  // GST Specific fields
+  gst_rate: { type: DataTypes.DECIMAL(5,2), defaultValue: 5.00 },
+  cgst_amount: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  sgst_amount: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  igst_amount: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  total_before_gst: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  
+  cash_paid: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  credit_amount: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
+  total_amount: { type: DataTypes.DECIMAL(10,2), allowNull: false }, // Grand total
+  
+  payment_status: { type: DataTypes.STRING(32), defaultValue: 'pending' },
+  payment_method: { type: DataTypes.STRING(32), defaultValue: 'cash' },
+  notes: { type: DataTypes.TEXT },
+  is_active: { type: DataTypes.INTEGER, defaultValue: 1 },
+  owner_id: { type: DataTypes.INTEGER }
+});
+
 export const TruckOwners = sequelize.define('truck_owners', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   name: { type: DataTypes.STRING(255), unique: true, allowNull: false },
@@ -32,6 +60,7 @@ export const TruckOwners = sequelize.define('truck_owners', {
   payment_type: { type: DataTypes.STRING(32), defaultValue: 'cash' },
   is_partner: { type: DataTypes.INTEGER, defaultValue: 0 },
   partner_rate: { type: DataTypes.DECIMAL(10,2) },
+  is_gst_client: { type: DataTypes.BOOLEAN, defaultValue: false },
   deposit_balance: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
   vehicle_number: { type: DataTypes.STRING(64) },
   is_active: { type: DataTypes.INTEGER, defaultValue: 1 }
@@ -96,6 +125,7 @@ export const DepositTransactions = sequelize.define('deposit_transactions', {
 });
 
 Receipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constraints: false });
+GstReceipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constraints: false });
 CreditPayments.belongsTo(Receipts, { foreignKey: 'receipt_id' });
 DepositTransactions.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
 

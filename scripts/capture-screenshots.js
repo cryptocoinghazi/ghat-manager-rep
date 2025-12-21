@@ -1,25 +1,44 @@
-const fs = require('fs');
-const path = require('path');
-const puppeteer = require('puppeteer');
+import fs from 'fs';
+import path from 'path';
+import puppeteer from 'puppeteer';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
 const ASSETS_DIR = path.join(__dirname, '..', 'client', 'public', 'assets');
 
 const username = process.argv[2] || process.env.ADMIN_USER || 'admin';
-const password = process.argv[3] || process.env.ADMIN_PASS || '';
+const password = process.argv[3] || process.env.ADMIN_PASS || 'Mansoor@9999';
 
 async function ensureDir(dir) {
   await fs.promises.mkdir(dir, { recursive: true });
 }
 
 async function clickByXPath(page, xpath) {
-  const [el] = await page.$x(xpath);
-  if (!el) throw new Error(`Element not found for XPath: ${xpath}`);
-  await el.click();
+  const clicked = await page.evaluate((xp) => {
+    const res = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    const el = res.singleNodeValue;
+    if (el && typeof el.click === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.click();
+      return true;
+    }
+    return false;
+  }, xpath);
+  if (!clicked) throw new Error(`Element not found for XPath: ${xpath}`);
 }
 
 async function waitForXPath(page, xpath, timeout = 20000) {
-  await page.waitForXPath(xpath, { timeout });
+  await page.waitForFunction(
+    (xp) => {
+      const r = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      return Boolean(r && r.singleNodeValue);
+    },
+    { timeout },
+    xpath
+  );
 }
 
 async function screenshot(page, fileName) {
@@ -46,7 +65,24 @@ async function run() {
   }
 
   await ensureDir(ASSETS_DIR);
-  const browser = await puppeteer.launch({ headless: true });
+  let browser;
+  try {
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] });
+  } catch (e1) {
+    try {
+      browser = await puppeteer.launch({ headless: true, channel: 'chrome', args: ['--no-sandbox', '--disable-gpu'] });
+    } catch (e2) {
+      try {
+        browser = await puppeteer.launch({ headless: true, channel: 'msedge', args: ['--no-sandbox', '--disable-gpu'] });
+      } catch (e3) {
+        console.error('Failed to launch browser with Puppeteer. Please ensure Chrome or Edge is installed, or set PUPPETEER_BROWSER_PATH.');
+        console.error('Original error:', e1.message || e1);
+        console.error('Chrome channel error:', e2.message || e2);
+        console.error('Edge channel error:', e3.message || e3);
+        process.exit(1);
+      }
+    }
+  }
   const page = await browser.newPage();
   await page.setViewport({ width: 1366, height: 900, deviceScaleFactor: 1 });
 
@@ -99,9 +135,8 @@ async function run() {
     console.error('Screenshot capture failed:', err);
     process.exitCode = 1;
   } finally {
-    await browser.close();
+    try { await browser.close(); } catch {}
   }
 }
 
 run();
-

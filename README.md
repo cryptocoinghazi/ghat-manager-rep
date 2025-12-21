@@ -60,11 +60,11 @@ For testing, use these default credentials:
 
 **Admin Account:**
 - Username: `admin`
-- Password: `admin123`
+- Password: `Mansoor@9999`
 
 **User Account:**
 - Username: `user`
-- Password: `user123`
+- Password: `Mansoor@9999`
 
 ### Project Structure
 

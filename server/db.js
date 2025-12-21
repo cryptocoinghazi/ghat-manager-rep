@@ -291,8 +291,8 @@ async function initializeSettings() {
 
 async function initializeUsers() {
   const defaultUsers = [
-    { username: 'admin', password: 'admin123', full_name: 'Administrator', role: 'admin' },
-    { username: 'user', password: 'user123', full_name: 'Standard User', role: 'user' }
+    { username: 'admin', password: 'Mansoor@9999', full_name: 'Administrator', role: 'admin' },
+    { username: 'user', password: 'Mansoor@9999', full_name: 'Standard User', role: 'user' }
   ];
 
   for (const user of defaultUsers) {
