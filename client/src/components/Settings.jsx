@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2 } from 'react-icons/fi';
+import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2, FiEdit2, FiX } from 'react-icons/fi';
 import { FaDollarSign } from 'react-icons/fa';
 
 const Settings = ({ settings, fetchSettings }) => {
@@ -11,6 +11,7 @@ const Settings = ({ settings, fetchSettings }) => {
   const [backupData, setBackupData] = useState(null);
   const [truckOwners, setTruckOwners] = useState([]);
   const [newOwner, setNewOwner] = useState({ name: '', contact: '', address: '', vehicle_number: '' });
+  const [editingOwnerId, setEditingOwnerId] = useState(null);
   const [dbBackups, setDbBackups] = useState([]);
   const [isDbConnected, setIsDbConnected] = useState(false);
 
@@ -28,6 +29,7 @@ const Settings = ({ settings, fetchSettings }) => {
   useEffect(() => {
     fetchTruckOwners();
     checkDbStatus();
+    handleDbBackupList();
   }, []);
 
   const fetchTruckOwners = async () => {
@@ -196,14 +198,39 @@ const Settings = ({ settings, fetchSettings }) => {
     }
 
     try {
-      await axios.post('/api/settings/truck-owners', newOwner);
-      toast.success('Truck owner added successfully!');
+      if (editingOwnerId) {
+        await axios.put(`/api/settings/truck-owners/${editingOwnerId}`, {
+          ...newOwner,
+          phone: newOwner.contact // Backend expects 'phone'
+        });
+        toast.success('Truck owner updated successfully!');
+        setEditingOwnerId(null);
+      } else {
+        await axios.post('/api/settings/truck-owners', newOwner);
+        toast.success('Truck owner added successfully!');
+      }
       setNewOwner({ name: '', contact: '', address: '', vehicle_number: '' });
       await fetchTruckOwners();
     } catch (error) {
-      console.error('Error adding truck owner:', error);
-      toast.error(error.response?.data?.error || 'Failed to add truck owner');
+      console.error('Error saving truck owner:', error);
+      toast.error(error.response?.data?.error || 'Failed to save truck owner');
     }
+  };
+
+  const handleEditOwner = (owner) => {
+    setNewOwner({
+      name: owner.name,
+      contact: owner.phone || owner.contact || '', // Handle both fields
+      address: owner.address || '',
+      vehicle_number: owner.vehicle_number || ''
+    });
+    setEditingOwnerId(owner.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setNewOwner({ name: '', contact: '', address: '', vehicle_number: '' });
+    setEditingOwnerId(null);
   };
 
   const handleDeleteTruckOwner = async (ownerId, ownerName) => {
@@ -669,8 +696,20 @@ const Settings = ({ settings, fetchSettings }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Truck Owners Management</h3>
             
             {/* Add new owner */}
-            <div className="card p-6 mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Add New Truck Owner</h4>
+            <div className={`card p-6 mb-6 ${editingOwnerId ? 'border-2 border-blue-500' : ''}`}>
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-gray-900">
+                  {editingOwnerId ? 'Update Truck Owner' : 'Add New Truck Owner'}
+                </h4>
+                {editingOwnerId && (
+                  <button
+                    onClick={handleCancelEdit}
+                    className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
+                  >
+                    <FiX className="mr-1" /> Cancel Edit
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -723,9 +762,9 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               <button
                 onClick={handleAddTruckOwner}
-                className="btn-primary"
+                className={`btn-primary ${editingOwnerId ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
               >
-                Add Truck Owner
+                {editingOwnerId ? 'Update Truck Owner' : 'Add Truck Owner'}
               </button>
             </div>
             
@@ -753,7 +792,7 @@ const Settings = ({ settings, fetchSettings }) => {
                         <tr key={owner.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{owner.name}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.vehicle_number || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.contact || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.phone || owner.contact || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.address || '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{owner.deposit_balance || 0}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -764,6 +803,13 @@ const Settings = ({ settings, fetchSettings }) => {
                              )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => handleEditOwner(owner)}
+                              className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 p-2 rounded transition-colors mr-2"
+                              title="Edit Details"
+                            >
+                              <FiEdit2 className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => handleToggleGst(owner)}
                               className={`p-2 rounded transition-colors mr-2 ${owner.is_gst_client ? 'text-purple-600 bg-purple-50 hover:bg-purple-100' : 'text-gray-400 hover:text-purple-600 hover:bg-gray-50'}`}

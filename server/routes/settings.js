@@ -105,7 +105,8 @@ router.get('/truck-owners', async (req, res) => {
     const owners = await TruckOwners.findAll({ where, order: [['name','ASC']] });
     return res.json(owners);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch truck owners' });
+    console.error('Error fetching truck owners:', error);
+    res.status(500).json({ error: 'Failed to fetch truck owners: ' + error.message });
   }
 });
 
@@ -376,7 +377,11 @@ router.post('/restore', requireAdmin, async (req, res) => {
 // Get all users
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const users = await Users.findAll({ order: [['id', 'DESC']], attributes: ['id','username','full_name','role','is_active'] });
+    const users = await Users.findAll({ 
+      where: { is_active: 1 },
+      order: [['id', 'DESC']], 
+      attributes: ['id','username','full_name','role','is_active'] 
+    });
     return res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiPrinter, FiSave, FiUserPlus } from 'react-icons/fi';
-import { FaCalculator } from 'react-icons/fa';
+import { FiPrinter, FiSave, FiUserPlus, FiShare2 } from 'react-icons/fi';
+import { FaCalculator, FaWhatsapp, FaPrint, FaEye } from 'react-icons/fa';
 import { generatePDF } from '../utils/pdfGenerator';
 import { printThermalReceipt } from '../utils/thermalPrinter';
+import { generateReceiptMessage, openWhatsAppChat } from '../utils/whatsappUtils';
 import { refreshDashboardStats } from './Layout';
 
 const getStatusColor = (status) => {
@@ -257,48 +258,30 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePrintPreview = () => {
-    toast.loading('Generating Tax Invoice PDF...');
-    // Create temporary receipt object for preview
-    const now = new Date();
-    const brassQty = parseFloat(formData.brass_qty) || 0;
-    const rate = parseFloat(formData.rate) || 0;
-    const loadingCharge = parseFloat(formData.loading_charge) || 0;
-    const gstRate = parseFloat(formData.gst_rate) || 5;
-
-    const baseAmount = brassQty * rate;
-    const totalBeforeGst = baseAmount + loadingCharge;
-    const gstAmount = (totalBeforeGst * gstRate) / 100;
-    const cgst = gstAmount / 2;
-    const sgst = gstAmount / 2;
-    const totalBill = totalBeforeGst + gstAmount;
-
-    const depositUsed = useDepositBalance && selectedOwnerInfo ? 
-      Math.min(parseFloat(customDepositDeduction || '0'), parseFloat(selectedOwnerInfo.deposit_balance || 0), totalBill) : 0;
-    const cashPaid = parseFloat(formData.cash_paid || 0);
-
-    const tempReceipt = {
-      receipt_no: receiptNumber,
-      truck_owner: formData.truck_owner || 'Preview Client',
-      vehicle_number: formData.vehicle_number || 'MH-XX-0000',
-      brass_qty: brassQty,
-      rate: rate,
-      loading_charge: loadingCharge,
-      gst_rate: gstRate,
-      cgst_amount: cgst,
-      sgst_amount: sgst,
-      total_before_gst: totalBeforeGst,
-      total_amount: totalBill,
-      cash_paid: cashPaid,
-      deposit_deducted: depositUsed,
-      date_time: now.toISOString(),
-      is_partner: selectedOwnerInfo?.is_partner
-    };
-
-    generatePDF(tempReceipt, flatSettings);
+  const handlePrintPreview = async (receipt = null) => {
+    // If a receipt object is passed (from Recent Transactions list), use it
+    if (receipt && receipt.receipt_no) {
+      generatePDF(receipt, flatSettings);
+      return;
+    }
+    
+    // Otherwise, save and preview the current form
+    if (validateForm()) {
+      await handleSaveReceipt({ printThermal: false, silentPdf: false });
+    } else {
+      toast.error('Fix validation errors before printing');
+    }
   };
 
-  const handleThermalPrint = async () => {
+  const handleThermalPrint = async (receipt = null) => {
+    // If a receipt object is passed (from Recent Transactions list), use it
+    if (receipt && receipt.receipt_no) {
+      toast.success('Printing Thermal Receipt...');
+      printThermalReceipt(receipt, flatSettings);
+      return;
+    }
+    
+    // Otherwise, save and print the current form
     await handleSaveReceipt({ printThermal: true, silentPdf: true });
   };
 
@@ -378,6 +361,17 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     return new Date(dateString).toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short'
     });
+  };
+
+  const handleShareTransaction = (receipt) => {
+    // Find owner to get phone number
+    const owner = truckOwners?.find(o => 
+      o.name === receipt.truck_owner || 
+      o.truck_owner === receipt.truck_owner
+    );
+    
+    const message = generateReceiptMessage(receipt, 'GST Receipt');
+    openWhatsAppChat(owner?.phone, message);
   };
 
   return (
@@ -619,6 +613,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -628,6 +623,31 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       <td className="px-4 py-3 text-sm text-gray-900">{tx.truck_owner}</td>
                       <td className="px-4 py-3 text-sm font-bold">₹{parseFloat(tx.total_amount).toFixed(2)}</td>
                       <td className="px-4 py-3"><span className={getStatusColor(tx.payment_status)}>{tx.payment_status}</span></td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center space-x-3">
+                          <button 
+                            onClick={() => handleThermalPrint(tx)}
+                            className="text-gray-600 hover:text-gray-900"
+                            title="Print Thermal"
+                          >
+                            <FaPrint className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handlePrintPreview(tx)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Print Invoice (A4)"
+                          >
+                            <FaEye className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleShareTransaction(tx)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Share on WhatsApp"
+                          >
+                            <FaWhatsapp className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

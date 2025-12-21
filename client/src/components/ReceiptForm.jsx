@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiPrinter, FiSave, FiRefreshCw, FiUserPlus } from 'react-icons/fi';
-import { FaCalculator, FaEye, FaPrint } from 'react-icons/fa';
+import { FiPrinter, FiSave, FiRefreshCw, FiUserPlus, FiShare2 } from 'react-icons/fi';
+import { FaCalculator, FaEye, FaPrint, FaWhatsapp } from 'react-icons/fa';
 import { generatePDF } from '../utils/pdfGenerator';
 import { printThermalReceipt } from '../utils/thermalPrinter';
+import { generateReceiptMessage, openWhatsAppChat } from '../utils/whatsappUtils';
 import { refreshDashboardStats } from './Layout';
 
   const getStatusColor = (status) => {
@@ -687,6 +688,17 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     generatePDF(receipt, flatSettings);
   };
 
+  const handleShareTransaction = (receipt) => {
+    // Find owner to get phone number
+    const owner = truckOwners?.find(o => 
+      o.name === receipt.truck_owner || 
+      o.truck_owner === receipt.truck_owner
+    );
+    
+    const message = generateReceiptMessage(receipt);
+    openWhatsAppChat(owner?.phone, message);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1097,6 +1109,13 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                               title="Print Thermal"
                             >
                               <FaPrint className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleShareTransaction(transaction)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Share on WhatsApp"
+                            >
+                              <FaWhatsapp className="h-4 w-4" />
                             </button>
                           </div>
                         </td>

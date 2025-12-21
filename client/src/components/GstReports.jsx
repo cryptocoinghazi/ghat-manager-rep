@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaCalendar, FaDownload, FaChartPie, FaRupeeSign, FaSearch, FaEye, FaEdit, FaPrint, FaFileCsv } from 'react-icons/fa';
+import { FaCalendar, FaDownload, FaChartPie, FaRupeeSign, FaSearch, FaEye, FaEdit, FaPrint, FaFileCsv, FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { generatePDF } from '../utils/pdfGenerator';
 import { printThermalReceipt } from '../utils/thermalPrinter';
+import { generateReceiptMessage, openWhatsAppChat } from '../utils/whatsappUtils';
 
 const GstReports = () => {
   const [dateRange, setDateRange] = useState({
@@ -98,6 +99,17 @@ const GstReports = () => {
     toast.success('Printing Thermal Receipt...');
     const flatSettings = settings.flat || settings || {};
     printThermalReceipt(receipt, flatSettings);
+  };
+
+  const handleShareTransaction = (receipt) => {
+    // Find owner to get phone number
+    const owner = truckOwners?.find(o => 
+      o.name === receipt.truck_owner || 
+      o.truck_owner === receipt.truck_owner
+    );
+    
+    const message = generateReceiptMessage(receipt, 'GST Receipt');
+    openWhatsAppChat(owner?.phone, message);
   };
 
   const handlePreview = (receipt) => {
@@ -338,11 +350,18 @@ const GstReports = () => {
                               <FaEdit className="h-4 w-4" />
                             </button>
                             <button 
-                              onClick={() => handlePrint(tx)}
+                              onClick={() => handleThermalPrint(tx)}
                               className="text-gray-600 hover:text-gray-900"
                               title="Print Thermal"
                             >
                               <FaPrint className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleShareTransaction(tx)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Share on WhatsApp"
+                            >
+                              <FaWhatsapp className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
