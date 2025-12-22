@@ -91,26 +91,26 @@ const Dashboard = ({ user }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'partial': return 'bg-yellow-100 text-yellow-800';
-      case 'unpaid': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'partial': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'unpaid': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
 
   const getCategoryColor = (category) => {
     const colors = {
-      LABOR: 'bg-blue-100 text-blue-800',
-      FUEL: 'bg-orange-100 text-orange-800',
-      MAINTENANCE: 'bg-yellow-100 text-yellow-800',
-      OFFICE: 'bg-purple-100 text-purple-800',
-      TRANSPORT: 'bg-green-100 text-green-800',
-      RENT: 'bg-red-100 text-red-800',
-      UTILITIES: 'bg-cyan-100 text-cyan-800',
-      FOOD: 'bg-pink-100 text-pink-800',
-      OTHER: 'bg-gray-100 text-gray-800'
+      LABOR: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      FUEL: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+      MAINTENANCE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      OFFICE: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+      TRANSPORT: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      RENT: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+      UTILITIES: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
+      FOOD: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
+      OTHER: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
   };
 
   if (loading) {
@@ -130,10 +130,10 @@ const Dashboard = ({ user }) => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Welcome back, {user?.username || 'User'}!
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Here's what's happening with your ghat operations today.
           </p>
         </div>
@@ -148,70 +148,70 @@ const Dashboard = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Today's Receipts</p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Today's Receipts</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {dailySummary?.summary?.total_transactions || 0}
               </p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 {formatCurrency(dailySummary?.summary?.total_amount)}
               </p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <FiTruck className="h-6 w-6 text-blue-600" />
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+              <FiTruck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Today's Expenses</p>
-              <p className="text-2xl font-bold text-red-600">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Today's Expenses</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {formatCurrency(expenseSummary?.todayTotal)}
               </p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 This month: {formatCurrency(expenseSummary?.monthTotal)}
               </p>
             </div>
-            <div className="p-3 bg-red-100 rounded-full">
-              <FiDollarSign className="h-6 w-6 text-red-600" />
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+              <FiDollarSign className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Pending Credit</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Pending Credit</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {formatCurrency(creditReport?.totalCredit)}
               </p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 {creditReport?.totalCustomers || 0} customers
               </p>
             </div>
-            <div className="p-3 bg-orange-100 rounded-full">
-              <FiCreditCard className="h-6 w-6 text-orange-600" />
+            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+              <FiCreditCard className="h-6 w-6 text-orange-600 dark:text-orange-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Monthly Revenue</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {formatCurrency(monthlyReport?.summary?.total_amount)}
               </p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 {monthlyReport?.summary?.total_transactions || 0} transactions
               </p>
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <FiTrendingUp className="h-6 w-6 text-green-600" />
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <FiTrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </div>
@@ -246,20 +246,20 @@ const Dashboard = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <FiFileText className="h-5 w-5 mr-2 text-blue-600" />
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 transition-colors duration-300">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <FiFileText className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
               Recent Receipts
             </h2>
-            <Link to="/register" className="text-sm text-blue-600 hover:text-blue-800">
+            <Link to="/register" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
               View All
             </Link>
           </div>
           <div className="p-4">
             {recentReceipts.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <FiFileText className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <FiFileText className="h-10 w-10 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
                 <p>No receipts today</p>
               </div>
             ) : (
@@ -267,18 +267,18 @@ const Dashboard = ({ user }) => {
                 {recentReceipts.map((receipt, index) => (
                   <div
                     key={receipt.receipt_no || index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <p className="font-medium text-gray-900 truncate">
+                        <p className="font-medium text-gray-900 dark:text-white truncate">
                           {receipt.truck_owner}
                         </p>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(receipt.payment_status)}`}>
                           {receipt.payment_status}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                      <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
                         <span>{receipt.vehicle_number}</span>
                         <span className="flex items-center">
                           <FiClock className="h-3 w-3 mr-1" />
@@ -287,10 +287,10 @@ const Dashboard = ({ user }) => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {formatCurrency(receipt.total_amount)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {receipt.brass_qty} Brass
                       </p>
                     </div>
@@ -301,20 +301,20 @@ const Dashboard = ({ user }) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <FiDollarSign className="h-5 w-5 mr-2 text-red-600" />
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 transition-colors duration-300">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <FiDollarSign className="h-5 w-5 mr-2 text-red-600 dark:text-red-400" />
               Recent Expenses
             </h2>
-            <Link to="/expenses" className="text-sm text-blue-600 hover:text-blue-800">
+            <Link to="/expenses" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
               View All
             </Link>
           </div>
           <div className="p-4">
             {recentExpenses.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <FiDollarSign className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <FiDollarSign className="h-10 w-10 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
                 <p>No expenses recorded</p>
               </div>
             ) : (
@@ -322,27 +322,27 @@ const Dashboard = ({ user }) => {
                 {recentExpenses.map((expense, index) => (
                   <div
                     key={expense.id || index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <p className="font-medium text-gray-900 truncate">
+                        <p className="font-medium text-gray-900 dark:text-white truncate">
                           {expense.description}
                         </p>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(expense.category)}`}>
                           {expense.category}
                         </span>
                       </div>
-                      <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                      <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
                         <span>{expense.ghat_location}</span>
                         <span>{expense.date}</span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-red-600">
+                      <p className="font-semibold text-red-600 dark:text-red-400">
                         -{formatCurrency(expense.amount)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {expense.payment_mode?.replace('_', ' ')}
                       </p>
                     </div>
@@ -355,14 +355,14 @@ const Dashboard = ({ user }) => {
       </div>
 
       {creditReport?.creditReport && creditReport.creditReport.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <FiCreditCard className="h-5 w-5 mr-2 text-orange-600" />
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 transition-colors duration-300">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <FiCreditCard className="h-5 w-5 mr-2 text-orange-600 dark:text-orange-400" />
               Top Credit Customers
             </h2>
             {user?.role === 'admin' && (
-              <Link to="/reports" className="text-sm text-blue-600 hover:text-blue-800">
+              <Link to="/reports" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
                 View Full Report
               </Link>
             )}
@@ -372,15 +372,15 @@ const Dashboard = ({ user }) => {
               {creditReport.creditReport.slice(0, 6).map((customer, index) => (
                 <div
                   key={customer.truck_owner || index}
-                  className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100"
+                  className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-100 dark:border-orange-900/20"
                 >
                   <div>
-                    <p className="font-medium text-gray-900">{customer.truck_owner}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-gray-900 dark:text-white">{customer.truck_owner}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {customer.pending_count} pending receipts
                     </p>
                   </div>
-                  <p className="font-semibold text-orange-600">
+                  <p className="font-semibold text-orange-600 dark:text-orange-400">
                     {formatCurrency(customer.total_credit)}
                   </p>
                 </div>

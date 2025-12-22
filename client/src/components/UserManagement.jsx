@@ -164,15 +164,15 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-lg p-6 transition-colors">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FiUser className="h-6 w-6 text-blue-600" />
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+            <FiUser className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">User Management</h2>
-            <p className="text-sm text-gray-500">Manage system users and their access</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">User Management</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Manage system users and their access</p>
           </div>
         </div>
         <button
@@ -186,32 +186,32 @@ const UserManagement = () => {
 
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Username</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Full Name</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Role</th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+          <thead className="bg-gray-50 dark:bg-[#262626]">
+            <tr>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Username</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Full Name</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Role</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Status</th>
+              <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <tr key={user.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <FiUser className="h-4 w-4 text-gray-600" />
+                    <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <FiUser className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                     </div>
-                    <span className="font-medium text-gray-900">{user.username}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{user.username}</span>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-gray-600">{user.full_name || '-'}</td>
+                <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{user.full_name || '-'}</td>
                 <td className="py-3 px-4">
                   <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
                     user.role === 'admin' 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-blue-100 text-blue-700'
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' 
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                   }`}>
                     {user.role === 'admin' ? <FiShield className="h-3 w-3" /> : <FiUser className="h-3 w-3" />}
                     <span className="capitalize">{user.role}</span>
@@ -220,8 +220,8 @@ const UserManagement = () => {
                 <td className="py-3 px-4">
                   <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
                     user.is_active 
-                      ? 'bg-green-100 text-green-700' 
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                   }`}>
                     {user.is_active ? <FiCheck className="h-3 w-3" /> : <FiX className="h-3 w-3" />}
                     <span>{user.is_active ? 'Active' : 'Inactive'}</span>
@@ -231,21 +231,21 @@ const UserManagement = () => {
                   <div className="flex items-center justify-end space-x-2">
                     <button
                       onClick={() => handleEdit(user)}
-                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                       title="Edit user"
                     >
                       <FiEdit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => openResetModal(user)}
-                      className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
                       title="Reset password"
                     >
                       🔒
                     </button>
                     <button
                       onClick={() => handleDelete(user)}
-                      className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       title="Delete user"
                     >
                       <FiTrash2 className="h-4 w-4" />
@@ -259,21 +259,21 @@ const UserManagement = () => {
       </div>
 
       {users.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           No users found. Click "Add User" to create one.
         </div>
       )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-xl w-full max-w-md mx-4 p-6 transition-colors">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                 {editingUser ? 'Edit User' : 'Add New User'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <FiX className="h-6 w-6" />
               </button>
@@ -281,7 +281,7 @@ const UserManagement = () => {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Username *
                 </label>
                 <input
@@ -289,50 +289,50 @@ const UserManagement = () => {
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   disabled={editingUser}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-500"
                   placeholder="Enter username"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Password {editingUser ? '(leave blank to keep current)' : '*'}
                 </label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder={editingUser ? 'Enter new password' : 'Enter password'}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Full Name
                 </label>
                 <input
                   type="text"
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter full name"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Role
                 </label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="user">User (Limited Access)</option>
                   <option value="admin">Admin (Full Access)</option>
                 </select>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Users can only access Quick Receipt and Daily Register
                 </p>
               </div>
@@ -341,7 +341,7 @@ const UserManagement = () => {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancel
                 </button>
@@ -359,46 +359,46 @@ const UserManagement = () => {
 
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-xl w-full max-w-md mx-4 p-6 transition-colors">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                 Reset Password
               </h3>
               <button
                 onClick={() => setShowResetModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <FiX className="h-6 w-6" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-gray-600">Username</p>
-                <p className="text-sm font-medium">{resetUser?.username}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Username</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{resetUser?.username}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
                 <input
                   type="password"
                   value={resetForm.newPassword}
                   onChange={(e) => setResetForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter new password"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
                 <input
                   type="password"
                   value={resetForm.confirmPassword}
                   onChange={(e) => setResetForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Confirm password"
                 />
               </div>
-              <p className="text-xs text-gray-500">Minimum 8 characters, include uppercase, number, and special character.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Minimum 8 characters, include uppercase, number, and special character.</p>
               <div className="flex space-x-3 pt-2">
-                <button onClick={generateStrongPassword} className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Generate Strong Password</button>
+                <button onClick={generateStrongPassword} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Generate Strong Password</button>
                 <button onClick={handleResetPassword} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Reset Password</button>
               </div>
             </div>

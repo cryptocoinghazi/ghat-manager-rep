@@ -10,10 +10,10 @@ import { refreshDashboardStats } from './Layout';
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium';
-      case 'partial': return 'bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium';
-      case 'unpaid': return 'bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium';
-      default: return 'bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium';
+      case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-1 rounded-full font-medium';
+      case 'partial': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs px-2 py-1 rounded-full font-medium';
+      case 'unpaid': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-xs px-2 py-1 rounded-full font-medium';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full font-medium';
     }
   };
 const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
@@ -704,8 +704,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sand Mining Billing</h1>
-          <p className="text-gray-600">Create new gate pass for sand trucks</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sand Mining Billing</h1>
+          <p className="text-gray-600 dark:text-gray-400">Create new gate pass for sand trucks</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-right">
@@ -734,10 +734,10 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         {/* Left Column: Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Quick Receipt Card - FIXED UI */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="mb-6 pb-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Quick Receipt</h3>
-              <p className="text-gray-500 text-sm">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Receipt</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {new Date().toLocaleDateString('en-IN', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -750,7 +750,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
             <div className="space-y-6">
               {/* Truck Owner Section - FIXED */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Truck Owner (Malak) *
                   {errors.truck_owner && (
                     <span className="text-red-600 text-sm ml-2">{errors.truck_owner}</span>
@@ -764,7 +764,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       name="truck_owner"
                       value={formData.truck_owner}
                       onChange={handleOwnerSearch}
-                      className={`flex-1 px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300'} rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`flex-1 px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       placeholder="Enter owner name"
                     />
                     <button
@@ -774,28 +774,28 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                           createNewTruckOwner(formData.truck_owner, formData.vehicle_number);
                         }
                       }}
-                      className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-200 transition-colors"
+                      className="px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       title="Add new owner"
                     >
-                      <FiUserPlus className="h-4 w-4 text-gray-600" />
+                      <FiUserPlus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                     </button>
                   </div>
                   
                   {/* Owner suggestions dropdown */}
                   {ownerSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {ownerSuggestions.map(owner => (
                         <div
                           key={owner.id}
                           onClick={() => { handleQuickFill(owner.name); setOwnerSuggestions([]); }}
-                          className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between"
+                          className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer border-b border-gray-100 dark:border-white/5 last:border-b-0 flex items-center justify-between"
                         >
                           <div>
-                            <div className="font-medium">{owner.name}</div>
-                            <div className="text-sm text-gray-500">{owner.vehicle_number}</div>
+                            <div className="font-medium text-gray-900 dark:text-white">{owner.name}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{owner.vehicle_number}</div>
                           </div>
                           {Boolean(owner.is_partner) && (
-                            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
                               Partner
                             </span>
                           )}
@@ -806,7 +806,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   
                   {/* Show message for new owner */}
                   {formData.truck_owner && !selectedOwnerInfo && ownerSuggestions.length === 0 && (
-                    <div className="mt-2 text-sm text-blue-600 flex items-center">
+                    <div className="mt-2 text-sm text-blue-600 dark:text-blue-400 flex items-center">
                       <FiUserPlus className="h-4 w-4 mr-1" />
                       Press Enter or click + to add as new owner
                     </div>
@@ -816,17 +816,17 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 {/* Quick owner buttons */}
                 {truckOwners && truckOwners.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="text-xs text-gray-500 self-center">Quick select:</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 self-center">Quick select:</span>
                     {truckOwners.slice(0, 5).map(owner => (
                       <button
                         key={owner.id}
                         type="button"
                         onClick={() => handleQuickFill(owner.name)}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedOwnerInfo?.id === owner.id ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${selectedOwnerInfo?.id === owner.id ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-300 dark:border-blue-700' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`}
                       >
                         {owner.name}
                         {Boolean(owner.is_partner) && (
-                          <span className="ml-1 text-xs text-green-600">(P)</span>
+                          <span className="ml-1 text-xs text-green-600 dark:text-green-400">(P)</span>
                         )}
                       </button>
                     ))}
@@ -836,7 +836,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Vehicle Number - FIXED */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Vehicle Number *
                   {errors.vehicle_number && (
                     <span className="text-red-600 text-sm ml-2">{errors.vehicle_number}</span>
@@ -847,22 +847,22 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   name="vehicle_number"
                   value={formData.vehicle_number}
                   onChange={handleVehicleNumberChange}
-                  className={`w-full px-3 py-2 border ${errors.vehicle_number ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase`}
+                  className={`w-full px-3 py-2 border ${errors.vehicle_number ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase`}
                   placeholder="MH-31-XXXX"
                   style={{ textTransform: 'uppercase' }}
                 />
                 
                 {/* Vehicle suggestions */}
                 {vehicleSuggestions.length > 0 && (
-                  <div className="mt-1 bg-white border border-gray-300 rounded-lg shadow-sm max-h-40 overflow-y-auto">
+                  <div className="mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm max-h-40 overflow-y-auto">
                     {vehicleSuggestions.map(owner => (
                       <div
                         key={owner.id}
                         onClick={() => { handleQuickFill(owner.name); setVehicleSuggestions([]); }}
-                        className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                       >
-                        <div className="font-medium">{owner.vehicle_number}</div>
-                        <div className="text-sm text-gray-600">{owner.name}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{owner.vehicle_number}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{owner.name}</div>
                       </div>
                     ))}
                   </div>
@@ -871,7 +871,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Quantity Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Quantity ({flatSettings.unit || 'Brass'}) *
                   {errors.brass_qty && (
                     <span className="text-red-600 text-sm ml-2">{errors.brass_qty}</span>
@@ -883,7 +883,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="brass_qty"
                     value={formData.brass_qty}
                     onChange={handleInputChange}
-                    className={`px-3 py-2 border ${errors.brass_qty ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`px-3 py-2 border ${errors.brass_qty ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="0.00"
                     step="0.5"
                     min="0"
@@ -894,7 +894,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                         key={qty}
                         type="button"
                         onClick={() => setFormData(prev => ({ ...prev, brass_qty: qty.toString() }))}
-                        className="py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="py-2 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         {qty}
                       </button>
@@ -906,14 +906,14 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               {/* Rate Section - FIXED UI */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Rate per {flatSettings.unit || 'Brass'} *
                   </label>
                   {isRateOverridden && originalRate && (
                     <button
                       type="button"
                       onClick={handleResetRate}
-                      className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 flex items-center"
+                      className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-900/50 flex items-center"
                     >
                       <FiRefreshCw className="h-3 w-3 mr-1" />
                       Reset to ₹{originalRate}
@@ -927,7 +927,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="rate"
                     value={formData.rate}
                     onChange={handleRateChange}
-                    className={`px-3 py-2 border ${errors.rate ? 'border-red-500' : 'border-gray-300'} ${isRateOverridden ? 'border-yellow-400 bg-yellow-50' : ''} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`px-3 py-2 border ${errors.rate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} ${isRateOverridden ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/10' : 'bg-white dark:bg-[#262626]'} text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="Rate"
                     min="0"
                   />
@@ -943,7 +943,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                         key={rate.value}
                         type="button"
                         onClick={() => handleQuickRate(rate.value)}
-                        className="py-2 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="py-2 text-xs border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         {rate.label}
                       </button>
@@ -958,7 +958,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Loading Charge */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Loading Charge (Bharai)
                 </label>
                 <input
@@ -966,7 +966,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   name="loading_charge"
                   value={formData.loading_charge}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0"
                   min="0"
                 />
@@ -974,7 +974,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Cash Paid */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Cash Paid (Nagdi)
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -983,20 +983,20 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="cash_paid"
                     value={formData.cash_paid}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0"
                     min="0"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={handleFullPayment}
-                      className="py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                      className="py-2 text-sm bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                     >
                       Full Payment
                     </button>
                     <button
                       onClick={handleCreditOnly}
-                      className="py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      className="py-2 text-sm bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                     >
                       Credit Only
                     </button>
@@ -1011,26 +1011,26 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       onChange={(e) => setUseDepositBalance(e.target.checked)}
                       className="h-4 w-4"
                     />
-                    <span className="font-medium">Deduct from Deposit Balance</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">Deduct from Deposit Balance</span>
                   </label>
 
                   {useDepositBalance && selectedOwnerInfo && (
-                    <div className="mt-2 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm">
+                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <p className="text-sm text-gray-900 dark:text-gray-100">
                         Available Balance: <span className="font-bold">₹{selectedOwnerInfo.deposit_balance || 0}</span>
                       </p>
                       <div className="mt-2">
-                        <label className="block text-sm font-medium text-gray-700">Custom Deduction Amount</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Custom Deduction Amount</label>
                         <input
                           type="number"
                           value={customDepositDeduction}
                           onChange={(e) => setCustomDepositDeduction(e.target.value)}
-                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg"
                           min="0"
                           max={selectedOwnerInfo.deposit_balance || 0}
                         />
                       </div>
-                      <p className="text-sm mt-1">
+                      <p className="text-sm mt-1 text-gray-900 dark:text-gray-100">
                         Will deduct: <span className="font-bold">₹{customDepositDeduction || Math.min(calculations.totalBill, selectedOwnerInfo.deposit_balance || 0)}</span>
                       </p>
                     </div>
@@ -1040,14 +1040,14 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Notes (Optional)
                 </label>
                 <textarea
                   name="notes"
                   value={formData.notes}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20 resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20 resize-none"
                   placeholder="Any additional notes..."
                 />
               </div>
@@ -1055,38 +1055,38 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
           </div>
 
           {/* Recent Transactions - FIXED TABLE */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h3>
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Transactions</h3>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-[#262626]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Vehicle</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Qty</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Rate</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Vehicle</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Qty</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Rate</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {recentTransactions.length > 0 ? (
                     recentTransactions.map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                      <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white whitespace-nowrap">
                           {formatToIST(transaction.date_time)}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                           {transaction.vehicle_number}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                           {transaction.brass_qty}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                           ₹{transaction.rate}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                           ₹{transaction.total_amount?.toFixed(2) || '0.00'}
                         </td>
                         <td className="px-4 py-3">
@@ -1098,21 +1098,21 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                           <div className="flex items-center space-x-3">
                             <button 
                               onClick={() => handlePreviewTransaction(transaction)}
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                               title="View/Print A4"
                             >
                               <FaEye className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handlePrintTransaction(transaction)}
-                              className="text-gray-600 hover:text-gray-900"
+                              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
                               title="Print Thermal"
                             >
                               <FaPrint className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleShareTransaction(transaction)}
-                              className="text-green-600 hover:text-green-900"
+                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                               title="Share on WhatsApp"
                             >
                               <FaWhatsapp className="h-4 w-4" />
@@ -1123,7 +1123,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                         No recent transactions found
                       </td>
                     </tr>
@@ -1137,49 +1137,49 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         {/* Right Column: Calculations & Actions */}
         <div className="space-y-6">
           {/* Bill Calculation Card - FIXED UI */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <FaCalculator className="h-5 w-5 mr-2 text-blue-600" />
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+              <FaCalculator className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
               Bill Calculation
             </h3>
             
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Material Cost:</span>
-                <span className="text-lg font-semibold">
+                <span className="text-gray-600 dark:text-gray-400">Material Cost:</span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   {formatCurrency(calculations.materialCost)}
                 </span>
               </div>
               
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Loading Charge:</span>
-                <span className="text-lg">
+                <span className="text-gray-600 dark:text-gray-400">Loading Charge:</span>
+                <span className="text-lg text-gray-900 dark:text-white">
                   {formatCurrency(formData.loading_charge || 0)}
                 </span>
               </div>
               
-              <div className="border-t border-gray-200 pt-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-800 font-medium">Total Bill:</span>
-                  <span className="text-2xl font-bold text-blue-600">
+                  <span className="text-gray-800 dark:text-gray-200 font-medium">Total Bill:</span>
+                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {formatCurrency(calculations.totalBill)}
                   </span>
                 </div>
               </div>
               
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Cash Paid:</span>
-                <span className="text-lg font-medium text-green-600">
+                <span className="text-gray-600 dark:text-gray-400">Cash Paid:</span>
+                <span className="text-lg font-medium text-green-600 dark:text-green-400">
                   {formatCurrency(formData.cash_paid || 0)}
                 </span>
               </div>
               
               {(() => {
                 const ps = getPaymentSummary();
-                const cls = ps.credit > 0 ? 'text-red-600' : ps.credit < 0 ? 'text-orange-600' : 'text-green-600';
+                const cls = ps.credit > 0 ? 'text-red-600 dark:text-red-400' : ps.credit < 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400';
                 const label = ps.credit > 0 ? 'Credit (Udhaar):' : ps.credit < 0 ? 'Return:' : 'Balance:';
                 return (
-                  <div className="border-t border-gray-200 pt-4">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <div className={`flex justify-between items-center py-2 ${cls}`}>
                       <span className="font-medium">{label}</span>
                       <span className="text-2xl font-bold">{formatCurrency(Math.abs(ps.credit))}</span>
@@ -1191,26 +1191,26 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
             
             {/* Owner Information */}
             {selectedOwnerInfo && (
-              <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Owner Information</h4>
+              <div className="mt-8 p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Owner Information</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Type:</span>
-                    <span className={`font-medium ${selectedOwnerInfo.is_partner ? 'text-green-600' : 'text-gray-700'}`}>
+                    <span className="text-gray-600 dark:text-gray-400">Type:</span>
+                    <span className={`font-medium ${selectedOwnerInfo.is_partner ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
                       {selectedOwnerInfo.is_partner ? 'Partner' : 'Regular'}
                     </span>
                   </div>
                   {selectedOwnerInfo.vehicle_number && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Vehicle:</span>
-                      <span className="font-medium text-gray-700">
+                      <span className="text-gray-600 dark:text-gray-400">Vehicle:</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
                         {selectedOwnerInfo.vehicle_number}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Applied Rate:</span>
-                    <span className={`font-medium ${isRateOverridden ? 'text-yellow-600' : selectedOwnerInfo.is_partner ? 'text-green-600' : 'text-gray-700'}`}>
+                    <span className="text-gray-600 dark:text-gray-400">Applied Rate:</span>
+                    <span className={`font-medium ${isRateOverridden ? 'text-yellow-600 dark:text-yellow-400' : selectedOwnerInfo.is_partner ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
                       ₹{formData.rate} {isRateOverridden ? '(Overridden)' : selectedOwnerInfo.is_partner ? '(Partner)' : ''}
                     </span>
                   </div>
@@ -1222,12 +1222,12 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
           </div>
 
           {/* Today's Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Today's Summary</h3>
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Today's Summary</h3>
             <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Total Trucks:</span>
-                <span className="font-bold text-gray-900">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-400">Total Trucks:</span>
+                <span className="font-bold text-gray-900 dark:text-white">
                   {recentTransactions.filter(t => {
                     const txDate = new Date(t.date_time);
                     const today = new Date();
@@ -1235,9 +1235,9 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   }).length}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Cash Collected:</span>
-                <span className="font-bold text-green-600">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-400">Cash Collected:</span>
+                <span className="font-bold text-green-600 dark:text-green-400">
                   {formatCurrency(recentTransactions
                     .filter(t => new Date(t.date_time).toDateString() === new Date().toDateString())
                     .reduce((sum, t) => sum + (t.cash_paid || 0), 0)
@@ -1245,8 +1245,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Credit Given:</span>
-                <span className="font-bold text-red-600">
+                <span className="text-gray-600 dark:text-gray-400">Credit Given:</span>
+                <span className="font-bold text-red-600 dark:text-red-400">
                   {formatCurrency(recentTransactions
                     .filter(t => new Date(t.date_time).toDateString() === new Date().toDateString())
                     .reduce((sum, t) => sum + ((t.total_amount || 0) - (t.cash_paid || 0)), 0)
