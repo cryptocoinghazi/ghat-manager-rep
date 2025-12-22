@@ -706,7 +706,7 @@ const DailyRegister = () => {
       </div>
       
       <div className="space-y-4">
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-gray-500 dark:text-gray-400">Receipt No:</p>
@@ -732,7 +732,7 @@ const DailyRegister = () => {
             <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Amount</p>
             <p className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</p>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+          <div className="bg-gray-50 dark:bg-[#262626] p-3 rounded-lg">
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Current Status</p>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
               editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
@@ -868,7 +868,7 @@ const DailyRegister = () => {
         )}
         
         {/* Payment Summary */}
-        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Cash to be Paid</p>

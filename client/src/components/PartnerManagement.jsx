@@ -286,7 +286,7 @@ const PartnerManagement = () => {
                             value={editForm.partner_rate}
                             onChange={e => setEditForm({...editForm, partner_rate: e.target.value})}
                             disabled={!editForm.is_partner}
-                            className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800"
+                            className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800"
                             placeholder="Rate"
                           />
                         </td>

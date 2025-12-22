@@ -431,7 +431,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       <div
                         key={owner.id}
                         onClick={() => { handleQuickFill(owner.name); setOwnerSuggestions([]); }}
-                        className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700"
+                        className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#333333] cursor-pointer border-b border-gray-100 dark:border-gray-700"
                       >
                         <div className="font-medium text-gray-900 dark:text-white">{owner.name}</div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">{owner.vehicle_number}</div>
@@ -622,7 +622,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent GST Invoices</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+                <thead className="bg-gray-50 dark:bg-[#262626]">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">No.</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Client</th>

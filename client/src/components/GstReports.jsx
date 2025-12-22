@@ -169,7 +169,7 @@ const GstReports = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">GST Reports</h1>
           <p className="text-gray-600 dark:text-gray-400">Tax liability and transaction summary</p>
         </div>
-        <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-4 bg-white dark:bg-[#1A1A1A] p-2 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <FaCalendar className="text-gray-400" />
             <input

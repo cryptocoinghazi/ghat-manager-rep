@@ -238,9 +238,9 @@ const ExpenseManager = () => {
       RENT: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       UTILITIES: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
       FOOD: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
-      OTHER: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+      OTHER: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
+    return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
   };
 
   return (
@@ -580,7 +580,7 @@ const ExpenseManager = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+              <thead className="bg-gray-50 dark:bg-[#262626]">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Category</th>
