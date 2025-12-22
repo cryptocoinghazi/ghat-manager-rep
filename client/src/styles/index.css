@@ -18,24 +18,25 @@
   }
   
   .btn-secondary {
-    @apply bg-white text-gray-700 px-4 py-2 rounded-lg font-medium 
-           border border-gray-300 hover:bg-gray-50 transition-colors 
+    @apply bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium 
+           border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors 
            disabled:opacity-50 disabled:cursor-not-allowed 
            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
   }
   
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg 
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+           bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white
            focus:outline-none focus:ring-2 focus:ring-primary-500 
            focus:border-transparent;
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+    @apply bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
   }
   
   .table-row {
-    @apply border-b border-gray-200 hover:bg-gray-50 transition-colors;
+    @apply border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors;
   }
   
   .status-paid {

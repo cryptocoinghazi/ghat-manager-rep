@@ -316,10 +316,10 @@ const DailyRegister = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium';
-      case 'partial': return 'bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium';
-      case 'unpaid': return 'bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium';
-      default: return 'bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium';
+      case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-1 rounded-full font-medium';
+      case 'partial': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs px-2 py-1 rounded-full font-medium';
+      case 'unpaid': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-xs px-2 py-1 rounded-full font-medium';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full font-medium';
     }
   };
 
@@ -328,8 +328,8 @@ const DailyRegister = () => {
       {/* Header with current time display */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Daily Register</h1>
-          <p className="text-gray-600 flex items-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Register</h1>
+          <p className="text-gray-600 dark:text-gray-400 flex items-center">
             <FiClock className="h-4 w-4 mr-2" />
             System Date: {getLocalDateString()} | Display Date: {selectedDate}
           </p>
@@ -340,7 +340,7 @@ const DailyRegister = () => {
               const prevDate = subDays(new Date(selectedDate), 1);
               setSelectedDate(format(prevDate, 'yyyy-MM-dd'));
             }}
-            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
           >
             Previous Day
           </button>
@@ -354,10 +354,10 @@ const DailyRegister = () => {
       </div>
 
       {/* Date Selector & Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FaCalendar className="inline h-4 w-4 mr-1" />
               Select Date (IST)
             </label>
@@ -365,13 +365,13 @@ const DailyRegister = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#2A2A2A] dark:text-white"
               max={getLocalDateString()}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FiSearch className="inline h-4 w-4 mr-1" />
               Search
             </label>
@@ -379,20 +379,20 @@ const DailyRegister = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#2A2A2A] dark:text-white"
               placeholder="Search by owner, vehicle..."
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FiFilter className="inline h-4 w-4 mr-1" />
               Payment Status
             </label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#2A2A2A] dark:text-white"
             >
               <option value="all">All Status</option>
               <option value="paid">Paid</option>
@@ -413,7 +413,7 @@ const DailyRegister = () => {
             <button
               onClick={handleExportExcel}
               disabled={filteredReceipts.length === 0}
-              className="bg-gray-200 text-gray-800 flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gray-200 text-gray-800 flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
             >
               <FiDownload className="h-4 w-4" />
               <span>Excel</span>
@@ -424,37 +424,37 @@ const DailyRegister = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-center">
-            <p className="text-sm text-gray-500">Total Transactions</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {summary?.total_transactions || 0}
             </p>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-center">
-            <p className="text-sm text-gray-500">Total Amount</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               ₹{summary?.total_amount?.toFixed(2) || '0.00'}
             </p>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-center">
-            <p className="text-sm text-gray-500">Cash Collected</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Cash Collected</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               ₹{summary?.total_cash?.toFixed(2) || '0.00'}
             </p>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
           <div className="text-center">
-            <p className="text-sm text-gray-500">Credit Given</p>
-            <p className="text-2xl font-bold text-red-600">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Credit Given</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               ₹{summary?.total_credit?.toFixed(2) || '0.00'}
             </p>
           </div>
@@ -462,12 +462,12 @@ const DailyRegister = () => {
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-6 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Transactions for {format(new Date(selectedDate), 'MMMM dd, yyyy')} (IST)
           </h3>
-          <p className="text-sm text-gray-500 flex items-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
             <FiClock className="h-4 w-4 mr-1" />
             Displaying local time (IST)
           </p>
@@ -476,7 +476,7 @@ const DailyRegister = () => {
         {loading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-500">Loading transactions...</p>
+            <p className="mt-4 text-gray-500 dark:text-gray-400">Loading transactions...</p>
           </div>
         ) : filteredReceipts.length === 0 ? (
           <div className="p-12 text-center">
@@ -485,8 +485,8 @@ const DailyRegister = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-gray-500">No transactions found for selected date</p>
-            <p className="text-gray-400 text-sm mt-2">Make sure receipts are booked within IST timezone</p>
+            <p className="text-gray-500 dark:text-gray-400">No transactions found for selected date</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Make sure receipts are booked within IST timezone</p>
             <button
               onClick={() => window.location.href = '/receipt'}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -496,55 +496,55 @@ const DailyRegister = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt No</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">#</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receipt No</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <span className="flex items-center">
                       <FiClock className="h-4 w-4 mr-1" />
                       Time (IST)
                     </span>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cash</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Credit</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredReceipts.map((receipt, index) => (
-                  <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <tr key={receipt.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {index + 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                       {receipt.receipt_no}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
                       {getLocalTime(receipt.date_time)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {receipt.truck_owner}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {receipt.vehicle_number}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {receipt.brass_qty}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                       ₹{receipt.total_amount}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
                       ₹{receipt.cash_paid}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 dark:text-red-400">
                       ₹{receipt.credit_amount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -556,21 +556,21 @@ const DailyRegister = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleViewReceipt(receipt)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
                           title="View"
                         >
                           <FiEye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleEditReceipt(receipt)}
-                          className="text-yellow-600 hover:text-yellow-900 p-1 rounded hover:bg-yellow-50"
+                          className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 p-1 rounded hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
                           title="Edit Payment"
                         >
                           <FiEdit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleReprintReceipt(receipt)}
-                          className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-100"
+                          className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10"
                           title="Reprint"
                         >
                           <FiPrinter className="h-4 w-4" />
@@ -588,15 +588,15 @@ const DailyRegister = () => {
       {/* View Receipt Modal */}
       {isViewModalOpen && selectedReceipt && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900">View Receipt</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">View Receipt</h3>
               <button
                 onClick={() => {
                   setIsViewModalOpen(false);
                   setSelectedReceipt(null);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <FiX className="h-6 w-6" />
               </button>
@@ -605,64 +605,64 @@ const DailyRegister = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Receipt No</label>
-                  <p className="text-lg font-semibold">{selectedReceipt.receipt_no}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Receipt No</label>
+                  <p className="text-lg font-semibold dark:text-white">{selectedReceipt.receipt_no}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Date & Time (IST)</label>
-                  <p className="text-lg">{selectedReceipt.local_time}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Date & Time (IST)</label>
+                  <p className="text-lg dark:text-white">{selectedReceipt.local_time}</p>
                 </div>
               </div>
               
-              <div className="border-t pt-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex items-center space-x-2 mb-2">
-                  <FaUser className="h-5 w-5 text-gray-500" />
-                  <label className="block text-sm font-medium text-gray-500">Truck Owner</label>
+                  <FaUser className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Truck Owner</label>
                 </div>
-                <p className="text-lg">{selectedReceipt.truck_owner}</p>
+                <p className="text-lg dark:text-white">{selectedReceipt.truck_owner}</p>
               </div>
               
-              <div className="border-t pt-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex items-center space-x-2 mb-2">
-                  <FaTruck className="h-5 w-5 text-gray-500" />
-                  <label className="block text-sm font-medium text-gray-500">Vehicle Number</label>
+                  <FaTruck className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Vehicle Number</label>
                 </div>
-                <p className="text-lg">{selectedReceipt.vehicle_number}</p>
+                <p className="text-lg dark:text-white">{selectedReceipt.vehicle_number}</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Quantity (Brass)</label>
-                  <p className="text-lg">{selectedReceipt.brass_qty}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Quantity (Brass)</label>
+                  <p className="text-lg dark:text-white">{selectedReceipt.brass_qty}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Rate per Brass</label>
-                  <p className="text-lg">₹{selectedReceipt.rate}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Rate per Brass</label>
+                  <p className="text-lg dark:text-white">₹{selectedReceipt.rate}</p>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Total Amount</label>
-                  <p className="text-xl font-bold text-blue-600">₹{selectedReceipt.total_amount}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Total Amount</label>
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">₹{selectedReceipt.total_amount}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500">Cash Paid</label>
-                  <p className="text-xl font-bold text-green-600">₹{selectedReceipt.cash_paid}</p>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Cash Paid</label>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">₹{selectedReceipt.cash_paid}</p>
                 </div>
               </div>
               
-              <div className="border-t pt-4">
-                <label className="block text-sm font-medium text-gray-500 mb-2">Credit Amount</label>
-                <p className={`text-xl font-bold ${selectedReceipt.credit_amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Credit Amount</label>
+                <p className={`text-xl font-bold ${selectedReceipt.credit_amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   ₹{selectedReceipt.credit_amount}
                 </p>
               </div>
               
               {selectedReceipt.notes && (
-                <div className="border-t pt-4">
-                  <label className="block text-sm font-medium text-gray-500 mb-2">Notes</label>
-                  <p className="text-gray-700">{selectedReceipt.notes}</p>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Notes</label>
+                  <p className="text-gray-700 dark:text-gray-300">{selectedReceipt.notes}</p>
                 </div>
               )}
               
@@ -691,53 +691,53 @@ const DailyRegister = () => {
  {/* Edit Receipt Modal */}
 {isEditModalOpen && editableReceipt && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+    <div className="bg-white dark:bg-[#1A1A1A] rounded-lg p-6 max-w-md w-full">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-gray-900">Edit Payment Status</h3>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Payment Status</h3>
         <button
           onClick={() => {
             setIsEditModalOpen(false);
             setEditableReceipt(null);
           }}
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
         >
           <FiX className="h-6 w-6" />
         </button>
       </div>
       
       <div className="space-y-4">
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-gray-500">Receipt No:</p>
-              <p className="font-semibold text-gray-900">{editableReceipt.receipt_no}</p>
+              <p className="text-gray-500 dark:text-gray-400">Receipt No:</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.receipt_no}</p>
             </div>
             <div>
-              <p className="text-gray-500">Date:</p>
-              <p className="font-semibold text-gray-900">{editableReceipt.local_time.split(',')[0]}</p>
+              <p className="text-gray-500 dark:text-gray-400">Date:</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time.split(',')[0]}</p>
             </div>
             <div>
-              <p className="text-gray-500">Time:</p>
-              <p className="font-semibold text-gray-900">{editableReceipt.local_time.split(',')[1]?.trim()}</p>
+              <p className="text-gray-500 dark:text-gray-400">Time:</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time.split(',')[1]?.trim()}</p>
             </div>
             <div>
-              <p className="text-gray-500">Vehicle:</p>
-              <p className="font-semibold text-gray-900">{editableReceipt.vehicle_number}</p>
+              <p className="text-gray-500 dark:text-gray-400">Vehicle:</p>
+              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.vehicle_number}</p>
             </div>
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm text-blue-600 font-medium">Total Amount</p>
-            <p className="text-lg font-bold text-blue-700">₹{editableReceipt.total_amount}</p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Amount</p>
+            <p className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</p>
           </div>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="text-sm text-gray-600 font-medium">Current Status</p>
+          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Current Status</p>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-              editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
+              editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+              editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
             }`}>
               {editableReceipt.payment_status?.toUpperCase()}
             </span>
@@ -746,7 +746,7 @@ const DailyRegister = () => {
         
         {/* Payment Status Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Change Payment Status
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -763,7 +763,7 @@ const DailyRegister = () => {
               className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 editableReceipt.payment_status === 'paid' 
                   ? 'bg-green-600 text-white' 
-                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
               }`}
             >
               <div className="flex flex-col items-center">
@@ -785,7 +785,7 @@ const DailyRegister = () => {
               className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 editableReceipt.payment_status === 'partial' 
                   ? 'bg-yellow-600 text-white' 
-                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50'
               }`}
             >
               <div className="flex flex-col items-center">
@@ -807,7 +807,7 @@ const DailyRegister = () => {
               className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 editableReceipt.payment_status === 'unpaid' 
                   ? 'bg-red-600 text-white' 
-                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
               }`}
             >
               <div className="flex flex-col items-center">
@@ -821,7 +821,7 @@ const DailyRegister = () => {
         {/* Custom Amount for Partial Payment */}
         {editableReceipt.payment_status === 'partial' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Custom Cash Paid Amount
             </label>
             <div className="flex space-x-2">
@@ -840,7 +840,7 @@ const DailyRegister = () => {
                                    cashPaid > 0 ? 'partial' : 'unpaid'
                   });
                 }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter cash amount"
                 min="0"
                 max={editableReceipt.total_amount}
@@ -856,41 +856,41 @@ const DailyRegister = () => {
                     payment_status: 'paid'
                   });
                 }}
-                className="bg-gray-200 text-gray-800 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-300"
+                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 Full
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Enter cash amount paid now (0 to ₹{editableReceipt.total_amount})
             </p>
           </div>
         )}
         
         {/* Payment Summary */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Cash to be Paid</p>
-              <p className="text-lg font-bold text-green-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Cash to be Paid</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
                 ₹{editableReceipt.cash_paid || 0}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Credit Amount</p>
-              <p className="text-lg font-bold text-red-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Credit Amount</p>
+              <p className="text-lg font-bold text-red-600 dark:text-red-400">
                 ₹{editableReceipt.credit_amount || 0}
               </p>
             </div>
           </div>
           
-          <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">New Payment Status:</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New Payment Status:</span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-red-100 text-red-800'
+                editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
               }`}>
                 {editableReceipt.payment_status?.toUpperCase()}
               </span>
@@ -900,7 +900,7 @@ const DailyRegister = () => {
         
         {/* Notes */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Payment Notes (Optional)
           </label>
           <textarea
@@ -909,18 +909,18 @@ const DailyRegister = () => {
               ...editableReceipt,
               notes: e.target.value
             })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
             placeholder="Add payment notes..."
           />
         </div>
         
-        <div className="border-t pt-4 flex justify-end space-x-3">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end space-x-3">
           <button
             onClick={() => {
               setIsEditModalOpen(false);
               setEditableReceipt(null);
             }}
-            className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300"
+            className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
           >
             Cancel
           </button>

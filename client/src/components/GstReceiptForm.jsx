@@ -10,10 +10,10 @@ import { refreshDashboardStats } from './Layout';
 
 const getStatusColor = (status) => {
   switch (status) {
-    case 'paid': return 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium';
-    case 'partial': return 'bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium';
-    case 'unpaid': return 'bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium';
-    default: return 'bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium';
+    case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs px-2 py-1 rounded-full font-medium';
+    case 'partial': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs px-2 py-1 rounded-full font-medium';
+    case 'unpaid': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-xs px-2 py-1 rounded-full font-medium';
+    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full font-medium';
   }
 };
 
@@ -378,13 +378,13 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">GST Billing</h1>
-          <p className="text-gray-600">Create tax invoices for registered clients</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">GST Billing</h1>
+          <p className="text-gray-600 dark:text-gray-400">Create tax invoices for registered clients</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-right">
-            <p className="text-sm text-gray-500">GST Receipt No.</p>
-            <p className="text-xl font-bold text-purple-600">{receiptNumber}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">GST Receipt No.</p>
+            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{receiptNumber}</p>
           </div>
           <button 
             onClick={handleThermalPrint}
@@ -395,7 +395,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
           </button>
           <button 
             onClick={handlePrintPreview}
-            className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
+            className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2"
             title="Switch to A4 format"
           >
             <FiPrinter className="h-5 w-5" />
@@ -406,15 +406,15 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-2 border-b">Tax Invoice Details</h3>
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">Tax Invoice Details</h3>
             
             <div className="space-y-6">
               {/* Truck Owner */}
               <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   GST Registered Client *
-                  {errors.truck_owner && <span className="text-red-600 text-sm ml-2">{errors.truck_owner}</span>}
+                  {errors.truck_owner && <span className="text-red-600 dark:text-red-400 text-sm ml-2">{errors.truck_owner}</span>}
                 </label>
                 <input
                   ref={ownerInputRef}
@@ -422,19 +422,19 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   name="truck_owner"
                   value={formData.truck_owner}
                   onChange={handleOwnerSearch}
-                  className={`w-full px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                  className={`w-full px-3 py-2 border ${errors.truck_owner ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white`}
                   placeholder="Select GST Client"
                 />
                 {ownerSuggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {ownerSuggestions.map(owner => (
                       <div
                         key={owner.id}
                         onClick={() => { handleQuickFill(owner.name); setOwnerSuggestions([]); }}
-                        className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                        className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700"
                       >
-                        <div className="font-medium">{owner.name}</div>
-                        <div className="text-sm text-gray-500">{owner.vehicle_number}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{owner.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">{owner.vehicle_number}</div>
                       </div>
                     ))}
                   </div>
@@ -443,28 +443,28 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Vehicle Number */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Vehicle Number *
-                  {errors.vehicle_number && <span className="text-red-600 text-sm ml-2">{errors.vehicle_number}</span>}
+                  {errors.vehicle_number && <span className="text-red-600 dark:text-red-400 text-sm ml-2">{errors.vehicle_number}</span>}
                 </label>
                 <input
                   type="text"
                   name="vehicle_number"
                   value={formData.vehicle_number}
                   onChange={handleVehicleNumberChange}
-                  className={`w-full px-3 py-2 border ${errors.vehicle_number ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase`}
+                  className={`w-full px-3 py-2 border ${errors.vehicle_number ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase bg-white dark:bg-[#262626] text-gray-900 dark:text-white`}
                   placeholder="MH-31-XXXX"
                 />
                 {vehicleSuggestions.length > 0 && (
-                  <div className="mt-1 bg-white border border-gray-300 rounded-lg shadow-sm max-h-40 overflow-y-auto">
+                  <div className="mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm max-h-40 overflow-y-auto">
                     {vehicleSuggestions.map(owner => (
                       <div
                         key={owner.id}
                         onClick={() => { handleQuickFill(owner.name); setVehicleSuggestions([]); }}
-                        className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+                        className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700"
                       >
-                        <div className="font-medium">{owner.vehicle_number}</div>
-                        <div className="text-sm text-gray-600">{owner.name}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{owner.vehicle_number}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{owner.name}</div>
                       </div>
                     ))}
                   </div>
@@ -474,7 +474,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               {/* Quantity & Rate */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Quantity ({flatSettings.unit || 'Brass'}) *
                   </label>
                   <input
@@ -482,13 +482,13 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="brass_qty"
                     value={formData.brass_qty}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                     placeholder="0.00"
                     step="0.5"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Rate per Unit *
                   </label>
                   <input
@@ -496,11 +496,11 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="rate"
                     value={formData.rate}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border ${selectedOwnerInfo?.is_partner ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300'} rounded-lg focus:ring-purple-500`}
+                    className={`w-full px-3 py-2 border ${selectedOwnerInfo?.is_partner ? 'border-green-500 ring-1 ring-green-500' : 'border-gray-300 dark:border-gray-600'} rounded-lg focus:ring-purple-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white`}
                     placeholder="Rate"
                   />
                   {selectedOwnerInfo?.is_partner && (
-                    <p className="text-xs text-green-600 mt-1">Partner Rate Applied</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">Partner Rate Applied</p>
                   )}
                 </div>
               </div>
@@ -508,7 +508,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               {/* Loading & GST Rate */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Loading Charge
                   </label>
                   <input
@@ -516,18 +516,18 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="loading_charge"
                     value={formData.loading_charge}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     GST Rate (%)
                   </label>
                   <select
                     name="gst_rate"
                     value={formData.gst_rate}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                   >
                     <option value="5">5%</option>
                     <option value="12">12%</option>
@@ -539,26 +539,26 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Payment */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cash Paid</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cash Paid</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="number"
                     name="cash_paid"
                     value={formData.cash_paid}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-purple-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                     placeholder="0"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={handleFullPayment}
-                      className="py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                      className="py-2 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                     >
                       Full Payment
                     </button>
                     <button
                       onClick={handleCreditOnly}
-                      className="py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      className="py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                     >
                       Credit Only
                     </button>
@@ -568,7 +568,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
               {/* Deposit Option */}
               <div className="mt-4">
-                <label className="flex items-center space-x-2">
+                <label className="flex items-center space-x-2 text-gray-900 dark:text-white">
                   <input
                     type="checkbox"
                     checked={useDepositBalance}
@@ -578,13 +578,13 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   <span className="font-medium">Deduct from Deposit Balance</span>
                 </label>
                 {useDepositBalance && selectedOwnerInfo && (
-                  <div className="mt-2 p-3 bg-purple-50 rounded-lg">
-                    <p className="text-sm">Available: <span className="font-bold">₹{selectedOwnerInfo.deposit_balance || 0}</span></p>
+                  <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <p className="text-sm text-gray-900 dark:text-white">Available: <span className="font-bold">₹{selectedOwnerInfo.deposit_balance || 0}</span></p>
                     <input
                       type="number"
                       value={customDepositDeduction}
                       onChange={(e) => setCustomDepositDeduction(e.target.value)}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                       placeholder="Amount to deduct"
                     />
                   </div>
@@ -594,54 +594,69 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               <button
                 onClick={handleSaveReceipt}
                 disabled={isSaving}
-                className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 flex justify-center items-center space-x-2"
+                className={`
+                  w-full flex items-center justify-center space-x-2 py-4 px-6 rounded-xl text-white font-medium text-lg shadow-lg shadow-purple-200 dark:shadow-none transition-all duration-200
+                  ${isSaving 
+                    ? 'bg-purple-400 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 transform hover:-translate-y-0.5'
+                  }
+                `}
               >
-                <FiSave className="h-5 w-5" />
-                <span>{isSaving ? 'Saving...' : 'Save & Print Invoice'}</span>
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiSave className="h-5 w-5" />
+                    <span>Save & Print Invoice</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
 
           {/* Recent Transactions Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent GST Invoices</h3>
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent GST Invoices</h3>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No.</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">No.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Client</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {recentTransactions.map((tx) => (
                     <tr key={tx.id}>
-                      <td className="px-4 py-3 text-sm font-medium text-purple-600">{tx.receipt_no}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{tx.truck_owner}</td>
-                      <td className="px-4 py-3 text-sm font-bold">₹{parseFloat(tx.total_amount).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-purple-600 dark:text-purple-400">{tx.receipt_no}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{tx.truck_owner}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white">₹{parseFloat(tx.total_amount).toFixed(2)}</td>
                       <td className="px-4 py-3"><span className={getStatusColor(tx.payment_status)}>{tx.payment_status}</span></td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex items-center space-x-3">
                           <button 
                             onClick={() => handleThermalPrint(tx)}
-                            className="text-gray-600 hover:text-gray-900"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                             title="Print Thermal"
                           >
                             <FaPrint className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handlePrintPreview(tx)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                             title="Print Invoice (A4)"
                           >
                             <FaEye className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleShareTransaction(tx)}
-                            className="text-green-600 hover:text-green-900"
+                            className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                             title="Share on WhatsApp"
                           >
                             <FaWhatsapp className="h-4 w-4" />
@@ -658,41 +673,41 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
 
         {/* Right Column: Calculations */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-              <FaCalculator className="h-5 w-5 mr-2 text-purple-600" />
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+              <FaCalculator className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
               Tax Calculation
             </h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Base Amount:</span>
-                <span>{formatCurrency(calculations.baseAmount)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Base Amount:</span>
+                <span className="text-gray-900 dark:text-white">{formatCurrency(calculations.baseAmount)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Loading Charge:</span>
-                <span>{formatCurrency(formData.loading_charge || 0)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Loading Charge:</span>
+                <span className="text-gray-900 dark:text-white">{formatCurrency(formData.loading_charge || 0)}</span>
               </div>
-              <div className="flex justify-between font-medium pt-2 border-t">
-                <span>Taxable Value:</span>
-                <span>{formatCurrency(calculations.totalBeforeGst)}</span>
+              <div className="flex justify-between font-medium pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-gray-900 dark:text-white">Taxable Value:</span>
+                <span className="text-gray-900 dark:text-white">{formatCurrency(calculations.totalBeforeGst)}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>CGST ({(parseFloat(formData.gst_rate)/2).toFixed(1)}%):</span>
                 <span>{formatCurrency(calculations.cgst)}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>SGST ({(parseFloat(formData.gst_rate)/2).toFixed(1)}%):</span>
                 <span>{formatCurrency(calculations.sgst)}</span>
               </div>
-              <div className="flex justify-between font-bold text-lg text-purple-600 pt-3 border-t">
+              <div className="flex justify-between font-bold text-lg text-purple-600 dark:text-purple-400 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <span>Grand Total:</span>
                 <span>{formatCurrency(calculations.totalBill)}</span>
               </div>
               <div className="flex justify-between pt-2">
-                <span className="text-gray-600">Paid:</span>
-                <span className="text-green-600 font-medium">{formatCurrency(getPaymentSummary().paid)}</span>
+                <span className="text-gray-600 dark:text-gray-400">Paid:</span>
+                <span className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(getPaymentSummary().paid)}</span>
               </div>
-              <div className="flex justify-between text-red-600 font-medium">
+              <div className="flex justify-between text-red-600 dark:text-red-400 font-medium">
                 <span>Balance Due:</span>
                 <span>{formatCurrency(calculations.creditAmount)}</span>
               </div>

@@ -230,55 +230,55 @@ const ExpenseManager = () => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      LABOR: 'bg-blue-100 text-blue-800',
-      FUEL: 'bg-orange-100 text-orange-800',
-      MAINTENANCE: 'bg-yellow-100 text-yellow-800',
-      OFFICE: 'bg-purple-100 text-purple-800',
-      TRANSPORT: 'bg-green-100 text-green-800',
-      RENT: 'bg-red-100 text-red-800',
-      UTILITIES: 'bg-cyan-100 text-cyan-800',
-      FOOD: 'bg-pink-100 text-pink-800',
-      OTHER: 'bg-gray-100 text-gray-800'
+      LABOR: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      FUEL: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+      MAINTENANCE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      OFFICE: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+      TRANSPORT: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      RENT: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+      UTILITIES: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
+      FOOD: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
+      OTHER: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
   };
 
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Today's Expenses</p>
-              <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.todayTotal)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Today's Expenses</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(summary.todayTotal)}</p>
             </div>
-            <div className="p-3 bg-red-100 rounded-full">
-              <FiDollarSign className="h-6 w-6 text-red-600" />
+            <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
+              <FiDollarSign className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">This Month</p>
-              <p className="text-2xl font-bold text-orange-600">{formatCurrency(summary.monthTotal)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">This Month</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(summary.monthTotal)}</p>
             </div>
-            <div className="p-3 bg-orange-100 rounded-full">
-              <FiCalendar className="h-6 w-6 text-orange-600" />
+            <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
+              <FiCalendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Entries</p>
-              <p className="text-2xl font-bold text-blue-600">{expenses.length}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Entries</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{expenses.length}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <FiFileText className="h-6 w-6 text-blue-600" />
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+              <FiFileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
@@ -286,8 +286,8 @@ const ExpenseManager = () => {
 
       {/* Category Breakdown */}
       {summary.categoryMonthly && summary.categoryMonthly.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Monthly Category Breakdown</h3>
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Monthly Category Breakdown</h3>
           <div className="flex flex-wrap gap-2">
             {summary.categoryMonthly.map((cat) => (
               <div key={cat.category} className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(cat.category)}`}>
@@ -313,7 +313,7 @@ const ExpenseManager = () => {
           <select
             value={filters.category}
             onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            className="px-3 py-2 border rounded-lg text-sm"
+            className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-[#1A1A1A] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Categories</option>
             {CATEGORIES.map(cat => (
@@ -325,7 +325,7 @@ const ExpenseManager = () => {
             type="date"
             value={filters.startDate}
             onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            className="px-3 py-2 border rounded-lg text-sm"
+            className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-[#1A1A1A] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="From"
           />
           
@@ -333,13 +333,13 @@ const ExpenseManager = () => {
             type="date"
             value={filters.endDate}
             onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            className="px-3 py-2 border rounded-lg text-sm"
+            className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-[#1A1A1A] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="To"
           />
           
           <button
             onClick={applyFilters}
-            className="flex items-center space-x-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
+            className="flex items-center space-x-1 px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 text-sm transition-colors"
           >
             <FiFilter className="h-4 w-4" />
             <span>Apply</span>
@@ -347,7 +347,7 @@ const ExpenseManager = () => {
           
           <button
             onClick={resetFilters}
-            className="px-3 py-2 border rounded-lg hover:bg-gray-50 text-sm"
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 transition-colors"
           >
             Reset
           </button>
@@ -355,7 +355,7 @@ const ExpenseManager = () => {
           {currentUser?.role === 'admin' && (
             <button
               onClick={exportDisplayedCSV}
-              className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+              className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
               title="Export displayed expenses to CSV"
             >
               <FiDownload className="h-4 w-4" />
@@ -368,12 +368,12 @@ const ExpenseManager = () => {
       {/* Expense Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingExpense ? 'Edit Expense' : 'Add New Expense'}
               </h3>
-              <button onClick={resetForm} className="text-gray-500 hover:text-gray-700">
+              <button onClick={resetForm} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                 <FiX className="h-5 w-5" />
               </button>
             </div>
@@ -381,7 +381,7 @@ const ExpenseManager = () => {
             <form onSubmit={handleSubmit} className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiCalendar className="inline h-4 w-4 mr-1" />
                     Date *
                   </label>
@@ -390,13 +390,13 @@ const ExpenseManager = () => {
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiTag className="inline h-4 w-4 mr-1" />
                     Category *
                   </label>
@@ -404,7 +404,7 @@ const ExpenseManager = () => {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
                     {CATEGORIES.map(cat => (
@@ -414,7 +414,7 @@ const ExpenseManager = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiFileText className="inline h-4 w-4 mr-1" />
                     Description *
                   </label>
@@ -423,14 +423,14 @@ const ExpenseManager = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter expense description"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiDollarSign className="inline h-4 w-4 mr-1" />
                     Amount (Rs.) *
                   </label>
@@ -439,7 +439,7 @@ const ExpenseManager = () => {
                     name="amount"
                     value={formData.amount}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
                     step="0.01"
                     required
@@ -447,7 +447,7 @@ const ExpenseManager = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiCreditCard className="inline h-4 w-4 mr-1" />
                     Payment Mode
                   </label>
@@ -455,7 +455,7 @@ const ExpenseManager = () => {
                     name="payment_mode"
                     value={formData.payment_mode}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {PAYMENT_MODES.map(mode => (
                       <option key={mode} value={mode}>
@@ -466,7 +466,7 @@ const ExpenseManager = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiMapPin className="inline h-4 w-4 mr-1" />
                     Ghat Location *
                   </label>
@@ -475,14 +475,14 @@ const ExpenseManager = () => {
                     name="ghat_location"
                     value={formData.ghat_location}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter ghat location"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     <FiUser className="inline h-4 w-4 mr-1" />
                     Vendor Name
                   </label>
@@ -491,13 +491,13 @@ const ExpenseManager = () => {
                     name="vendor_name"
                     value={formData.vendor_name}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Vendor name (optional)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Receipt Number
                   </label>
                   <input
@@ -505,13 +505,13 @@ const ExpenseManager = () => {
                     name="receipt_number"
                     value={formData.receipt_number}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Receipt number (optional)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Approved By
                   </label>
                   <input
@@ -519,20 +519,20 @@ const ExpenseManager = () => {
                     name="approved_by"
                     value={formData.approved_by}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Approver name (optional)"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Remarks
                   </label>
                   <textarea
                     name="remarks"
                     value={formData.remarks}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows="2"
                     placeholder="Additional notes (optional)"
                   />
@@ -543,7 +543,7 @@ const ExpenseManager = () => {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
@@ -560,41 +560,41 @@ const ExpenseManager = () => {
       )}
 
       {/* Expenses Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
         {loading ? (
           <div className="p-8 text-center">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-2 text-gray-500">Loading expenses...</p>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">Loading expenses...</p>
           </div>
         ) : expenses.length === 0 ? (
           <div className="p-8 text-center">
             <FiFileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">No expenses found</p>
+            <p className="text-gray-500 dark:text-gray-400">No expenses found</p>
             <button
               onClick={() => setShowForm(true)}
-              className="mt-3 text-blue-600 hover:text-blue-800"
+              className="mt-3 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             >
               Add your first expense
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Description</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Payment</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Location</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                 {expenses.map((expense) => (
-                  <tr key={expense.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {expense.date}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -602,16 +602,16 @@ const ExpenseManager = () => {
                         {expense.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white max-w-xs truncate">
                       {expense.description}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-red-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">
                       {formatCurrency(expense.amount)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                       {expense.payment_mode?.replace('_', ' ')}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                       {expense.ghat_location}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -619,7 +619,7 @@ const ExpenseManager = () => {
                         {currentUser && (currentUser.role === 'admin' || expense.created_by === currentUser.username) && (
                           <button
                             onClick={() => handleEdit(expense)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                             title="Edit"
                           >
                             <FiEdit2 className="h-4 w-4" />
@@ -628,7 +628,7 @@ const ExpenseManager = () => {
                         {currentUser && currentUser.role === 'admin' && (
                           <button
                             onClick={() => handleDelete(expense.id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                             title="Delete"
                           >
                             <FiTrash2 className="h-4 w-4" />

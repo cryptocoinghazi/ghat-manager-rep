@@ -15,6 +15,8 @@ import PartnerManagement from './components/PartnerManagement';
 import GstReceiptForm from './components/GstReceiptForm';
 import GstReports from './components/GstReports';
 
+import LandingPage from './components/LandingPage';
+
 const AdminRoute = ({ user, children }) => {
   if (user?.role !== 'admin') {
     return <Navigate to="/receipt" replace />;
@@ -29,6 +31,16 @@ function App() {
   const [truckOwners, setTruckOwners] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Initialize theme
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -95,24 +107,15 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50 dark:bg-[#121212] flex items-center justify-center transition-colors duration-300">
+        <div className="w-8 h-8 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
       </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <>
-        <Toaster position="top-right" />
-        <Login onLogin={handleLogin} />
-      </>
     );
   }
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
         <Toaster 
           position="top-right"
           toastOptions={{
@@ -139,62 +142,72 @@ function App() {
         />
         
         <Routes>
-          <Route path="/" element={<Layout user={user} onLogout={handleLogout} />}>
-            <Route index element={<Dashboard user={user} />} />
-            <Route path="dashboard" element={<Dashboard user={user} />} />
-            <Route path="receipt" element={
-              <ReceiptForm 
-                settings={settings}
-                truckOwners={truckOwners}
-                fetchTruckOwners={fetchTruckOwners}
-              />
-            } />
-            <Route path="register" element={<DailyRegister />} />
-            <Route path="expenses" element={<ExpenseManager />} />
-            <Route path="reports" element={
-              <AdminRoute user={user}>
-                <Reports />
-              </AdminRoute>
-            } />
-            <Route path="reports/deposit" element={
-              <AdminRoute user={user}>
-                <Reports initialTab="deposit" />
-              </AdminRoute>
-            } />
-            <Route path="settings" element={
-              <AdminRoute user={user}>
-                <Settings 
-                  settings={settings}
-                  fetchSettings={fetchSettings}
-                  user={user}
-                />
-              </AdminRoute>
-            } />
-            <Route path="users" element={
-              <AdminRoute user={user}>
-                <UserManagement />
-              </AdminRoute>
-            } />
-            <Route path="partners" element={
-              <AdminRoute user={user}>
-                <PartnerManagement />
-              </AdminRoute>
-            } />
-            <Route path="gst-billing" element={
-              <AdminRoute user={user}>
-                <GstReceiptForm 
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={
+            user ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
+          } />
+
+          {/* Protected Routes */}
+          {user && (
+            <Route element={<Layout user={user} onLogout={handleLogout} />}>
+              <Route path="dashboard" element={<Dashboard user={user} />} />
+              <Route path="receipt" element={
+                <ReceiptForm 
                   settings={settings}
                   truckOwners={truckOwners}
                   fetchTruckOwners={fetchTruckOwners}
                 />
-              </AdminRoute>
-            } />
-            <Route path="gst-reports" element={
-              <AdminRoute user={user}>
-                <GstReports />
-              </AdminRoute>
-            } />
-          </Route>
+              } />
+              <Route path="register" element={<DailyRegister />} />
+              <Route path="expenses" element={<ExpenseManager />} />
+              <Route path="reports" element={
+                <AdminRoute user={user}>
+                  <Reports />
+                </AdminRoute>
+              } />
+              <Route path="reports/deposit" element={
+                <AdminRoute user={user}>
+                  <Reports initialTab="deposit" />
+                </AdminRoute>
+              } />
+              <Route path="settings" element={
+                <AdminRoute user={user}>
+                  <Settings 
+                    settings={settings}
+                    fetchSettings={fetchSettings}
+                    user={user}
+                  />
+                </AdminRoute>
+              } />
+              <Route path="users" element={
+                <AdminRoute user={user}>
+                  <UserManagement />
+                </AdminRoute>
+              } />
+              <Route path="partners" element={
+                <AdminRoute user={user}>
+                  <PartnerManagement />
+                </AdminRoute>
+              } />
+              <Route path="gst-billing" element={
+                <AdminRoute user={user}>
+                  <GstReceiptForm 
+                    settings={settings}
+                    truckOwners={truckOwners}
+                    fetchTruckOwners={fetchTruckOwners}
+                  />
+                </AdminRoute>
+              } />
+              <Route path="gst-reports" element={
+                <AdminRoute user={user}>
+                  <GstReports />
+                </AdminRoute>
+              } />
+            </Route>
+          )}
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
         </Routes>
       </div>
     </Router>

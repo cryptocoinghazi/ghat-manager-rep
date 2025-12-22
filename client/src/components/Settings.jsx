@@ -178,11 +178,22 @@ const Settings = ({ settings, fetchSettings }) => {
     form.append('file', file);
     try {
       await axios.post('/api/database/restore', form, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('Database restored');
-    } catch {
-      toast.error('Restore failed');
+      toast.success('Database restored successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Restore failed');
     } finally {
       e.target.value = '';
+    }
+  };
+
+  const handleRestoreFromBackup = async (filename) => {
+    if (window.confirm(`Are you sure you want to restore database from backup "${filename}"? Current data will be replaced.`)) {
+      try {
+        await axios.post('/api/database/restore-file', { filename });
+        toast.success('Database restored successfully');
+      } catch (error) {
+        toast.error(error.response?.data?.error || 'Restore failed');
+      }
     }
   };
 
@@ -310,8 +321,8 @@ const Settings = ({ settings, fetchSettings }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">Configure application settings and preferences</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400">Configure application settings and preferences</p>
         </div>
         <button
           onClick={handleSaveSettings}
@@ -324,7 +335,7 @@ const Settings = ({ settings, fetchSettings }) => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => (
             <button
@@ -333,8 +344,8 @@ const Settings = ({ settings, fetchSettings }) => {
               className={`
                 py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
                 ${activeTab === tab.id
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
                 }
               `}
             >
@@ -349,10 +360,10 @@ const Settings = ({ settings, fetchSettings }) => {
       <div className="card p-6">
         {activeTab === 'company' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Company Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Quarry/Ghat Name *
                 </label>
                 <input
@@ -366,7 +377,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Address
                 </label>
                 <input
@@ -380,7 +391,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Contact Number
                 </label>
                 <input
@@ -394,7 +405,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   GSTIN (Optional)
                 </label>
                 <input
@@ -409,7 +420,7 @@ const Settings = ({ settings, fetchSettings }) => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Terms & Conditions
               </label>
               <textarea
@@ -425,10 +436,10 @@ const Settings = ({ settings, fetchSettings }) => {
 
         {activeTab === 'financial' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Settings</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Financial Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Default Rate per {formData.unit || 'Brass'} *
                 </label>
                 <input
@@ -441,11 +452,11 @@ const Settings = ({ settings, fetchSettings }) => {
                   min="0"
                   step="1"
                 />
-                <p className="mt-1 text-sm text-gray-500">Default price for regular customers</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Default price for regular customers</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Partner Rate per {formData.unit || 'Brass'} *
                 </label>
                 <input
@@ -458,11 +469,11 @@ const Settings = ({ settings, fetchSettings }) => {
                   min="0"
                   step="1"
                 />
-                <p className="mt-1 text-sm text-gray-500">Discounted price for partner customers</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Discounted price for partner customers</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Loading Charge (Bharai) *
                 </label>
                 <input
@@ -475,11 +486,11 @@ const Settings = ({ settings, fetchSettings }) => {
                   min="0"
                   step="1"
                 />
-                <p className="mt-1 text-sm text-gray-500">Additional charge per transaction</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Additional charge per transaction</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Currency Symbol
                 </label>
                 <input
@@ -494,7 +505,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Unit of Measurement
                 </label>
                 <select
@@ -511,7 +522,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Tax Rate (%) (Optional)
                 </label>
                 <input
@@ -528,7 +539,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Default Credit Limit
                 </label>
                 <input
@@ -540,7 +551,7 @@ const Settings = ({ settings, fetchSettings }) => {
                   placeholder="0"
                   min="0"
                 />
-                <p className="mt-1 text-sm text-gray-500">Default credit limit for new customers</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Default credit limit for new customers</p>
               </div>
             </div>
           </div>
@@ -548,10 +559,10 @@ const Settings = ({ settings, fetchSettings }) => {
 
         {activeTab === 'receipt' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Receipt Configuration</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Receipt Configuration</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Receipt Prefix
                 </label>
                 <input
@@ -563,11 +574,11 @@ const Settings = ({ settings, fetchSettings }) => {
                   placeholder="GM"
                   maxLength="5"
                 />
-                <p className="mt-1 text-sm text-gray-500">Prefix for receipt numbers (e.g., GM)</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Prefix for receipt numbers (e.g., GM)</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Starting Number
                 </label>
                 <input
@@ -579,11 +590,11 @@ const Settings = ({ settings, fetchSettings }) => {
                   placeholder="9001"
                   min="1"
                 />
-                <p className="mt-1 text-sm text-gray-500">Next receipt number to use</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Next receipt number to use</p>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Printer Width
                 </label>
                 <select
@@ -595,11 +606,11 @@ const Settings = ({ settings, fetchSettings }) => {
                   <option value="58mm">58mm</option>
                   <option value="80mm">80mm</option>
                 </select>
-                <p className="mt-1 text-sm text-gray-500">Thermal paper width</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Thermal paper width</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Include barcode (QR)
                 </label>
                 <select
@@ -614,7 +625,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Receipt Footer Text
                 </label>
                 <input
@@ -628,7 +639,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Auto-print after save
                 </label>
                 <select
@@ -643,7 +654,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Print duplicate copy
                 </label>
                 <select
@@ -658,13 +669,13 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Receipt Template Preview
                 </label>
-                <div className="border border-gray-300 rounded-lg p-6 bg-gray-50">
+                <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-[#262626] text-gray-900 dark:text-white">
                   <div className="text-center mb-4">
                     <h4 className="font-bold text-lg">{formData.quarry_name || 'Quarry Name'}</h4>
-                    <p className="text-sm text-gray-600">{formData.quarry_address || 'Address'}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{formData.quarry_address || 'Address'}</p>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -675,14 +686,14 @@ const Settings = ({ settings, fetchSettings }) => {
                       <span>Date:</span>
                       <span>{new Date().toLocaleDateString()}</span>
                     </div>
-                    <div className="border-t pt-2 mt-2">
+                    <div className="border-t border-gray-300 dark:border-gray-600 pt-2 mt-2">
                       <div className="flex justify-between">
                         <span>Total Amount:</span>
                         <span className="font-bold">{formData.currency || '₹'}1,200.00</span>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t text-center text-xs text-gray-500">
+                  <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600 text-center text-xs text-gray-500 dark:text-gray-400">
                     {formData.footer_text || 'Thank you for your business!'}
                   </div>
                 </div>
@@ -693,18 +704,18 @@ const Settings = ({ settings, fetchSettings }) => {
 
         {activeTab === 'truck-owners' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Truck Owners Management</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Truck Owners Management</h3>
             
             {/* Add new owner */}
             <div className={`card p-6 mb-6 ${editingOwnerId ? 'border-2 border-blue-500' : ''}`}>
               <div className="flex justify-between items-center mb-4">
-                <h4 className="font-semibold text-gray-900">
+                <h4 className="font-semibold text-gray-900 dark:text-white">
                   {editingOwnerId ? 'Update Truck Owner' : 'Add New Truck Owner'}
                 </h4>
                 {editingOwnerId && (
                   <button
                     onClick={handleCancelEdit}
-                    className="text-gray-500 hover:text-gray-700 flex items-center text-sm"
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center text-sm"
                   >
                     <FiX className="mr-1" /> Cancel Edit
                   </button>
@@ -712,7 +723,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Owner Name *
                   </label>
                   <input
@@ -724,7 +735,7 @@ const Settings = ({ settings, fetchSettings }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Vehicle Number *
                   </label>
                   <input
@@ -736,7 +747,7 @@ const Settings = ({ settings, fetchSettings }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Contact Number
                   </label>
                   <input
@@ -748,7 +759,7 @@ const Settings = ({ settings, fetchSettings }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Address
                   </label>
                   <input
@@ -770,70 +781,70 @@ const Settings = ({ settings, fetchSettings }) => {
             
             {/* Existing owners list */}
             <div className="card p-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Existing Truck Owners</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Existing Truck Owners</h4>
               {truckOwners.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No truck owners found. Add one above.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">No truck owners found. Add one above.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead>
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deposit Balance</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle Number</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Address</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deposit Balance</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                       {truckOwners.map((owner) => (
                         <tr key={owner.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{owner.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{owner.vehicle_number || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.phone || owner.contact || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{owner.address || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₹{owner.deposit_balance || 0}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{owner.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{owner.vehicle_number || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{owner.phone || owner.contact || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{owner.address || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">₹{owner.deposit_balance || 0}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                              {owner.is_gst_client ? (
-                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">GST</span>
+                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">GST</span>
                              ) : (
-                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Regular</span>
+                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Regular</span>
                              )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <button
                               onClick={() => handleEditOwner(owner)}
-                              className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 p-2 rounded transition-colors mr-2"
+                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 p-2 rounded transition-colors mr-2"
                               title="Edit Details"
                             >
                               <FiEdit2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleToggleGst(owner)}
-                              className={`p-2 rounded transition-colors mr-2 ${owner.is_gst_client ? 'text-purple-600 bg-purple-50 hover:bg-purple-100' : 'text-gray-400 hover:text-purple-600 hover:bg-gray-50'}`}
+                              className={`p-2 rounded transition-colors mr-2 ${owner.is_gst_client ? 'text-purple-600 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50' : 'text-gray-400 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-500 dark:hover:text-purple-400 dark:hover:bg-gray-800'}`}
                               title={owner.is_gst_client ? "Remove GST Status" : "Mark as GST Client"}
                             >
                               <FiShield className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleAddDeposit(owner)}
-                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded transition-colors mr-2"
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded transition-colors mr-2"
                               title="Add deposit"
                             >
                               Add Balance
                             </button>
                             <button
                               onClick={() => handleEditDeposit(owner)}
-                              className="text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 p-2 rounded transition-colors mr-2"
+                              className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 p-2 rounded transition-colors mr-2"
                               title="Edit deposit"
                             >
                               Edit Balance
                             </button>
                             <button
                               onClick={() => handleDeleteTruckOwner(owner.id, owner.name)}
-                              className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded transition-colors"
+                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors"
                               title="Delete owner"
                             >
                               <FiTrash2 className="h-4 w-4" />
@@ -851,35 +862,35 @@ const Settings = ({ settings, fetchSettings }) => {
 
         {activeTab === 'data' && (
           <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Management</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Management</h3>
             
             {/* Reset Section */}
             <div className="card p-6 mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <FiRefreshCw className="h-5 w-5 mr-2 text-yellow-600" />
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <FiRefreshCw className="h-5 w-5 mr-2 text-yellow-600 dark:text-yellow-500" />
                 Reset Settings
               </h4>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Reset all settings to their default values. This does not delete transaction data.
               </p>
               <button
                 onClick={handleResetToDefaults}
-                className="btn-secondary text-yellow-700 border-yellow-300 hover:bg-yellow-50"
+                className="btn-secondary text-yellow-700 dark:text-yellow-500 border-yellow-300 dark:border-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/30"
               >
                 Reset to Defaults
               </button>
             </div>
 
             <div className="card p-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Database Management</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Database Management</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">Current Database</p>
-                  <p className="text-sm font-medium">MySQL</p>
-                  <p className="text-xs text-gray-500">Status: {isDbConnected ? 'Connected' : 'Unknown'}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current Database</p>
+                  <p className="text-sm font-medium dark:text-white">MySQL</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Status: {isDbConnected ? 'Connected' : 'Unknown'}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Auto Backup</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Auto Backup</label>
                   <select
                     name="auto_backup_enabled"
                     value={formData.auto_backup_enabled || 'false'}
@@ -893,7 +904,7 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Backup Time</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Backup Time</label>
                   <input
                     type="time"
                     name="auto_backup_time"
@@ -901,11 +912,11 @@ const Settings = ({ settings, fetchSettings }) => {
                     onChange={handleInputChange}
                     className="input-field"
                   />
-                  <p className="mt-1 text-xs text-gray-500">Runs daily at set time</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Runs daily at set time</p>
                 </div>
                 <div>
                   {formData.auto_backup_last_run && (
-                    <p className="text-xs text-gray-500 mt-6">Last run: {formData.auto_backup_last_run}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-6">Last run: {formData.auto_backup_last_run}</p>
                   )}
                 </div>
               </div>
@@ -923,13 +934,21 @@ const Settings = ({ settings, fetchSettings }) => {
               </div>
               <div className="mt-4">
                 {dbBackups.length === 0 ? (
-                  <p className="text-sm text-gray-600">No backups found</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No backups found</p>
                 ) : (
-                  <ul className="text-sm">
+                  <ul className="text-sm divide-y divide-gray-100 dark:divide-gray-800">
                     {dbBackups.map(b => (
-                      <li key={b.name} className="flex justify-between py-1">
-                        <span>{b.name}</span>
-                        <span className="text-gray-500">{Math.round((b.size || 0)/1024)} KB</span>
+                      <li key={b.name} className="flex justify-between py-2 items-center">
+                        <span className="font-mono text-xs text-gray-700 dark:text-gray-300">{b.name}</span>
+                        <div className="flex items-center space-x-3">
+                          <span className="text-gray-500 dark:text-gray-400 text-xs">{Math.round((b.size || 0)/1024)} KB</span>
+                          <button 
+                            onClick={() => handleRestoreFromBackup(b.name)}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-medium hover:underline"
+                          >
+                            Restore
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>

@@ -166,10 +166,10 @@ const GstReports = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">GST Reports</h1>
-          <p className="text-gray-600">Tax liability and transaction summary</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">GST Reports</h1>
+          <p className="text-gray-600 dark:text-gray-400">Tax liability and transaction summary</p>
         </div>
-        <div className="flex items-center space-x-4 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center space-x-4 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <FaCalendar className="text-gray-400" />
             <input
@@ -177,7 +177,7 @@ const GstReports = () => {
               name="startDate"
               value={dateRange.startDate}
               onChange={handleDateChange}
-              className="border-none focus:ring-0 text-sm text-gray-600"
+              className="border-none focus:ring-0 text-sm text-gray-600 dark:text-gray-300 bg-transparent dark:[color-scheme:dark]"
             />
           </div>
           <span className="text-gray-400">-</span>
@@ -187,7 +187,7 @@ const GstReports = () => {
               name="endDate"
               value={dateRange.endDate}
               onChange={handleDateChange}
-              className="border-none focus:ring-0 text-sm text-gray-600"
+              className="border-none focus:ring-0 text-sm text-gray-600 dark:text-gray-300 bg-transparent dark:[color-scheme:dark]"
             />
           </div>
         </div>
@@ -201,52 +201,52 @@ const GstReports = () => {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500">Total Taxable Value</h3>
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <FaChartPie className="h-5 w-5 text-blue-600" />
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Taxable Value</h3>
+                <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                  <FaChartPie className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_taxable_value)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_taxable_value)}</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500">Total CGST</h3>
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <FaRupeeSign className="h-5 w-5 text-purple-600" />
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total CGST</h3>
+                <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                  <FaRupeeSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_cgst)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_cgst)}</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500">Total SGST</h3>
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <FaRupeeSign className="h-5 w-5 text-purple-600" />
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total SGST</h3>
+                <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                  <FaRupeeSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_sgst)}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_sgst)}</p>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500">Total GST Collected</h3>
-                <div className="p-2 bg-green-50 rounded-lg">
-                  <FaRupeeSign className="h-5 w-5 text-green-600" />
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total GST Collected</h3>
+                <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                  <FaRupeeSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.total_gst_collected)}</p>
-              <p className="text-xs text-gray-500 mt-1">{summary.total_receipts} Invoices</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(summary.total_gst_collected)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{summary.total_receipts} Invoices</p>
             </div>
           </div>
 
           {/* Transactions Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible">
-            <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-              <h3 className="text-lg font-semibold text-gray-900">Transaction Details</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Transaction Details</h3>
               
               <div className="flex items-center space-x-4 w-full md:w-auto">
                 {/* Client Filter */}
@@ -263,17 +263,17 @@ const GstReports = () => {
                       setShowSuggestions(true);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    className="pl-10 block w-full sm:text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    className="pl-10 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400"
                   />
                   {/* Suggestions Dropdown */}
                   {showSuggestions && clientFilter && (
-                    <div className="absolute z-10 w-full bg-white mt-1 border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full bg-white dark:bg-gray-700 mt-1 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {truckOwners
                         .filter(owner => owner.name.toLowerCase().includes(clientFilter.toLowerCase()))
                         .map(owner => (
                           <div
                             key={owner.id}
-                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700"
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
                             onClick={() => handleClientSelect(owner.name)}
                           >
                             {owner.name}
@@ -285,7 +285,7 @@ const GstReports = () => {
 
                 <button 
                   onClick={handleExportCSV}
-                  className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-2 rounded-lg"
+                  className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg"
                 >
                   <FaFileCsv className="h-4 w-4" />
                   <span className="text-sm font-medium">Export CSV</span>
@@ -294,71 +294,71 @@ const GstReports = () => {
             </div>
             
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice No</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Taxable</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">CGST</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">SGST</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Invoice No</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Client</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Taxable</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">CGST</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">SGST</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredTransactions.length > 0 ? (
                     filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {new Date(tx.date_time).toLocaleDateString('en-IN')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-indigo-400">
                           {tx.receipt_no}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           {tx.truck_owner}
-                          <span className="block text-xs text-gray-500">{tx.vehicle_number}</span>
+                          <span className="block text-xs text-gray-500 dark:text-gray-500">{tx.vehicle_number}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900 dark:text-white">
                           {formatCurrency(tx.total_before_gst)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">
                           {formatCurrency(tx.cgst_amount)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">
                           {formatCurrency(tx.sgst_amount)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900 dark:text-white">
                           {formatCurrency(tx.total_amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                           <div className="flex items-center justify-center space-x-3">
                             <button 
                               onClick={() => handlePreview(tx)}
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                               title="View Invoice"
                             >
                               <FaEye className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleEdit(tx)}
-                              className="text-yellow-600 hover:text-yellow-900"
+                              className="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"
                               title="Edit"
                             >
                               <FaEdit className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleThermalPrint(tx)}
-                              className="text-gray-600 hover:text-gray-900"
+                              className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
                               title="Print Thermal"
                             >
                               <FaPrint className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleShareTransaction(tx)}
-                              className="text-green-600 hover:text-green-900"
+                              className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                               title="Share on WhatsApp"
                             >
                               <FaWhatsapp className="h-4 w-4" />
@@ -369,7 +369,7 @@ const GstReports = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                         No GST transactions found for selected period and filter
                       </td>
                     </tr>

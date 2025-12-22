@@ -535,7 +535,7 @@ const Reports = ({ initialTab }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Credit Report - Pending Payments
           </h3>
           <div className="flex space-x-2">
@@ -558,8 +558,8 @@ const Reports = ({ initialTab }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
-            <select value={creditFilters.preset} onChange={(e) => setCreditFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
+            <select value={creditFilters.preset} onChange={(e) => setCreditFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
@@ -568,23 +568,23 @@ const Reports = ({ initialTab }) => {
           </div>
           <div className="grid grid-cols-2 gap-2 md:col-span-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-              <input type="date" value={creditFilters.startDate} onChange={(e) => setCreditFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+              <input type="date" value={creditFilters.startDate} onChange={(e) => setCreditFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-              <input type="date" value={creditFilters.endDate} onChange={(e) => setCreditFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+              <input type="date" value={creditFilters.endDate} onChange={(e) => setCreditFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
           </div>
         </div>
 
         {/* Credit Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600">Customers with Credit</p>
-                <p className="text-2xl font-bold text-blue-700">
+                <p className="text-sm text-blue-600 dark:text-blue-400">Customers with Credit</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                   {totalCustomers || 0}
                 </p>
               </div>
@@ -592,11 +592,11 @@ const Reports = ({ initialTab }) => {
             </div>
           </div>
           
-          <div className="bg-red-50 p-4 rounded-lg">
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-600">Total Credit Outstanding</p>
-                <p className="text-2xl font-bold text-red-700">
+                <p className="text-sm text-red-600 dark:text-red-400">Total Credit Outstanding</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
                   {formatCurrency(totalCredit)}
                 </p>
               </div>
@@ -604,11 +604,11 @@ const Reports = ({ initialTab }) => {
             </div>
           </div>
           
-          <div className="bg-yellow-50 p-4 rounded-lg">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-yellow-600">Avg Credit per Customer</p>
-                <p className="text-2xl font-bold text-yellow-700">
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">Avg Credit per Customer</p>
+                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
                   {formatCurrency(totalCustomers > 0 ? totalCredit / totalCustomers : 0)}
                 </p>
               </div>
@@ -620,38 +620,38 @@ const Reports = ({ initialTab }) => {
         {/* Credit Details Table */}
         {creditReport && creditReport.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Receipts</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Credit</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">0-7 Days</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">8-30 Days</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">30+ Days</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Oldest Credit Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Credit Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending Receipts</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Credit</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">0-7 Days</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">8-30 Days</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">30+ Days</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Oldest Credit Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Latest Credit Date</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                 {creditReport.map((customer, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{customer.truck_owner}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{customer.pending_count}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-red-600">{formatCurrency(customer.total_credit)}</td>
-                    <td className="px-4 py-3 text-sm text-green-600">
+                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{customer.truck_owner}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{customer.pending_count}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(customer.total_credit)}</td>
+                    <td className="px-4 py-3 text-sm text-green-600 dark:text-green-400">
                       {formatCurrency(agingByCustomer[customer.truck_owner]?.['0-7 days'] || 0)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-yellow-600">
+                    <td className="px-4 py-3 text-sm text-yellow-600 dark:text-yellow-400">
                       {formatCurrency(agingByCustomer[customer.truck_owner]?.['8-30 days'] || 0)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-red-600">
+                    <td className="px-4 py-3 text-sm text-red-600 dark:text-red-400">
                       {formatCurrency(agingByCustomer[customer.truck_owner]?.['30+ days'] || 0)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {customer.oldest_credit ? formatToIST(customer.oldest_credit, true) : 'N/A'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {customer.latest_credit ? formatToIST(customer.latest_credit, true) : 'N/A'}
                     </td>
                   </tr>
@@ -662,7 +662,7 @@ const Reports = ({ initialTab }) => {
         ) : (
           <div className="text-center py-12">
             <FiCreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No credit records found</p>
+            <p className="text-gray-500 dark:text-gray-400">No credit records found</p>
           </div>
         )}
       </div>
@@ -679,10 +679,10 @@ const Reports = ({ initialTab }) => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Monthly Summary - {getMonthName(month)}
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {dailyData?.length || 0} days with transactions
             </p>
           </div>
@@ -706,27 +706,27 @@ const Reports = ({ initialTab }) => {
 
         {/* Monthly Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Total Transactions</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {summary?.total_transactions || 0}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Total Amount</p>
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {formatCurrency(summary?.total_amount)}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Cash Collected</p>
-            <p className="text-2xl font-bold text-green-600">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Cash Collected</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               {formatCurrency(summary?.total_cash)}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Credit Given</p>
-            <p className="text-2xl font-bold text-red-600">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Credit Given</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(summary?.total_credit)}
             </p>
           </div>
@@ -734,37 +734,37 @@ const Reports = ({ initialTab }) => {
 
         {/* Daily Breakdown */}
         {dailyData && dailyData.length > 0 && (
-          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
-            <h4 className="text-md font-semibold text-gray-900 mb-4">Daily Breakdown (IST Dates)</h4>
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Daily Breakdown (IST Dates)</h4>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date (IST)</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cash</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date (IST)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transactions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Credit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Brass</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {dailyData.map((day, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {day.ist_day ? formatDate(day.ist_day) : formatDate(day.day)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{day.transactions}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(day.total_amount)}</td>
-                      <td className="px-4 py-3 text-sm text-green-600">{formatCurrency(day.cash_collected)}</td>
-                      <td className="px-4 py-3 text-sm text-red-600">{formatCurrency(day.credit_given)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{day.total_brass}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{day.transactions}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">{formatCurrency(day.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-green-600 dark:text-green-400">{formatCurrency(day.cash_collected)}</td>
+                      <td className="px-4 py-3 text-sm text-red-600 dark:text-red-400">{formatCurrency(day.credit_given)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{day.total_brass}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               <FiClock className="inline h-3 w-3 mr-1" />
               Dates shown in Indian Standard Time (IST)
             </p>
@@ -784,10 +784,10 @@ const Reports = ({ initialTab }) => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Financial Summary
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Daily Summary for {formatDate(dateRange.endDate)}
             </p>
           </div>
@@ -811,8 +811,8 @@ const Reports = ({ initialTab }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
-            <select value={financialFilters.preset} onChange={(e) => setFinancialFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
+            <select value={financialFilters.preset} onChange={(e) => setFinancialFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
@@ -821,39 +821,39 @@ const Reports = ({ initialTab }) => {
           </div>
           <div className="grid grid-cols-2 gap-2 md:col-span-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-              <input type="date" value={financialFilters.startDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+              <input type="date" value={financialFilters.startDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-              <input type="date" value={financialFilters.endDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+              <input type="date" value={financialFilters.endDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
           </div>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Total Transactions</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {summary?.total_transactions || 0}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Total Revenue</p>
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {formatCurrency(summary?.total_amount)}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Cash Collected</p>
-            <p className="text-2xl font-bold text-green-600">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Cash Collected</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               {formatCurrency(summary?.total_cash)}
             </p>
           </div>
-          <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500">Credit Outstanding</p>
-            <p className="text-2xl font-bold text-red-600">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Credit Outstanding</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               {formatCurrency(summary?.total_credit)}
             </p>
           </div>
@@ -861,49 +861,49 @@ const Reports = ({ initialTab }) => {
 
         {/* Recent Transactions */}
         {recentTransactions && recentTransactions.length > 0 && (
-          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-md font-semibold text-gray-900">Recent Transactions</h4>
-              <div className="flex items-center text-sm text-gray-500">
+              <h4 className="text-md font-semibold text-gray-900 dark:text-white">Recent Transactions</h4>
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                 <FiClock className="h-4 w-4 mr-1" />
                 Times shown in IST
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time (IST)</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time (IST)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receipt</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {recentTransactions.map((transaction, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                         {transaction.ist_time || formatToIST(transaction.date_time, false)}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {transaction.receipt_no}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                         {transaction.truck_owner}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                         {transaction.vehicle_number}
                       </td>
-                      <td className="px-4 py-3 text-sm font-bold text-blue-600">
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">
                         {formatCurrency(transaction.total_amount)}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-1 rounded-full ${
-                          transaction.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                          transaction.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
+                          transaction.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          transaction.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                           {transaction.payment_status?.toUpperCase()}
                         </span>
@@ -929,10 +929,10 @@ const Reports = ({ initialTab }) => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Expense Report
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
             </p>
           </div>
@@ -956,8 +956,8 @@ const Reports = ({ initialTab }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
-            <select value={expenseFilters.preset} onChange={(e) => setExpenseFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
+            <select value={expenseFilters.preset} onChange={(e) => setExpenseFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
@@ -965,8 +965,8 @@ const Reports = ({ initialTab }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-            <select value={expenseFilters.category} onChange={(e) => setExpenseFilters(prev => ({ ...prev, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+            <select value={expenseFilters.category} onChange={(e) => setExpenseFilters(prev => ({ ...prev, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option value="all">All</option>
               {reportsData.expense?.categoryBreakdown?.map((c, idx) => (
                 <option key={idx} value={c.category || 'Uncategorized'}>{c.category || 'Uncategorized'}</option>
@@ -975,73 +975,73 @@ const Reports = ({ initialTab }) => {
           </div>
           <div className="grid grid-cols-2 gap-2 md:col-span-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-              <input type="date" value={expenseFilters.startDate} onChange={(e) => setExpenseFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+              <input type="date" value={expenseFilters.startDate} onChange={(e) => setExpenseFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-              <input type="date" value={expenseFilters.endDate} onChange={(e) => setExpenseFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+              <input type="date" value={expenseFilters.endDate} onChange={(e) => setExpenseFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
           </div>
         </div>
 
         {/* Expense Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-red-50 p-4 rounded-lg">
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-700">
+                <p className="text-sm text-red-600 dark:text-red-400">Total Expenses</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
                   {formatCurrency(summary?.totalAmount)}
                 </p>
               </div>
-              <FiTrendingDown className="h-8 w-8 text-red-400" />
+              <FiTrendingDown className="h-8 w-8 text-red-400 dark:text-red-500" />
             </div>
           </div>
           
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600">Total Entries</p>
-                <p className="text-2xl font-bold text-blue-700">
+                <p className="text-sm text-blue-600 dark:text-blue-400">Total Entries</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                   {summary?.totalCount || 0}
                 </p>
               </div>
-              <FiFileText className="h-8 w-8 text-blue-400" />
+              <FiFileText className="h-8 w-8 text-blue-400 dark:text-blue-500" />
             </div>
           </div>
           
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600">Categories</p>
-                <p className="text-2xl font-bold text-purple-700">
+                <p className="text-sm text-purple-600 dark:text-purple-400">Categories</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
                   {categoryBreakdown?.length || 0}
                 </p>
               </div>
-              <FiPieChart className="h-8 w-8 text-purple-400" />
+              <FiPieChart className="h-8 w-8 text-purple-400 dark:text-purple-500" />
             </div>
           </div>
         </div>
 
         {/* Category Breakdown */}
         {categoryBreakdown && categoryBreakdown.length > 0 && (
-          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
-            <h4 className="text-md font-semibold text-gray-900 mb-4">Category Breakdown</h4>
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Category Breakdown</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {(expenseFilters.category === 'all' ? categoryBreakdown : categoryBreakdown.filter(c => (c.category || 'Uncategorized') === expenseFilters.category)).map((cat, index) => (
-                <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                <div key={index} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">{cat.category || 'Uncategorized'}</span>
-                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{cat.category || 'Uncategorized'}</span>
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
                       {cat.percentage || 0}%
                     </span>
                   </div>
-                  <p className="text-lg font-bold text-gray-900">{formatCurrency(cat.total)}</p>
-                  <p className="text-xs text-gray-500">{cat.count} entries</p>
-                  <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(cat.total)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{cat.count} entries</p>
+                  <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                     <div
-                      className="bg-blue-600 h-2 rounded-full"
+                      className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
                       style={{ width: `${cat.percentage || 0}%` }}
                     ></div>
                   </div>
@@ -1053,31 +1053,31 @@ const Reports = ({ initialTab }) => {
 
         {/* Daily Totals */}
         {dailyTotals && dailyTotals.length > 0 && (
-          <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
-            <h4 className="text-md font-semibold text-gray-900 mb-4">Daily Expense Breakdown (IST)</h4>
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Daily Expense Breakdown (IST)</h4>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date (IST)</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entries</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date (IST)</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Entries</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Amount</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {(expenseFilters.category === 'all' ? dailyTotals : dailyTotals).map((day, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         {formatDate(day.date)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{day.count}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-red-600">{formatCurrency(day.total)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{day.count}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(day.total)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               <FiClock className="inline h-3 w-3 mr-1" />
               Dates shown in Indian Standard Time (IST)
             </p>
@@ -1088,7 +1088,7 @@ const Reports = ({ initialTab }) => {
         {(!categoryBreakdown || categoryBreakdown.length === 0) && (!dailyTotals || dailyTotals.length === 0) && (
           <div className="text-center py-12">
             <FiTrendingDown className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No expense records found for selected date range</p>
+            <p className="text-gray-500 dark:text-gray-400">No expense records found for selected date range</p>
           </div>
         )}
       </div>
@@ -1102,7 +1102,7 @@ const Reports = ({ initialTab }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Deposit Transactions</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Deposit Transactions</h3>
           <div className="flex space-x-2">
             <button onClick={() => handleExportPDF('deposit')} className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm">
               <FiFileText className="h-4 w-4" />
@@ -1117,8 +1117,8 @@ const Reports = ({ initialTab }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
-            <select value={depositFilters.preset} onChange={(e) => setDepositFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
+            <select value={depositFilters.preset} onChange={(e) => setDepositFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
@@ -1126,8 +1126,8 @@ const Reports = ({ initialTab }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Owner</label>
-            <select value={depositFilters.truckOwnerId} onChange={(e) => setDepositFilters(prev => ({ ...prev, truckOwnerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Owner</label>
+            <select value={depositFilters.truckOwnerId} onChange={(e) => setDepositFilters(prev => ({ ...prev, truckOwnerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option value="all">All Truck Owners</option>
               {owners.map(o => (
                 <option key={o.id} value={o.id}>{o.name}</option>
@@ -1135,8 +1135,8 @@ const Reports = ({ initialTab }) => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Type</label>
-            <select value={depositFilters.transactionType} onChange={(e) => setDepositFilters(prev => ({ ...prev, transactionType: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Transaction Type</label>
+            <select value={depositFilters.transactionType} onChange={(e) => setDepositFilters(prev => ({ ...prev, transactionType: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option value="all">All Transactions</option>
               <option value="add">Additions Only</option>
               <option value="deduct">Deductions Only</option>
@@ -1144,93 +1144,93 @@ const Reports = ({ initialTab }) => {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-              <input type="date" value={depositFilters.startDate} onChange={(e) => setDepositFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+              <input type="date" value={depositFilters.startDate} onChange={(e) => setDepositFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-              <input type="date" value={depositFilters.endDate} onChange={(e) => setDepositFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+              <input type="date" value={depositFilters.endDate} onChange={(e) => setDepositFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg">
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600">Total Additions</p>
-                <p className="text-2xl font-bold text-green-700">{formatCurrency(summary?.totalAdditions)}</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Total Additions</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(summary?.totalAdditions)}</p>
               </div>
               <FiTrendingUp className="h-8 w-8 text-green-400" />
             </div>
           </div>
-          <div className="bg-red-50 p-4 rounded-lg">
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-red-600">Total Deductions</p>
-                <p className="text-2xl font-bold text-red-700">{formatCurrency(summary?.totalDeductions)}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">Total Deductions</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-300">{formatCurrency(summary?.totalDeductions)}</p>
               </div>
               <FiTrendingDown className="h-8 w-8 text-red-400" />
             </div>
           </div>
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600">Net Change</p>
-                <p className="text-2xl font-bold text-blue-700">{formatCurrency(summary?.netChange)}</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Net Change</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(summary?.netChange)}</p>
               </div>
               <FiDollarSign className="h-8 w-8 text-blue-400" />
             </div>
           </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600">Ending Balance</p>
-                <p className="text-2xl font-bold text-purple-700">{formatCurrency(summary?.endingBalance)}</p>
+                <p className="text-sm text-purple-600 dark:text-purple-400">Ending Balance</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{formatCurrency(summary?.endingBalance)}</p>
               </div>
               <FiDollarSign className="h-8 w-8 text-purple-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prev Bal</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Bal</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt No</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date & Time</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Prev Bal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">New Bal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receipt No</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                 {transactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-500">{formatToIST(t.date_time, true)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{t.owner_name}</td>
+                  <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{formatToIST(t.date_time, true)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{t.owner_name}</td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`text-xs px-2 py-1 rounded-full ${t.type === 'add' ? 'bg-green-100 text-green-800' : t.type === 'deduct' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>{t.type}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${t.type === 'add' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : t.type === 'deduct' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>{t.type}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(t.amount)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(t.previous_balance)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{formatCurrency(t.new_balance)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{t.receipt_no || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{t.notes || ''}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">{formatCurrency(t.amount)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(t.previous_balance)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{formatCurrency(t.new_balance)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{t.receipt_no || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{t.notes || ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-gray-600">Page {pagination.page || depositFilters.page}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Page {pagination.page || depositFilters.page}</div>
             <div className="flex items-center space-x-2">
-              <button onClick={() => setDepositFilters(prev => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))} className="px-3 py-2 border rounded-lg">Prev</button>
-              <button onClick={() => setDepositFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))} className="px-3 py-2 border rounded-lg">Next</button>
+              <button onClick={() => setDepositFilters(prev => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Prev</button>
+              <button onClick={() => setDepositFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Next</button>
             </div>
           </div>
         </div>
@@ -1248,10 +1248,10 @@ const Reports = ({ initialTab }) => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Client Report
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Customer credit analysis from {formatDate(clientFilters.startDate || dateRange.startDate)} to {formatDate(clientFilters.endDate || dateRange.endDate)}
             </p>
           </div>
@@ -1275,8 +1275,8 @@ const Reports = ({ initialTab }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date Preset</label>
-            <select value={clientFilters.preset} onChange={(e) => setClientFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
+            <select value={clientFilters.preset} onChange={(e) => setClientFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
@@ -1285,16 +1285,16 @@ const Reports = ({ initialTab }) => {
           </div>
           <div className="grid grid-cols-3 gap-2 md:col-span-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-              <input type="date" value={clientFilters.startDate} onChange={(e) => setClientFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+              <input type="date" value={clientFilters.startDate} onChange={(e) => setClientFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-              <input type="date" value={clientFilters.endDate} onChange={(e) => setClientFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+              <input type="date" value={clientFilters.endDate} onChange={(e) => setClientFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Customer</label>
-              <select value={clientFilters.truckOwner} onChange={(e) => setClientFilters(prev => ({ ...prev, truckOwner: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Customer</label>
+              <select value={clientFilters.truckOwner} onChange={(e) => setClientFilters(prev => ({ ...prev, truckOwner: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
                 <option value="all">All Customers</option>
                 {owners.map(o => (
                   <option key={o.id} value={o.name}>{o.name}</option>
@@ -1306,11 +1306,11 @@ const Reports = ({ initialTab }) => {
 
         {/* Client Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600">Total Clients</p>
-                <p className="text-2xl font-bold text-blue-700">
+                <p className="text-sm text-blue-600 dark:text-blue-400">Total Clients</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                   {totalCustomers || 0}
                 </p>
               </div>
@@ -1318,11 +1318,11 @@ const Reports = ({ initialTab }) => {
             </div>
           </div>
           
-          <div className="bg-green-50 p-4 rounded-lg">
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600">Active with Credit</p>
-                <p className="text-2xl font-bold text-green-700">
+                <p className="text-sm text-green-600 dark:text-green-400">Active with Credit</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                   {creditReport?.length || 0}
                 </p>
               </div>
@@ -1330,11 +1330,11 @@ const Reports = ({ initialTab }) => {
             </div>
           </div>
           
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600">Total Outstanding</p>
-                <p className="text-2xl font-bold text-purple-700">
+                <p className="text-sm text-purple-600 dark:text-purple-400">Total Outstanding</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
                   {formatCurrency(totalCredit)}
                 </p>
               </div>
@@ -1345,44 +1345,44 @@ const Reports = ({ initialTab }) => {
 
         {/* Clients List */}
         {creditReport && creditReport.length > 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Receipts</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Credit</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Credit Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Credit Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending Receipts</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Credit</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">First Credit Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Credit Date</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {creditReport.map((client, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                            <FiUsers className="h-4 w-4 text-blue-600" />
+                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-3">
+                            <FiUsers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{client.truck_owner}</p>
-                            <p className="text-xs text-gray-500">Customer</p>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">{client.truck_owner}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Customer</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{client.pending_count}</div>
-                        <div className="text-xs text-gray-500">receipts pending</div>
+                        <div className="text-sm text-gray-900 dark:text-white">{client.pending_count}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">receipts pending</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm font-bold text-red-600">{formatCurrency(client.total_credit)}</div>
-                        <div className="text-xs text-gray-500">outstanding</div>
+                        <div className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(client.total_credit)}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">outstanding</div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {client.oldest_credit ? formatToIST(client.oldest_credit, true) : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {client.latest_credit ? formatToIST(client.latest_credit, true) : 'N/A'}
                       </td>
                     </tr>
@@ -1394,7 +1394,7 @@ const Reports = ({ initialTab }) => {
         ) : (
           <div className="text-center py-12">
             <FiUsers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No client data found for selected date range</p>
+            <p className="text-gray-500 dark:text-gray-400">No client data found for selected date range</p>
           </div>
         )}
       </div>
@@ -1414,8 +1414,8 @@ const Reports = ({ initialTab }) => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Partner Royalty Report</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Partner Royalty Report</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
             </p>
           </div>
@@ -1427,10 +1427,10 @@ const Reports = ({ initialTab }) => {
               onFocus={() => setPartnerOwnerFocused(true)}
               onBlur={() => setTimeout(() => setPartnerOwnerFocused(false), 150)}
               placeholder="Filter by truck owner"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
             {partnerOwnerFocused && (
-              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow">
+              <div className="absolute z-10 mt-1 w-full bg-white dark:bg-[#262626] border border-gray-200 dark:border-gray-700 rounded-lg shadow">
                 {owners
                   .filter(o => (o.name || '').toLowerCase().includes(query))
                   .slice(0, 10)
@@ -1439,13 +1439,13 @@ const Reports = ({ initialTab }) => {
                       key={o.id}
                       type="button"
                       onMouseDown={() => setPartnerOwnerQuery(o.name || '')}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 text-sm text-gray-900 dark:text-white"
                     >
                       {o.name}
                     </button>
                   ))}
                 {query && owners.filter(o => (o.name || '').toLowerCase().includes(query)).length === 0 && (
-                  <div className="px-3 py-2 text-sm text-gray-500">No matches</div>
+                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">No matches</div>
                 )}
               </div>
             )}
@@ -1454,104 +1454,104 @@ const Reports = ({ initialTab }) => {
 
         {/* Royalty Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg">
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600">Partner Trips</p>
-                <p className="text-2xl font-bold text-green-700">{partnerTotals?.trips || 0}</p>
-                <p className="text-xs text-green-600">{partnerTotals?.brass?.toFixed(2) || 0} Brass</p>
+                <p className="text-sm text-green-600 dark:text-green-400">Partner Trips</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{partnerTotals?.trips || 0}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">{partnerTotals?.brass?.toFixed(2) || 0} Brass</p>
               </div>
-              <FiUsers className="h-8 w-8 text-green-400" />
+              <FiUsers className="h-8 w-8 text-green-400 dark:text-green-500" />
             </div>
           </div>
           
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600">Regular Trips</p>
-                <p className="text-2xl font-bold text-blue-700">{regularTotals?.trips || 0}</p>
-                <p className="text-xs text-blue-600">{regularTotals?.brass?.toFixed(2) || 0} Brass</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Regular Trips</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{regularTotals?.trips || 0}</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">{regularTotals?.brass?.toFixed(2) || 0} Brass</p>
               </div>
-              <FiTruck className="h-8 w-8 text-blue-400" />
+              <FiTruck className="h-8 w-8 text-blue-400 dark:text-blue-500" />
             </div>
           </div>
           
-          <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600">Rate Difference</p>
-                <p className="text-2xl font-bold text-purple-700">{formatCurrency(royalty?.rateDifference || 0)}</p>
-                <p className="text-xs text-purple-600">per Brass</p>
+                <p className="text-sm text-purple-600 dark:text-purple-400">Rate Difference</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{formatCurrency(royalty?.rateDifference || 0)}</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">per Brass</p>
               </div>
-              <FiTrendingDown className="h-8 w-8 text-purple-400" />
+              <FiTrendingDown className="h-8 w-8 text-purple-400 dark:text-purple-500" />
             </div>
           </div>
           
-          <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border-2 border-orange-200 dark:border-orange-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-orange-600 font-semibold">Partner Royalty</p>
-                <p className="text-2xl font-bold text-orange-700">{formatCurrency(royalty?.royaltyAmount || 0)}</p>
-                <p className="text-xs text-orange-600">Total Savings</p>
+                <p className="text-sm text-orange-600 dark:text-orange-400 font-semibold">Partner Royalty</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(royalty?.royaltyAmount || 0)}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">Total Savings</p>
               </div>
-              <FaRupeeSign className="h-8 w-8 text-orange-400" />
+              <FaRupeeSign className="h-8 w-8 text-orange-400 dark:text-orange-500" />
             </div>
           </div>
         </div>
 
         {/* Rate Comparison */}
-        <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm">
-          <h4 className="text-md font-semibold text-gray-900 mb-4">Rate Comparison</h4>
+        <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
+          <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Rate Comparison</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <p className="text-sm text-blue-600">Regular Rate</p>
-              <p className="text-xl font-bold text-blue-700">{formatCurrency(royalty?.regularRate || 0)}/Brass</p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
+              <p className="text-sm text-blue-600 dark:text-blue-400">Regular Rate</p>
+              <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(royalty?.regularRate || 0)}/Brass</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg text-center">
-              <p className="text-sm text-green-600">Partner Rate</p>
-              <p className="text-xl font-bold text-green-700">{formatCurrency(royalty?.partnerRate || 0)}/Brass</p>
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center">
+              <p className="text-sm text-green-600 dark:text-green-400">Partner Rate</p>
+              <p className="text-xl font-bold text-green-700 dark:text-green-300">{formatCurrency(royalty?.partnerRate || 0)}/Brass</p>
             </div>
-            <div className="bg-orange-50 p-4 rounded-lg text-center">
-              <p className="text-sm text-orange-600">Partner Discount</p>
-              <p className="text-xl font-bold text-orange-700">{formatCurrency(royalty?.rateDifference || 0)}/Brass</p>
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg text-center">
+              <p className="text-sm text-orange-600 dark:text-orange-400">Partner Discount</p>
+              <p className="text-xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(royalty?.rateDifference || 0)}/Brass</p>
             </div>
           </div>
         </div>
 
         {/* Partner Summary Table */}
         {filteredPartner && filteredPartner.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-green-50">
-              <h4 className="text-md font-semibold text-green-800">Partner Owners</h4>
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20">
+              <h4 className="text-md font-semibold text-green-800 dark:text-green-300">Partner Owners</h4>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trips</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brass</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Rate</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash Paid</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trips</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Rate</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cash Paid</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Credit</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredPartner.map((owner, index) => (
-                    <tr key={index} className="hover:bg-green-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    <tr key={index} className="hover:bg-green-50 dark:hover:bg-green-900/10">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         <div className="flex items-center">
-                          <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full mr-2">Partner</span>
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs rounded-full mr-2">Partner</span>
                           {owner.truck_owner}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_trips}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_brass?.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(owner.avg_rate)}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(owner.total_amount)}</td>
-                      <td className="px-4 py-3 text-sm text-green-600">{formatCurrency(owner.total_cash)}</td>
-                      <td className="px-4 py-3 text-sm text-red-600">{formatCurrency(owner.total_credit)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{owner.total_trips}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{owner.total_brass?.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(owner.avg_rate)}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">{formatCurrency(owner.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-green-600 dark:text-green-400">{formatCurrency(owner.total_cash)}</td>
+                      <td className="px-4 py-3 text-sm text-red-600 dark:text-red-400">{formatCurrency(owner.total_credit)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1562,38 +1562,38 @@ const Reports = ({ initialTab }) => {
 
         {/* Regular Summary Table */}
         {filteredRegular && filteredRegular.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-blue-50">
-              <h4 className="text-md font-semibold text-blue-800">Regular Owners</h4>
+          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+              <h4 className="text-md font-semibold text-blue-800 dark:text-blue-300">Regular Owners</h4>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trips</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Brass</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Rate</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cash Paid</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trips</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Rate</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cash Paid</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Credit</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredRegular.slice(0, 10).map((owner, index) => (
-                    <tr key={index} className="hover:bg-blue-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    <tr key={index} className="hover:bg-blue-50 dark:hover:bg-blue-900/10">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                         <div className="flex items-center">
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full mr-2">Regular</span>
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs rounded-full mr-2">Regular</span>
                           {owner.truck_owner}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_trips}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{owner.total_brass?.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(owner.avg_rate)}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-blue-600">{formatCurrency(owner.total_amount)}</td>
-                      <td className="px-4 py-3 text-sm text-green-600">{formatCurrency(owner.total_cash)}</td>
-                      <td className="px-4 py-3 text-sm text-red-600">{formatCurrency(owner.total_credit)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{owner.total_trips}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{owner.total_brass?.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(owner.avg_rate)}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600 dark:text-blue-400">{formatCurrency(owner.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-green-600 dark:text-green-400">{formatCurrency(owner.total_cash)}</td>
+                      <td className="px-4 py-3 text-sm text-red-600 dark:text-red-400">{formatCurrency(owner.total_credit)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1605,7 +1605,7 @@ const Reports = ({ initialTab }) => {
         {(!partnerSummary || partnerSummary.length === 0) && (!regularSummary || regularSummary.length === 0) && (
           <div className="text-center py-12">
             <FiUsers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No transaction data found for selected date range</p>
+            <p className="text-gray-500 dark:text-gray-400">No transaction data found for selected date range</p>
           </div>
         )}
       </div>
@@ -1617,8 +1617,8 @@ const Reports = ({ initialTab }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600">View detailed reports and analytics for your business</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports & Analytics</h1>
+          <p className="text-gray-600 dark:text-gray-400">View detailed reports and analytics for your business</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -1633,9 +1633,9 @@ const Reports = ({ initialTab }) => {
       </div>
 
       {/* Report Selection Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="border-b">
-          <nav className="flex -mb-px">
+      <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex -mb-px overflow-x-auto">
             {[
               { id: 'credit', label: 'Credit Report', icon: FiCreditCard },
               { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
@@ -1649,10 +1649,10 @@ const Reports = ({ initialTab }) => {
                 key={tab.id}
                 onClick={() => setActiveReport(tab.id)}
                 className={`
-                  flex-1 flex items-center justify-center space-x-2 py-4 text-sm font-medium border-b-2
+                  flex-1 flex items-center justify-center space-x-2 py-4 px-4 text-sm font-medium border-b-2 whitespace-nowrap
                   ${activeReport === tab.id 
-                    ? 'border-blue-600 text-blue-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' 
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }
                 `}
               >
@@ -1664,11 +1664,11 @@ const Reports = ({ initialTab }) => {
         </div>
 
         {/* Report Controls */}
-        <div className="p-6 border-b">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeReport === 'monthly' ? (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <FiCalendar className="inline h-4 w-4 mr-1" />
                   Select Month
                 </label>
@@ -1676,14 +1676,14 @@ const Reports = ({ initialTab }) => {
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                   max={new Date().toISOString().slice(0, 7)}
                 />
               </div>
             ) : (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <FiCalendar className="inline h-4 w-4 mr-1" />
                     Start Date (IST)
                   </label>
@@ -1691,12 +1691,12 @@ const Reports = ({ initialTab }) => {
                     type="date"
                     value={dateRange.startDate}
                     onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                     max={dateRange.endDate}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <FiCalendar className="inline h-4 w-4 mr-1" />
                     End Date (IST)
                   </label>
@@ -1704,7 +1704,7 @@ const Reports = ({ initialTab }) => {
                     type="date"
                     value={dateRange.endDate}
                     onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                     min={dateRange.startDate}
                     max={getCurrentISTDate()}
                   />
@@ -1712,7 +1712,7 @@ const Reports = ({ initialTab }) => {
               </>
             )}
             <div className="md:col-span-2">
-              <div className="flex items-center text-sm text-gray-500">
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                 <FiClock className="h-4 w-4 mr-1" />
                 All dates and times are shown in Indian Standard Time (IST)
               </div>
@@ -1725,7 +1725,7 @@ const Reports = ({ initialTab }) => {
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-500">Loading report data...</p>
+              <p className="mt-4 text-gray-500 dark:text-gray-400">Loading report data...</p>
             </div>
           ) : (
             <>
