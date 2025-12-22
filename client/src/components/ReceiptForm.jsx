@@ -704,8 +704,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sand Mining Billing</h1>
-          <p className="text-gray-600">Create new gate pass for sand trucks</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sand Mining Billing</h1>
+          <p className="text-gray-600 dark:text-gray-400">Create new gate pass for sand trucks</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="text-right">
@@ -983,7 +983,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     name="cash_paid"
                     value={formData.cash_paid}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0"
                     min="0"
                   />
