@@ -131,7 +131,7 @@ const PartnerManagement = () => {
 
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Total Partners</p>
@@ -143,7 +143,7 @@ const PartnerManagement = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Regular Owners</p>
@@ -155,7 +155,7 @@ const PartnerManagement = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Partner Transactions</p>
@@ -168,7 +168,7 @@ const PartnerManagement = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Partner Brass Total</p>
@@ -182,7 +182,7 @@ const PartnerManagement = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Truck Owners</h2>
@@ -223,7 +223,7 @@ const PartnerManagement = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
+            <thead className="bg-gray-50 dark:bg-[#262626]">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Vehicle Number</th>
@@ -242,7 +242,7 @@ const PartnerManagement = () => {
                 </tr>
               ) : (
                 filteredOwners.map(owner => (
-                  <tr key={owner.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <tr key={owner.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                     {editingId === owner.id ? (
                       <>
                         <td className="px-4 py-3">
@@ -250,7 +250,7 @@ const PartnerManagement = () => {
                             type="text"
                             value={editForm.name}
                             onChange={e => setEditForm({...editForm, name: e.target.value})}
-                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -258,7 +258,7 @@ const PartnerManagement = () => {
                             type="text"
                             value={editForm.vehicle_number || ''}
                             onChange={e => setEditForm({...editForm, vehicle_number: e.target.value})}
-                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -266,7 +266,7 @@ const PartnerManagement = () => {
                             type="text"
                             value={editForm.phone}
                             onChange={e => setEditForm({...editForm, phone: e.target.value})}
-                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
                           />
                         </td>
                         <td className="px-4 py-3">

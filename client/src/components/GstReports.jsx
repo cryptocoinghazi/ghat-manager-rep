@@ -201,7 +201,7 @@ const GstReports = () => {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Taxable Value</h3>
                 <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
@@ -211,7 +211,7 @@ const GstReports = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_taxable_value)}</p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total CGST</h3>
                 <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
@@ -221,7 +221,7 @@ const GstReports = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_cgst)}</p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total SGST</h3>
                 <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
@@ -231,7 +231,7 @@ const GstReports = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_sgst)}</p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total GST Collected</h3>
                 <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
@@ -244,7 +244,7 @@ const GstReports = () => {
           </div>
 
           {/* Transactions Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Transaction Details</h3>
               
@@ -263,17 +263,17 @@ const GstReports = () => {
                       setShowSuggestions(true);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    className="pl-10 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400"
+                    className="pl-10 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-[#262626] text-gray-900 dark:text-white dark:placeholder-gray-400"
                   />
                   {/* Suggestions Dropdown */}
                   {showSuggestions && clientFilter && (
-                    <div className="absolute z-10 w-full bg-white dark:bg-gray-700 mt-1 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full bg-white dark:bg-[#262626] mt-1 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {truckOwners
                         .filter(owner => owner.name.toLowerCase().includes(clientFilter.toLowerCase()))
                         .map(owner => (
                           <div
                             key={owner.id}
-                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                            className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
                             onClick={() => handleClientSelect(owner.name)}
                           >
                             {owner.name}
@@ -295,7 +295,7 @@ const GstReports = () => {
             
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <thead className="bg-gray-50 dark:bg-[#262626]">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Invoice No</th>
@@ -307,10 +307,10 @@ const GstReports = () => {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredTransactions.length > 0 ? (
                     filteredTransactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {new Date(tx.date_time).toLocaleDateString('en-IN')}
                         </td>
