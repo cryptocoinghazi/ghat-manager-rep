@@ -311,6 +311,9 @@ const LandingPage = () => {
       {/* Footer */}
       <footer className="py-12 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-black text-center text-gray-500 transition-colors duration-300">
         <p>© 2025 Ghat Manager. All rights reserved.</p>
+        <p className="mt-2 text-sm">
+          Email: <a href="mailto:support@ghatmanager.co.in" className="hover:text-primary-gold transition-colors">support@ghatmanager.co.in</a>
+        </p>
       </footer>
 
       {/* Floating WhatsApp */}
