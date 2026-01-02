@@ -50,8 +50,8 @@ const LandingPage = () => {
   };
 
   const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
   };
 
   const staggerContainer = {
@@ -59,282 +59,570 @@ const LandingPage = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2
+        staggerChildren: 0.15,
+        delayChildren: 0.1
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#1A1A1A] text-gray-900 dark:text-white overflow-x-hidden font-sans selection:bg-primary-gold selection:text-black transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#030014] text-gray-900 dark:text-white overflow-x-hidden font-sans selection:bg-amber-500/60 selection:text-black transition-colors duration-500">
+      {/* Enhanced Background Canvas */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" style={{ transform: 'translateZ(0)' }}>
+        {/* Cinematic Background Image - Fixed & Parallax Illusion */}
+        <div className="absolute inset-0 hidden dark:block will-change-transform">
+          <img 
+            src="/background.png" 
+            alt="Cosmic Background" 
+            className="w-full h-full object-cover opacity-80 scale-105"
+            loading="eager"
+            decoding="async"
+          />
+          {/* Deep Space Overlay - Adjusted for Vibrancy */}
+          <div className="absolute inset-0 bg-[#030014]/40 mix-blend-multiply" />
+          {/* Gradient Overlay for Depth */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#030014]/50 via-transparent to-[#030014]" />
+        </div>
+
+        {/* Animated Gradient Orbs - Refined for Image Blend */}
+        <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent rounded-full blur-[120px] animate-pulse-slow mix-blend-screen will-change-transform" />
+        <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-l from-amber-600/10 via-red-500/5 to-transparent rounded-full blur-[120px] animate-pulse-slow delay-1000 mix-blend-screen will-change-transform" />
+
+        {/* Grain Texture */}
+        <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.07] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+
+        {/* Cinematic Vignette */}
+        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0)_30%,rgba(0,0,0,0.95)_80%)] bg-gradient-to-b from-transparent via-black/40 to-black/80" style={{ transform: 'translateZ(0)' }} />
+      </div>
+
       {/* Navbar */}
-      <nav className="fixed w-full z-50 bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+      <nav className="fixed w-full z-50 bg-white/80 dark:bg-[#030014]/60 backdrop-blur-2xl border-b border-gray-200/50 dark:border-amber-500/[0.08] transition-all duration-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="text-2xl font-bold bg-gradient-to-r from-primary-gold to-yellow-600 dark:to-yellow-200 bg-clip-text text-transparent">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center gap-3">
+              <motion.div 
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="relative group"
+              >
+                <div className="absolute -inset-2 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 rounded-xl blur-lg opacity-60 group-hover:opacity-100 transition-all duration-500" />
+                <div className="relative w-10 h-10 rounded-lg bg-[#030014] flex items-center justify-center border border-amber-500/30">
+                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-200 to-amber-400 text-xl drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]">G</span>
+                </div>
+              </motion.div>
+              <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-amber-50 drop-shadow-[0_0_15px_rgba(245,158,11,0.4)]">
                 Ghat Manager
-              </div>
+              </span>
             </div>
-            <div className="flex items-center gap-4">
-              <button
+            <div className="flex items-center gap-6">
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={toggleTheme}
-                className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                className="p-2.5 rounded-full text-gray-600 dark:text-amber-200/70 hover:bg-amber-500/10 hover:text-amber-500 dark:hover:text-amber-400 transition-all duration-300 border border-transparent hover:border-amber-500/20"
                 aria-label="Toggle theme"
               >
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              <button 
-                onClick={() => navigate('/login')}
-                className="px-6 py-2 rounded-full border border-primary-gold text-primary-gold hover:bg-primary-gold hover:text-black transition-all duration-300 font-medium"
+                {theme === 'dark' ? <Sun className="w-5 h-5 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" /> : <Moon className="w-5 h-5" />}
+              </motion.button>
+             
+              <motion.button 
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/login')} 
+                className="px-7 py-3 rounded-full text-sm font-bold transition-all duration-300 text-white shadow-[0_0_30px_rgba(255,140,0,0.3)] bg-gradient-to-r from-[#FFB600] via-[#FF8A00] to-[#FF6B00] hover:shadow-[0_0_50px_rgba(255,140,0,0.6)] hover:brightness-110 border border-amber-400/30 relative overflow-hidden"
               >
-                Login
-              </button>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer" />
+                <span className="relative flex items-center gap-2 drop-shadow-md">
+                  Login
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              </motion.button>
             </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        {/* Background Mesh Gradients */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-gold/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[100px]" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="max-w-4xl mx-auto"
-          >
-            <motion.h1 
-              variants={fadeInUp}
-              className="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-gray-900 dark:text-white"
-            >
-              Stop Losing Revenue at the Gate. <br />
-              <span className="bg-gradient-to-r from-primary-gold to-yellow-600 dark:to-yellow-200 bg-clip-text text-transparent">
-                Digitize Your Sand Mining
-              </span> in Seconds.
-            </motion.h1>
+      <section className="relative pt-44 pb-32 lg:pt-56 lg:pb-40 overflow-hidden z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
             
-            <motion.p 
-              variants={fadeInUp}
-              className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto"
-            >
-              The all-in-one billing & register system built specifically for Indian Quarry operations. 
-              Track every brass, every truck, and every rupee.
-            </motion.p>
-
+            {/* Left Content */}
             <motion.div 
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+              className="flex-1 text-center lg:text-left z-10 relative"
             >
-              <button 
-                onClick={() => navigate('/login')}
-                className="group relative px-8 py-4 bg-primary-gold text-black rounded-full font-bold text-lg shadow-[0_0_20px_rgba(194,178,128,0.3)] hover:shadow-[0_0_30px_rgba(194,178,128,0.5)] transition-all duration-300 animate-pulse-slow"
+              <div className="hero-vignette absolute -inset-20 -z-10 hidden dark:block opacity-80" style={{ transform: 'translateZ(0)' }} />
+              
+              <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/30 text-amber-300 text-xs font-semibold  tracking-wider mb-10 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.1)] will-change-transform">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_10px_rgba(245,158,11,1)]" />
+                LIVE NOW  
+              </motion.div>
+
+              <motion.h1 
+                variants={fadeInUp}
+                className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-10 leading-[0.95] text-gray-100 dark:text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)] will-change-transform"
               >
-                Get Started for Free
-                <ArrowRight className="inline-block ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+                Stop Losing <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 drop-shadow-lg">Revenue at the Gate.</span> <br />
+                <span className="molten-text leading-[1.0] pb-2 inline-block">
+                  Digitize Your Sand Mining
+                </span> <span className="text-amber-500 drop-shadow-[0_0_25px_rgba(245,158,11,0.5)]">in Seconds.</span>
+              </motion.h1>
+              
+              <motion.p 
+                variants={fadeInUp}
+                className="text-xl md:text-2xl text-gray-600 dark:text-gray-300/90 mb-12 max-w-2xl mx-auto lg:mx-0 leading-relaxed drop-shadow-lg font-light tracking-wide"
+              >
+                The all-in-one billing & register system built specifically for Indian Quarry operations. 
+                Track every brass, every truck, and every rupee.
+              </motion.p>
+
+              <motion.div 
+                variants={fadeInUp}
+                className="flex flex-col sm:flex-row gap-8 justify-center lg:justify-start items-center"
+              >
+                <div className="flex flex-col items-center lg:items-start gap-4">
+                  <motion.button 
+                    whileHover={{ scale: 1.05, y: -3 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/login')}
+                    className="group relative px-10 py-5 rounded-full font-bold text-xl text-white transition-all duration-500 hover:shadow-[0_0_80px_rgba(255,140,0,0.6)] z-20"
+                  >
+                    <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#FFD700] via-[#FF8C00] to-[#FF4500] blur-xl opacity-70 animate-pulse-slow" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#FFD700] via-[#FF8C00] to-[#FF4500] shadow-[inset_0_2px_20px_rgba(255,255,255,0.4)]" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-t from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 mix-blend-overlay" />
+                    <div className="absolute inset-0 overflow-hidden rounded-full">
+                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer" />
+                    </div>
+                    <span className="relative flex items-center gap-3 drop-shadow-lg">
+                      Get Started for Free 🔥
+                      <ArrowRight className="ml-1 w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
+                    </span>
+                  </motion.button>
+                  <span className="text-sm text-gray-500 dark:text-gray-400/60 font-medium tracking-wide">No credit card required • Instant setup</span>
+                  
+                  {/* Email Contact Line */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1, duration: 0.8 }}
+                    className="mt-6 flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors cursor-pointer group/email"
+                    onClick={() => window.location.href = 'mailto:support@ghatmanager.co.in'}
+                  >
+                    <MessageCircle className="w-4 h-4 text-amber-500 group-hover/email:scale-110 transition-transform" />
+                    <span className="text-sm text-gray-400 font-medium tracking-wide group-hover/email:text-gray-300 transition-colors">
+                      Email at <span className="text-amber-500/90 hover:text-amber-400 hover:underline">support@ghatmanager.co.in</span> to Schedule a Demo
+                    </span>
+                  </motion.div>
+                </div>
+              </motion.div>
             </motion.div>
 
-            {/* Video Mockup */}
+            {/* Right Content - Laptop Mockup */}
             <motion.div 
-              variants={fadeInUp}
-              className="relative mx-auto max-w-5xl"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 relative w-full max-w-2xl lg:max-w-none"
             >
-              <div className="relative rounded-xl bg-white dark:bg-[#2A2A2A] p-2 shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 backdrop-blur-sm transition-colors duration-300">
-                <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary-gold to-blue-600 opacity-20 blur-lg" />
-                <div className="relative rounded-lg overflow-hidden bg-black aspect-video border border-gray-200 dark:border-gray-700">
-                  {/* Browser Toolbar Mockup */}
-                  <div className="h-8 bg-gray-100 dark:bg-[#1A1A1A] flex items-center px-4 space-x-2 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
-                    <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/50" />
+              <div className="absolute -inset-10 rounded-[3rem] molten-rim-bloom" />
+
+              <div className="relative rounded-[2rem] bg-gradient-to-b from-gray-900/80 to-black border border-white/10 shadow-2xl overflow-hidden backdrop-blur-md group molten-outline">
+                {/* Mockup Header */}
+                <div className="h-10 bg-gradient-to-r from-gray-900 to-black border-b border-white/10 flex items-center px-5 gap-3">
+                  <div className="flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500/90 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/90 shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/90 shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
                   </div>
-                  {/* Video Player */}
-                  <div className="w-full h-full flex items-center justify-center bg-black relative group">
-                    <video 
-                      ref={videoRef}
-                      className="w-full h-full object-cover"
-                      autoPlay 
-                      muted 
-                      loop 
-                      playsInline
-                    >
-                      <source src="/video.mp4" type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                    
-                    {/* Mute/Unmute Control */}
-                    <button
-                      onClick={toggleMute}
-                      className="absolute bottom-4 right-4 p-3 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full text-white transition-all duration-300 z-20 border border-white/10 hover:scale-110"
-                      aria-label={isMuted ? "Unmute video" : "Mute video"}
-                    >
-                      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
+                  <div className="flex-1 text-center">
+                    <div className="inline-block px-4 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-400 font-mono tracking-wide">ghatmanager.co.in</div>
                   </div>
                 </div>
+
+                {/* Video Container */}
+                <div className="relative aspect-[16/10] bg-black">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-orange-500/5 to-rose-500/5 z-10 pointer-events-none mix-blend-overlay" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 pointer-events-none" />
+                  <video 
+                    ref={videoRef}
+                    className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-700"
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline
+                  >
+                    <source src="/video.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+
+                  {/* Mute/Unmute Control */}
+                  <button
+                    onClick={toggleMute}
+                    className="absolute bottom-5 right-5 p-3 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-full text-white/90 hover:text-white transition-all duration-300 border border-white/10 z-20 shadow-lg group/btn"
+                    aria-label={isMuted ? "Unmute video" : "Mute video"}
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5 group-hover/btn:scale-110 transition-transform" /> : <Volume2 className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />}
+                  </button>
+                </div>
+
+                {/* Screen Reflection */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none z-20 mix-blend-overlay" />
               </div>
+              
+              {/* Floating Metric Card */}
+              <motion.div 
+                initial={{ y: 30, opacity: 0, rotate: -5 }}
+                animate={{ y: 0, opacity: 1, rotate: 0 }}
+                transition={{ delay: 1.2, duration: 0.7, ease: "backOut" }}
+                className="absolute -bottom-8 -left-8 p-6 rounded-2xl bg-[#0a0a0a]/60 backdrop-blur-2xl border border-amber-500/20 shadow-2xl z-30 hidden md:block glass-card neon-edge"
+              >
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="p-3.5 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/10 border border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
+                    <TrendingUp className="w-6 h-6 text-green-400 drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Daily Revenue</div>
+                    <div className="text-2xl font-bold text-white drop-shadow-md">₹ 45,200</div>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Trust Ticker */}
-      <div className="w-full bg-white dark:bg-[#1A1A1A] border-y border-gray-200 dark:border-gray-700 py-4 overflow-hidden transition-colors duration-300">
-        <div className="flex whitespace-nowrap animate-marquee">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center space-x-12 px-6">
-              <span className="text-gray-600 dark:text-gray-400 font-mono flex items-center"><CheckCircle className="w-4 h-4 mr-2 text-primary-gold" /> 10,000+ Receipts Generated</span>
-              <span className="text-gray-600 dark:text-gray-400 font-mono flex items-center"><CheckCircle className="w-4 h-4 mr-2 text-primary-gold" /> 50+ Ghats Managed</span>
-              <span className="text-gray-600 dark:text-gray-400 font-mono flex items-center"><CheckCircle className="w-4 h-4 mr-2 text-primary-gold" /> Zero Calculation Errors</span>
-              <span className="text-gray-600 dark:text-gray-400 font-mono flex items-center"><CheckCircle className="w-4 h-4 mr-2 text-primary-gold" /> 100% GST Compliant</span>
-            </div>
-          ))}
+      {/* Metrics Section */}
+      <div className="w-full bg-transparent relative z-10 mb-32">
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-6">
+            {[
+              { icon: CheckCircle, label: "Receipts Generated", value: "10,000+", color: "amber" },
+              { icon: Shield, label: "Ghats Managed", value: "50+", color: "blue" },
+              { icon: Zap, label: "Calculation Errors", value: "Zero", color: "green" },
+              { icon: Printer, label: "GST Compliant", value: "100%", color: "purple" },
+            ].map((stat, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, duration: 0.6 }}
+                whileHover={{ y: -10, scale: 1.02 }}
+                viewport={{ once: true }}
+                className="py-10 px-6 flex flex-col items-center justify-center text-center group rounded-3xl bg-[#0a0a0a]/40 hover:bg-[#0a0a0a]/60 transition-all duration-500 cursor-default backdrop-blur-2xl glass-card neon-edge border border-white/[0.05]"
+              >
+                <div className={`p-4 rounded-2xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 mb-5 group-hover:scale-110 group-hover:border-${stat.color}-500/40 transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.5)]`}>
+                  <stat.icon className={`w-8 h-8 text-${stat.color}-400 drop-shadow-[0_0_15px_rgba(var(--color-${stat.color}-500),0.8)]`} />
+                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">{stat.value}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-400/80 font-medium tracking-wide">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Pain Section */}
-      <section className="py-24 relative">
+      {/* Problem Section */}
+      <section className="py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">Why Manual Billing Fails</h2>
-            <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Paper slips and registers are costing you more than you think.</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-24"
+          >
+            <h2 className="text-5xl md:text-6xl font-bold mb-8 text-gray-900 dark:text-white drop-shadow-2xl">
+              Ditch Paper Slips. <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-300 to-amber-200 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">Rake in More Cash</span>
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400/80 max-w-2xl mx-auto font-light">
+              Paper slips and registers are costing you more than you think.
+            </p>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-10">
             {[
               {
-                icon: <AlertTriangle className="w-10 h-10 text-red-500" />,
+                icon: <AlertTriangle className="w-10 h-10 text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]" />,
                 title: "Revenue Leakage",
-                desc: "Cash theft and unrecorded trucks are common with manual receipts."
+                desc: "Cash theft and unrecorded trucks are common with manual receipts.",
+                border: "hover:border-red-500/40",
+                glow: "hover:shadow-[0_0_50px_rgba(239,68,68,0.15)]",
+                bg: "bg-gradient-to-br from-red-500/[0.03] to-transparent"
               },
               {
-                icon: <XCircle className="w-10 h-10 text-orange-500" />,
+                icon: <XCircle className="w-10 h-10 text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.7)]" />,
                 title: "Calculation Errors",
-                desc: "Manual Brass/Bharai calculations lead to losses on every trip."
+                desc: "Manual Brass/Bharai calculations lead to losses on every trip.",
+                border: "hover:border-orange-500/40",
+                glow: "hover:shadow-[0_0_50px_rgba(249,115,22,0.15)]",
+                bg: "bg-gradient-to-br from-orange-500/[0.03] to-transparent"
               },
               {
-                icon: <BarChart3 className="w-10 h-10 text-yellow-500" />,
+                icon: <BarChart3 className="w-10 h-10 text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.7)]" />,
                 title: "Zero Visibility",
-                desc: "No real-time data on daily sales or partner royalties."
+                desc: "No real-time data on daily sales or partner royalties.",
+                border: "hover:border-amber-500/40",
+                glow: "hover:shadow-[0_0_50px_rgba(245,158,11,0.15)]",
+                bg: "bg-gradient-to-br from-amber-500/[0.03] to-transparent"
               }
             ].map((card, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
+                transition={{ delay: idx * 0.15, duration: 0.7 }}
+                whileHover={{ y: -15, transition: { duration: 0.3 } }}
                 viewport={{ once: true }}
-                className="p-8 rounded-2xl bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 backdrop-blur-md hover:bg-gray-50 dark:hover:bg-[#262626] transition-colors shadow-lg dark:shadow-none"
+                className={`p-10 rounded-3xl ${card.bg} border border-white/[0.05] backdrop-blur-xl transition-all duration-500 group shadow-2xl glass-card neon-edge ${card.border} dark:${card.glow}`}
               >
-                <div className="mb-6 p-3 bg-gray-100 dark:bg-[#262626] w-fit rounded-xl">{card.icon}</div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">{card.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400">{card.desc}</p>
+                <div className="mb-8 p-5 bg-white/[0.03] w-fit rounded-2xl border border-white/10 group-hover:scale-110 group-hover:bg-white/[0.08] transition-all duration-500">
+                  {card.icon}
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white group-hover:text-amber-100 transition-colors">{card.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400/80 leading-relaxed text-base">{card.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Bento Grid */}
-      <section className="py-24 bg-gray-100 dark:bg-black/20 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">Built for Speed & Control</h2>
-          </div>
+      {/* Feature Section */}
+      <section className="py-40 bg-gray-50 dark:bg-transparent z-10 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-28"
+          >
+            <h2 className="text-5xl md:text-6xl font-bold mb-8 text-gray-900 dark:text-white drop-shadow-2xl">
+              The Smarter Way to <br /> 
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200 drop-shadow-[0_0_20px_rgba(251,191,36,0.3)]">Manage Your Ghat</span>
+            </h2>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 md:grid-rows-2 gap-6 h-auto md:h-[600px]">
-            {/* Large Card */}
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            {/* Left - Receipt Card */}
             <motion.div 
-              whileHover={{ scale: 1.02 }}
-              className="md:col-span-2 md:row-span-2 p-8 rounded-3xl bg-white dark:bg-gradient-to-br dark:from-gray-900 dark:to-black border border-gray-200 dark:border-gray-700 relative overflow-hidden group shadow-xl dark:shadow-none transition-all"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              whileHover={{ scale: 1.03, rotateY: 2 }}
+              transition={{ duration: 0.7 }}
+              viewport={{ once: true }}
+              className="relative p-2 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-transparent glass-card neon-edge"
             >
-              <div className="absolute inset-0 bg-primary-gold/5 group-hover:bg-primary-gold/10 transition-colors" />
-              <div className="relative z-10 h-full flex flex-col">
-                <div className="p-3 bg-primary-gold/20 w-fit rounded-xl mb-6">
-                  <Zap className="w-8 h-8 text-primary-gold" />
-                </div>
-                <h3 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Smart Receipt Generation</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-lg mb-8 max-w-md">
-                  Auto-calculate Brass, Bharai, and total amounts instantly. 
-                  Just enter measurements or vehicle number, and let the system handle the math.
-                </p>
-                <div className="mt-auto rounded-xl bg-gray-50 dark:bg-[#1A1A1A] p-4 border border-gray-200 dark:border-gray-700 backdrop-blur-sm">
-                  <div className="flex justify-between items-center mb-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span>Receipt #9021</span>
-                    <span>Just Now</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/5 blur-3xl opacity-30" />
+              <div className="relative p-10 rounded-[2rem] bg-gradient-to-b from-[#0a0a0a] to-black border border-white/10 shadow-2xl overflow-hidden glass-card">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px]" />
+                
+                <div className="flex items-center gap-6 mb-10">
+                  <div className="p-4 bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-2xl border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                    <Zap className="w-10 h-10 text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.7)]" />
                   </div>
-                  <div className="flex justify-between items-center font-mono text-xl text-gray-900 dark:text-white">
-                    <span>MH-12-GH-4455</span>
-                    <span className="text-green-500 dark:text-green-400">₹ 4,500.00</span>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Digital Receipt</h3>
+                    <p className="text-sm text-gray-400">Instant Generation • Auto-GST</p>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex justify-between items-center backdrop-blur-sm hover:bg-white/[0.05] transition-colors">
+                    <span className="text-gray-400 text-sm">Receipt No</span>
+                    <span className="text-white font-mono font-bold">#9021</span>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 flex justify-between items-center backdrop-blur-sm hover:bg-white/[0.05] transition-colors">
+                    <span className="text-gray-400 text-sm">Vehicle No</span>
+                    <span className="text-white font-mono font-bold">MH-12-GH-4455</span>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/20 flex justify-between items-center backdrop-blur-sm hover:border-amber-500/40 transition-colors">
+                    <span className="text-amber-200 text-sm font-medium">Total Amount</span>
+                    <span className="text-amber-300 font-bold text-2xl drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">₹ 4,500.00</span>
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Medium Card */}
-            <motion.div 
-              whileHover={{ scale: 1.02 }}
-              className="p-8 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 relative overflow-hidden shadow-xl dark:shadow-none transition-all"
-            >
-              <div className="relative z-10">
-                <div className="p-3 bg-blue-500/20 w-fit rounded-xl mb-4">
-                  <CreditCard className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            {/* Right - Features Stack */}
+            <div className="space-y-8">
+              <motion.div 
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ translateX: 15, transition: { duration: 0.3 } }}
+                transition={{ delay: 0.2, duration: 0.7 }}
+                viewport={{ once: true }}
+                className="p-10 rounded-3xl bg-[#0a0a0a]/50 border border-white/10 hover:border-blue-500/40 transition-all duration-500 group glass-card neon-edge backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+              >
+                <div className="flex items-start gap-8">
+                  <div className="p-5 bg-gradient-to-br from-blue-500/10 to-cyan-500/5 rounded-2xl border border-blue-500/20 group-hover:bg-blue-500/20 group-hover:border-blue-500/40 transition-all duration-500">
+                    <CreditCard className="w-10 h-10 text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.7)]" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-blue-200 transition-colors">Udhaar vs. Cash</h3>
+                    <p className="text-gray-400/80 leading-relaxed text-lg">Live credit tracking for all your truck owners. Never lose track of pending payments again.</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Udhaar vs. Cash</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Live credit tracking for all your truck owners.</p>
-              </div>
-            </motion.div>
+              </motion.div>
 
-            {/* Small Card 1 */}
-            <motion.div 
-              whileHover={{ scale: 1.02 }}
-              className="p-8 rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 relative overflow-hidden shadow-xl dark:shadow-none transition-all"
-            >
-              <div className="relative z-10">
-                <div className="p-3 bg-green-500/20 w-fit rounded-xl mb-4">
-                  <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <motion.div 
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ translateX: 15, transition: { duration: 0.3 } }}
+                transition={{ delay: 0.4, duration: 0.7 }}
+                viewport={{ once: true }}
+                className="p-10 rounded-3xl bg-[#0a0a0a]/50 border border-white/10 hover:border-green-500/40 transition-all duration-500 group glass-card neon-edge backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+              >
+                <div className="flex items-start gap-8">
+                  <div className="p-5 bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-2xl border border-green-500/20 group-hover:bg-green-500/20 group-hover:border-green-500/40 transition-all duration-500">
+                    <TrendingUp className="w-10 h-10 text-green-400 drop-shadow-[0_0_15px_rgba(34,197,94,0.7)]" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-green-200 transition-colors">Partner Royalty</h3>
+                    <p className="text-gray-400/80 leading-relaxed text-lg">Automated profit sharing logic. Calculate exact partner shares instantly at the end of the day.</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Partner Royalty</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Automated profit sharing logic.</p>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-black text-center text-gray-500 transition-colors duration-300">
-        <p>© 2025 Ghat Manager. All rights reserved.</p>
-        <p className="mt-2 text-sm">
-          Email: <a href="mailto:support@ghatmanager.co.in" className="hover:text-primary-gold transition-colors">support@ghatmanager.co.in</a>
+      <footer className="py-16 border-t border-gray-200/50 dark:border-white/[0.08] bg-gray-50 dark:bg-[#030014]/80 text-center text-gray-500 relative z-10 transition-colors duration-500 backdrop-blur-xl">
+        <p className="mb-6 text-gray-600 dark:text-gray-500/80 text-lg">© 2025 Ghat Manager. All rights reserved.</p>
+        <p className="text-base">
+          Email: <a href="mailto:support@ghatmanager.co.in" className="text-amber-500 hover:text-amber-400 transition-colors duration-300 underline decoration-amber-500/30 underline-offset-4 hover:decoration-amber-400/50">support@ghatmanager.co.in</a>
         </p>
       </footer>
 
       {/* Floating WhatsApp */}
-      <a 
+      <motion.a 
         href="https://wa.me/" 
         target="_blank" 
         rel="noopener noreferrer"
-        className="fixed bottom-8 right-8 z-50 p-4 bg-green-500 text-white rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:scale-110 transition-transform animate-pulse"
+        whileHover={{ scale: 1.15, rotate: 5 }}
+        whileTap={{ scale: 0.95 }}
+        className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-br from-[#25D366] to-[#128C7E] text-white rounded-2xl shadow-[0_0_30px_rgba(37,211,102,0.4)] hover:shadow-[0_0_50px_rgba(37,211,102,0.6)] transition-all duration-300 animate-pulse-slow"
         aria-label="Contact us on WhatsApp"
       >
-        <MessageCircle className="w-8 h-8" />
-      </a>
+        <MessageCircle className="w-9 h-9 drop-shadow-md" />
+      </motion.a>
       
-      {/* Custom Styles for Marquee */}
+      {/* Enhanced Custom Styles */}
       <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-100%); }
+        /* Hero vignette - Cinematic */
+        .hero-vignette {
+          background: radial-gradient(circle at 50% 50%, 
+            rgba(0,0,0,0) 20%, 
+            rgba(0,0,0,0.4) 50%,
+            rgba(0,0,0,0.8) 80%);
+          mix-blend-mode: multiply;
         }
-        .animate-marquee {
-          animation: marquee 25s linear infinite;
+
+        /* Molten headline treatment - SUPER HOT */
+        .molten-text {
+          background-image: linear-gradient(92deg, 
+            #FFF7CC 0%, 
+            #FFD700 20%,
+            #FFB600 40%,
+            #FF8A00 60%,
+            #FF4500 85%,
+            #FFD700 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          filter: drop-shadow(0 0 10px rgba(255,180,0,0.5));
+          text-shadow: 
+            0 0 20px rgba(255, 180, 76, 0.6),
+            0 0 40px rgba(255, 120, 32, 0.4),
+            0 0 80px rgba(255, 60, 0, 0.2);
+          background-size: 200% auto;
+          animation: moltenShimmer 3s linear infinite;
+          will-change: background-position;
+        }
+
+        @keyframes moltenShimmer {
+          0% { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+
+        /* Shimmer animation */
+        @keyframes shimmer {
+          0% { transform: translateX(-100%) skewX(-15deg); }
+          100% { transform: translateX(100%) skewX(-15deg); }
+        }
+        .animate-shimmer {
+          animation: shimmer 2.5s infinite;
+          will-change: transform;
+        }
+
+        /* Slow pulse */
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.85; transform: scale(1.02); }
+        }
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+
+        /* Laptop rim and bloom - Enhanced */
+        .molten-outline {
+          box-shadow: 
+            0 0 0 1px rgba(255, 255, 255, 0.1),
+            0 0 0 3px rgba(255, 160, 0, 0.1),
+            0 0 60px rgba(255, 140, 32, 0.4),
+            0 20px 80px rgba(0,0,0,0.9);
+          transform: translateZ(0);
+        }
+        .molten-rim-bloom {
+          background: radial-gradient(closest-side, 
+            rgba(255,180,60,0.3) 0%,
+            rgba(255,100,0,0.2) 40%,
+            rgba(0,0,0,0) 100%);
+          filter: blur(50px);
+          opacity: 0.9;
+          animation: pulse-slow 5s infinite;
+          will-change: transform, opacity;
+        }
+
+        /* Enhanced glass cards - Darker, Deeper */
+        .glass-card {
+          background: rgba(10, 10, 10, 0.6);
+          box-shadow: 
+            inset 0 1px 0 rgba(255,255,255,0.05),
+            0 20px 50px rgba(0,0,0,0.8),
+            0 0 30px rgba(255,160,64,0.05);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.08);
+          transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+          transform: translateZ(0);
+          will-change: transform, box-shadow;
+        }
+
+        /* Neon edge effect - Sharper */
+        .neon-edge {
+          position: relative;
+        }
+        .neon-edge::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          pointer-events: none;
+          padding: 1.5px;
+          background: linear-gradient(180deg, 
+            rgba(255,255,255,0.2) 0%,
+            rgba(255,180,0,0.1) 30%,
+            transparent 100%);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          box-shadow: 0 0 15px rgba(255, 170, 64, 0.1);
         }
       `}</style>
     </div>
