@@ -59,8 +59,8 @@ const LandingPage = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.3,
-        delayChildren: 0.2
+        staggerChildren: 0.15,
+        delayChildren: 0.1
       }
     }
   };
@@ -68,13 +68,15 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#030014] text-gray-900 dark:text-white overflow-x-hidden font-sans selection:bg-amber-500/60 selection:text-black transition-colors duration-500">
       {/* Enhanced Background Canvas */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" style={{ transform: 'translateZ(0)' }}>
         {/* Cinematic Background Image - Fixed & Parallax Illusion */}
-        <div className="absolute inset-0 hidden dark:block">
+        <div className="absolute inset-0 hidden dark:block will-change-transform">
           <img 
             src="/background.png" 
             alt="Cosmic Background" 
             className="w-full h-full object-cover opacity-80 scale-105"
+            loading="eager"
+            decoding="async"
           />
           {/* Deep Space Overlay - Adjusted for Vibrancy */}
           <div className="absolute inset-0 bg-[#030014]/40 mix-blend-multiply" />
@@ -83,14 +85,14 @@ const LandingPage = () => {
         </div>
 
         {/* Animated Gradient Orbs - Refined for Image Blend */}
-        <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent rounded-full blur-[120px] animate-pulse-slow mix-blend-screen" />
-        <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-l from-amber-600/10 via-red-500/5 to-transparent rounded-full blur-[120px] animate-pulse-slow delay-1000 mix-blend-screen" />
+        <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent rounded-full blur-[120px] animate-pulse-slow mix-blend-screen will-change-transform" />
+        <div className="absolute bottom-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-l from-amber-600/10 via-red-500/5 to-transparent rounded-full blur-[120px] animate-pulse-slow delay-1000 mix-blend-screen will-change-transform" />
 
         {/* Grain Texture */}
-        <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.07] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
+        <div className="absolute inset-0 opacity-[0.05] dark:opacity-[0.07] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" style={{ transform: 'translateZ(0)' }} />
 
         {/* Cinematic Vignette */}
-        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0)_30%,rgba(0,0,0,0.95)_80%)] bg-gradient-to-b from-transparent via-black/40 to-black/80" />
+        <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,rgba(0,0,0,0)_30%,rgba(0,0,0,0.95)_80%)] bg-gradient-to-b from-transparent via-black/40 to-black/80" style={{ transform: 'translateZ(0)' }} />
       </div>
 
       {/* Navbar */}
@@ -151,16 +153,16 @@ const LandingPage = () => {
               variants={staggerContainer}
               className="flex-1 text-center lg:text-left z-10 relative"
             >
-              <div className="hero-vignette absolute -inset-20 -z-10 hidden dark:block opacity-80" />
+              <div className="hero-vignette absolute -inset-20 -z-10 hidden dark:block opacity-80" style={{ transform: 'translateZ(0)' }} />
               
-              <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/30 text-amber-300 text-xs font-semibold uppercase tracking-wider mb-10 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+              <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/30 text-amber-300 text-xs font-semibold  tracking-wider mb-10 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.1)] will-change-transform">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_10px_rgba(245,158,11,1)]" />
-                Live Production Ready
+                LIVE NOW  
               </motion.div>
 
               <motion.h1 
                 variants={fadeInUp}
-                className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-10 leading-[0.95] text-gray-100 dark:text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)]"
+                className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-10 leading-[0.95] text-gray-100 dark:text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.9)] will-change-transform"
               >
                 Stop Losing <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 via-gray-300 to-gray-400 drop-shadow-lg">Revenue at the Gate.</span> <br />
@@ -200,6 +202,20 @@ const LandingPage = () => {
                     </span>
                   </motion.button>
                   <span className="text-sm text-gray-500 dark:text-gray-400/60 font-medium tracking-wide">No credit card required • Instant setup</span>
+                  
+                  {/* Email Contact Line */}
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1, duration: 0.8 }}
+                    className="mt-6 flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors cursor-pointer group/email"
+                    onClick={() => window.location.href = 'mailto:support@ghatmanager.co.in'}
+                  >
+                    <MessageCircle className="w-4 h-4 text-amber-500 group-hover/email:scale-110 transition-transform" />
+                    <span className="text-sm text-gray-400 font-medium tracking-wide group-hover/email:text-gray-300 transition-colors">
+                      Email at <span className="text-amber-500/90 hover:text-amber-400 hover:underline">support@ghatmanager.co.in</span> to Schedule a Demo
+                    </span>
+                  </motion.div>
                 </div>
               </motion.div>
             </motion.div>
@@ -526,6 +542,7 @@ const LandingPage = () => {
             0 0 80px rgba(255, 60, 0, 0.2);
           background-size: 200% auto;
           animation: moltenShimmer 3s linear infinite;
+          will-change: background-position;
         }
 
         @keyframes moltenShimmer {
@@ -540,6 +557,7 @@ const LandingPage = () => {
         }
         .animate-shimmer {
           animation: shimmer 2.5s infinite;
+          will-change: transform;
         }
 
         /* Slow pulse */
@@ -549,6 +567,7 @@ const LandingPage = () => {
         }
         .animate-pulse-slow {
           animation: pulse-slow 4s ease-in-out infinite;
+          will-change: transform, opacity;
         }
 
         /* Laptop rim and bloom - Enhanced */
@@ -558,6 +577,7 @@ const LandingPage = () => {
             0 0 0 3px rgba(255, 160, 0, 0.1),
             0 0 60px rgba(255, 140, 32, 0.4),
             0 20px 80px rgba(0,0,0,0.9);
+          transform: translateZ(0);
         }
         .molten-rim-bloom {
           background: radial-gradient(closest-side, 
@@ -567,6 +587,7 @@ const LandingPage = () => {
           filter: blur(50px);
           opacity: 0.9;
           animation: pulse-slow 5s infinite;
+          will-change: transform, opacity;
         }
 
         /* Enhanced glass cards - Darker, Deeper */
@@ -579,6 +600,8 @@ const LandingPage = () => {
           backdrop-filter: blur(20px);
           border: 1px solid rgba(255,255,255,0.08);
           transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+          transform: translateZ(0);
+          will-change: transform, box-shadow;
         }
 
         /* Neon edge effect - Sharper */
