@@ -6,6 +6,8 @@ export const Receipts = sequelize.define('receipts', {
   receipt_no: { type: DataTypes.STRING(64), unique: true, allowNull: false },
   truck_owner: { type: DataTypes.STRING(255), allowNull: false },
   vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
+  driver_name: { type: DataTypes.STRING(255) },
+  tyre_type: { type: DataTypes.STRING(16) },
   date_time: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   brass_qty: { type: DataTypes.DECIMAL(10,2), allowNull: false },
   rate: { type: DataTypes.DECIMAL(10,2), allowNull: false },
@@ -66,6 +68,47 @@ export const TruckOwners = sequelize.define('truck_owners', {
   is_active: { type: DataTypes.INTEGER, defaultValue: 1 }
 });
 
+export const TruckVehicles = sequelize.define('truck_vehicles', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  vehicle_number: { type: DataTypes.STRING(64), unique: true, allowNull: false },
+  truck_owner_id: { type: DataTypes.INTEGER, allowNull: true },
+  driver_name: { type: DataTypes.STRING(255) },
+  tyre_type: { type: DataTypes.STRING(16) }
+});
+
+export const ReceiptEditHistory = sequelize.define('receipt_edit_history', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  receipt_id: { type: DataTypes.INTEGER, allowNull: false },
+  field_name: { type: DataTypes.STRING(64), allowNull: false },
+  old_value: { type: DataTypes.TEXT },
+  new_value: { type: DataTypes.TEXT },
+  change_date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  changed_by: { type: DataTypes.STRING(64) },
+  reason: { type: DataTypes.TEXT }
+});
+
+export const VehicleEditHistory = sequelize.define('vehicle_edit_history', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
+  field_name: { type: DataTypes.STRING(64), allowNull: false },
+  old_value: { type: DataTypes.TEXT },
+  new_value: { type: DataTypes.TEXT },
+  change_date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  changed_by: { type: DataTypes.STRING(64) },
+  reason: { type: DataTypes.TEXT }
+});
+
+export const TruckOwnerEditHistory = sequelize.define('truck_owner_edit_history', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  owner_id: { type: DataTypes.INTEGER, allowNull: false },
+  field_name: { type: DataTypes.STRING(64), allowNull: false },
+  old_value: { type: DataTypes.TEXT },
+  new_value: { type: DataTypes.TEXT },
+  change_date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  changed_by: { type: DataTypes.STRING(64) },
+  reason: { type: DataTypes.TEXT }
+});
+
 export const Settings = sequelize.define('settings', {
   key: { type: DataTypes.STRING(64), primaryKey: true },
   value: { type: DataTypes.TEXT },
@@ -124,14 +167,29 @@ export const DepositTransactions = sequelize.define('deposit_transactions', {
   notes: { type: DataTypes.TEXT }
 });
 
+export const VehicleOwnershipHistory = sequelize.define('vehicle_ownership_history', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
+  previous_owner_id: { type: DataTypes.INTEGER },
+  new_owner_id: { type: DataTypes.INTEGER },
+  change_date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  changed_by: { type: DataTypes.STRING(64) }
+});
+
 Receipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constraints: false });
 GstReceipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constraints: false });
 CreditPayments.belongsTo(Receipts, { foreignKey: 'receipt_id' });
 DepositTransactions.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
+TruckVehicles.belongsTo(TruckOwners, { foreignKey: 'truck_owner_id', as: 'owner' });
+ReceiptEditHistory.belongsTo(Receipts, { foreignKey: 'receipt_id' });
+TruckOwnerEditHistory.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
 
 export async function syncModels() {
+  console.log('Authenticating sequelize...');
   await sequelize.authenticate();
-  await sequelize.sync();
+  console.log('Sequelize authenticated. Syncing...');
+  await sequelize.sync({ alter: true });
+  console.log('Sequelize synced.');
 }
 
 export { sequelize };

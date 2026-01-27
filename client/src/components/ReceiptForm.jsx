@@ -24,6 +24,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const [formData, setFormData] = useState({
     truck_owner: '',
     vehicle_number: '',
+    driver_name: '',
+    tyre_type: '',
     brass_qty: '',
     rate: flatSettings.default_rate || '1200',
     loading_charge: flatSettings.loading_charge || '150',
@@ -49,9 +51,23 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const [originalRate, setOriginalRate] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [vehicleSuggestions, setVehicleSuggestions] = useState([]);
+  const [driverSuggestions, setDriverSuggestions] = useState([]);
+  const [allVehicles, setAllVehicles] = useState([]);
+  const [allDrivers, setAllDrivers] = useState([]);
   const [ownerSuggestions, setOwnerSuggestions] = useState([]);
   const [useDepositBalance, setUseDepositBalance] = useState(false);
   const [customDepositDeduction, setCustomDepositDeduction] = useState('');
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState('cash');
+
+  // Helper to set payment mode and amount
+  const handlePaymentModeSelect = (mode) => {
+    setSelectedPaymentMode(mode);
+    if (mode === 'cash' || mode === 'online') {
+      setFormData(prev => ({ ...prev, cash_paid: calculations.totalBill.toString() }));
+    } else if (mode === 'credit') {
+      setFormData(prev => ({ ...prev, cash_paid: '0' }));
+    }
+  };
 
   // Auto-suggest deposit deduction = remaining after cash, capped by available
   useEffect(() => {
@@ -131,11 +147,52 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   }, [formData.truck_owner, truckOwners, flatSettings, isRateOverridden]);
 
+  const fetchVehiclesAndDrivers = async () => {
+    try {
+      const response = await axios.get('/api/settings/truck-vehicles');
+      setAllVehicles(response.data || []);
+      
+      // Extract unique drivers
+      const drivers = [...new Set(response.data.map(v => v.driver_name).filter(Boolean))];
+      setAllDrivers(drivers);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchVehiclesAndDrivers();
+  }, []);
+
   // Fetch next receipt number and recent transactions
   useEffect(() => {
     fetchNextReceiptNumber();
     fetchRecentTransactions();
   }, []);
+
+  // Auto-fill driver/tyre based on vehicle number
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.vehicle_number && formData.vehicle_number.length > 2) {
+        const vNum = formData.vehicle_number.toUpperCase();
+        // Use the existing endpoint with search param
+        axios.get(`/api/settings/truck-vehicles?q=${vNum}`)
+          .then(res => {
+            // Find exact match
+            const exactMatch = res.data.find(v => v.vehicle_number === vNum);
+            if (exactMatch) {
+              setFormData(prev => ({
+                ...prev,
+                driver_name: exactMatch.driver_name || prev.driver_name, // Only overwrite if value exists in DB
+                tyre_type: exactMatch.tyre_type || prev.tyre_type
+              }));
+            }
+          })
+          .catch(err => console.error('Error fetching vehicle details:', err));
+      }
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [formData.vehicle_number]);
 
   // Refresh truck owners periodically
   useEffect(() => {
@@ -229,10 +286,10 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       newErrors.vehicle_number = 'Vehicle number is required';
     }
     
-    const brassQty = parseFloat(formData.brass_qty);
-    if (!brassQty || brassQty <= 0) {
-      newErrors.brass_qty = 'Valid quantity is required';
-    }
+    // const brassQty = parseFloat(formData.brass_qty);
+    // if (!brassQty || brassQty <= 0) {
+    //   newErrors.brass_qty = 'Valid quantity is required';
+    // }
     
     const rate = parseFloat(formData.rate);
     if (!rate || rate <= 0) {
@@ -302,6 +359,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       ...prev,
       truck_owner: ownerName,
       vehicle_number: ownerInfo?.vehicle_number || '',
+      driver_name: '',
+      tyre_type: '',
       rate: rateToApply.toString()
     }));
     
@@ -355,10 +414,10 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       setErrors(prev => ({ ...prev, vehicle_number: '' }));
     }
     
-    // Auto-suggest owner based on vehicle
-    if (value.length > 3 && truckOwners) {
-      const suggestions = truckOwners.filter(owner =>
-        owner.vehicle_number && owner.vehicle_number.includes(value)
+    // Auto-suggest vehicles
+    if (value.length > 1 && allVehicles.length > 0) {
+      const suggestions = allVehicles.filter(v =>
+        v.vehicle_number && v.vehicle_number.includes(value)
       );
       setVehicleSuggestions(suggestions);
     } else {
@@ -366,19 +425,55 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   };
 
-  // Handle quick payment buttons
-  const handleFullPayment = () => {
+  const handleDriverChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, driver_name: value }));
+    
+    if (value.length > 0 && allDrivers.length > 0) {
+      const suggestions = allDrivers.filter(d => 
+        d.toLowerCase().includes(value.toLowerCase())
+      );
+      setDriverSuggestions(suggestions);
+    } else {
+      setDriverSuggestions([]);
+    }
+  };
+
+  const handleQuickVehicleSelect = (vehicle) => {
     setFormData(prev => ({
       ...prev,
-      cash_paid: calculations.totalBill.toString()
+      vehicle_number: vehicle.vehicle_number,
+      driver_name: vehicle.driver_name || prev.driver_name,
+      tyre_type: vehicle.tyre_type || prev.tyre_type
     }));
+    
+    // Also try to find owner if linked
+    if (vehicle.truck_owner_id && truckOwners) {
+      const owner = truckOwners.find(o => o.id === vehicle.truck_owner_id);
+      if (owner) {
+        setFormData(prev => ({ ...prev, truck_owner: owner.name }));
+        setSelectedOwnerInfo(owner);
+      }
+    }
+    setVehicleSuggestions([]);
+  };
+
+  const handleQuickDriverSelect = (driverName) => {
+    setFormData(prev => ({ ...prev, driver_name: driverName }));
+    setDriverSuggestions([]);
+  };
+
+  // Handle quick payment buttons
+  const handleFullPayment = () => {
+    handlePaymentModeSelect('cash');
+  };
+
+  const handleOnlineFullPayment = () => {
+    handlePaymentModeSelect('online');
   };
 
   const handleCreditOnly = () => {
-    setFormData(prev => ({
-      ...prev,
-      cash_paid: '0'
-    }));
+    handlePaymentModeSelect('credit');
   };
 
   // Reset rate to original
@@ -438,6 +533,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         receipt_no: receiptNumber,
         truck_owner: formData.truck_owner,
         vehicle_number: formData.vehicle_number.toUpperCase(),
+        driver_name: formData.driver_name || '',
+        tyre_type: formData.tyre_type || '',
         brass_qty: parseFloat(formData.brass_qty),
         rate: parseFloat(formData.rate),
         loading_charge: parseFloat(formData.loading_charge || 0),
@@ -450,7 +547,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         receiptData.applied_rate = parseFloat(formData.rate);
       }
 
-      // Deposit deduction flow
+      // Payment method selection
       if (useDepositBalance && selectedOwnerInfo) {
         const available = parseFloat(selectedOwnerInfo.deposit_balance || 0);
         const totalBill = calculations.totalBill;
@@ -458,6 +555,12 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         const deductAmount = Math.max(0, Math.min(requested, available, totalBill));
         receiptData.payment_method = deductAmount > 0 ? 'deposit' : (receiptData.cash_paid > 0 ? 'cash' : 'credit');
         receiptData.deposit_deducted = deductAmount;
+      } else if (selectedPaymentMode === 'online') {
+        receiptData.payment_method = 'online';
+      } else if (parseFloat(formData.cash_paid || 0) > 0) {
+        receiptData.payment_method = 'cash';
+      } else {
+        receiptData.payment_method = 'credit';
       }
 
       console.log('Saving receipt:', receiptData);
@@ -473,6 +576,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         setFormData({
           truck_owner: '',
           vehicle_number: '',
+          driver_name: '',
+          tyre_type: '',
           brass_qty: '',
           rate: flatSettings.default_rate || '1200',
           loading_charge: flatSettings.loading_charge || '150',
@@ -490,6 +595,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         // Refresh data
         fetchNextReceiptNumber();
         fetchRecentTransactions();
+        fetchVehiclesAndDrivers();
         
         toast.success('Receipt saved successfully!');
         refreshDashboardStats();
@@ -529,6 +635,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       date_time: new Date().toISOString(),
       truck_owner: formData.truck_owner || 'Sample Owner',
       vehicle_number: formData.vehicle_number || 'MH-31-XXXX',
+      driver_name: formData.driver_name || '',
+      tyre_type: formData.tyre_type || '',
       brass_qty: parseFloat(formData.brass_qty) || 1,
       rate: parseFloat(formData.rate) || 1200,
       loading_charge: loadingChargePreview,
@@ -581,13 +689,15 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         receipt_no: receiptNumber,
         truck_owner: formData.truck_owner,
         vehicle_number: formData.vehicle_number.toUpperCase(),
+        driver_name: formData.driver_name || '',
+        tyre_type: formData.tyre_type || '',
         brass_qty: parseFloat(formData.brass_qty),
         rate: parseFloat(formData.rate),
         loading_charge: loadingChargeThermal,
         cash_paid: cashPaid,
         notes: formData.notes || '',
         date_time: now.toISOString(),
-        payment_method: depositUsed > 0 ? 'deposit' : (cashPaid > 0 ? 'cash' : 'credit'),
+        payment_method: depositUsed > 0 ? 'deposit' : (selectedPaymentMode === 'online' ? 'online' : (cashPaid > 0 ? 'cash' : 'credit')),
         deposit_deducted: depositUsed
       };
 
@@ -599,6 +709,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
         setFormData({
           truck_owner: '',
           vehicle_number: '',
+          driver_name: '',
+          tyre_type: '',
           brass_qty: '',
           rate: flatSettings.default_rate || '1200',
           loading_charge: flatSettings.loading_charge || '150',
@@ -835,7 +947,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
               </div>
 
               {/* Vehicle Number - FIXED */}
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Vehicle Number *
                   {errors.vehicle_number && (
@@ -854,25 +966,82 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 
                 {/* Vehicle suggestions */}
                 {vehicleSuggestions.length > 0 && (
-                  <div className="mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm max-h-40 overflow-y-auto">
-                    {vehicleSuggestions.map(owner => (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {vehicleSuggestions.map(vehicle => (
                       <div
-                        key={owner.id}
-                        onClick={() => { handleQuickFill(owner.name); setVehicleSuggestions([]); }}
+                        key={vehicle.id || vehicle.vehicle_number}
+                        onClick={() => handleQuickVehicleSelect(vehicle)}
                         className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                       >
-                        <div className="font-medium text-gray-900 dark:text-white">{owner.vehicle_number}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">{owner.name}</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{vehicle.vehicle_number}</div>
+                        {vehicle.truck_owner_id && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                             Owner: {truckOwners?.find(o => o.id === vehicle.truck_owner_id)?.name || 'Unknown'}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* Driver Name & Tyre Type */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Driver Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="driver_name"
+                      value={formData.driver_name}
+                      onChange={handleDriverChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter driver name"
+                    />
+                    {driverSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-[#262626] border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                        {driverSuggestions.map((driver, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => handleQuickDriverSelect(driver)}
+                            className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                          >
+                            <div className="font-medium text-gray-900 dark:text-white">{driver}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Tyre Type
+                  </label>
+                  <select
+                    name="tyre_type"
+                    value={formData.tyre_type}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="6 Tyre">6 Tyre</option>
+                    <option value="10 Tyre">10 Tyre</option>
+                    <option value="12 Tyre">12 Tyre</option>
+                    <option value="14 Tyre">14 Tyre</option>
+                    <option value="16 Tyre">16 Tyre</option>
+                    <option value="18 Tyre">18 Tyre</option>
+                    <option value="22 Tyre">22 Tyre</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Quantity Section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Quantity ({flatSettings.unit || 'Brass'}) *
+                  Quantity ({flatSettings.unit || 'Brass'})
                   {errors.brass_qty && (
                     <span className="text-red-600 text-sm ml-2">{errors.brass_qty}</span>
                   )}
@@ -977,6 +1146,29 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Cash Paid (Nagdi)
                 </label>
+                <div className="mb-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentModeSelect('cash')}
+                    className={`py-2 text-sm rounded-lg border ${selectedPaymentMode === 'cash' ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}
+                  >
+                    Cash (Full Payment)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentModeSelect('online')}
+                    className={`py-2 text-sm rounded-lg border ${selectedPaymentMode === 'online' ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}
+                  >
+                    Online (Full Payment)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePaymentModeSelect('credit')}
+                    className={`py-2 text-sm rounded-lg border ${selectedPaymentMode === 'credit' ? 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'}`}
+                  >
+                    Credit/Udhaar (Partial)
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="number"
@@ -995,8 +1187,14 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                       Full Payment
                     </button>
                     <button
+                      onClick={handleOnlineFullPayment}
+                      className="py-2 text-sm bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                    >
+                      Online Full
+                    </button>
+                    <button
                       onClick={handleCreditOnly}
-                      className="py-2 text-sm bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                      className="py-2 text-sm bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition-colors"
                     >
                       Credit Only
                     </button>

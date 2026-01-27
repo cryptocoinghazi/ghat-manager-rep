@@ -1,6 +1,6 @@
 import express from 'express';
 import { Op } from 'sequelize';
-import { Receipts, TruckOwners, DepositTransactions, CreditPayments } from '../models/index.js';
+import { Receipts, TruckOwners, DepositTransactions, CreditPayments, TruckVehicles, ReceiptEditHistory, VehicleOwnershipHistory } from '../models/index.js';
 
 const router = express.Router();
 
@@ -71,6 +71,30 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get receipt history
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await ReceiptEditHistory.findAll({
+      where: { receipt_id: req.params.id },
+      order: [['change_date', 'DESC']]
+    });
+    
+    // Also get credit payments history
+    const payments = await CreditPayments.findAll({
+      where: { receipt_id: req.params.id },
+      order: [['payment_date', 'DESC']]
+    });
+
+    res.json({
+      edits: history,
+      payments: payments
+    });
+  } catch (error) {
+    console.error('Error fetching receipt history:', error);
+    res.status(500).json({ error: 'Failed to fetch receipt history' });
+  }
+});
+
 // Create new receipt - FIXED: Normalize timestamp + Partner rates
 router.post('/', async (req, res) => {
   try {
@@ -78,6 +102,8 @@ router.post('/', async (req, res) => {
       receipt_no,
       truck_owner,
       vehicle_number,
+      driver_name,
+      tyre_type,
       brass_qty,
       rate,
       loading_charge,
@@ -91,7 +117,7 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     console.log('Creating receipt with data:', {
-      receipt_no, truck_owner, vehicle_number, brass_qty, rate,
+      receipt_no, truck_owner, vehicle_number, driver_name, tyre_type, brass_qty, rate,
       loading_charge, cash_paid, notes, date_time, owner_type, applied_rate,
       payment_method, deposit_deducted
     });
@@ -148,9 +174,14 @@ router.post('/', async (req, res) => {
       paymentStatus = (cashPaidValue >= remainingAfterDeposit) ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
       creditAmount = Math.max(0, totalAmount - cashPaidValue - toDeduct);
     } else {
-      paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
-                      cashPaidValue > 0 ? 'partial' : 'unpaid';
-      paymentMethod = cashPaidValue >= totalAmount ? 'cash' : (cashPaidValue > 0 ? 'cash' : 'credit');
+      if (paymentMethod === 'online') {
+        paymentStatus = cashPaidValue >= totalAmount ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
+        paymentMethod = cashPaidValue >= totalAmount ? 'online' : 'online';
+      } else {
+        paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
+                        cashPaidValue > 0 ? 'partial' : 'unpaid';
+        paymentMethod = cashPaidValue >= totalAmount ? 'cash' : (cashPaidValue > 0 ? 'cash' : 'credit');
+      }
       creditAmount = Math.max(0, totalAmount - cashPaidValue);
     }
 
@@ -192,11 +223,35 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Find or create TruckOwner first to link ID
+    let ownerId = null;
+    let existingOwner = await TruckOwners.findOne({ where: { name: truck_owner } });
+    
+    if (existingOwner) {
+      // Update payment type if needed, but don't overwrite if it was already mixed? 
+      // Current logic: cashPaidValue >= totalAmount ? 'cash' : 'mixed'. 
+      // If he pays cash now, but has credit history, maybe 'mixed' is better? 
+      // But let's stick to existing logic for now to minimize side effects.
+      await existingOwner.update({ payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed' });
+      ownerId = existingOwner.id;
+    } else {
+      const newOwner = await TruckOwners.create({ 
+        name: truck_owner, 
+        payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed', 
+        is_partner: 0, 
+        is_active: 1 
+      });
+      ownerId = newOwner.id;
+      existingOwner = newOwner;
+    }
+
     let newReceipt;
     newReceipt = await Receipts.create({
         receipt_no: finalReceiptNo,
         truck_owner,
         vehicle_number,
+        driver_name: driver_name || null,
+        tyre_type: tyre_type || null,
         brass_qty,
         rate: finalRate,
         loading_charge: loading_charge || 0,
@@ -209,14 +264,44 @@ router.post('/', async (req, res) => {
         owner_type: finalOwnerType,
         applied_rate: finalAppliedRate || finalRate,
         notes: notes || '',
-        date_time: timestamp
+        date_time: timestamp,
+        owner_id: ownerId
       });
 
-    const existingOwner = await TruckOwners.findOne({ where: { name: truck_owner } });
-    if (existingOwner) {
-      await existingOwner.update({ payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed' });
-    } else {
-      await TruckOwners.create({ name: truck_owner, payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed', is_partner: 0, is_active: 1 });
+    // Update TruckVehicles lookup
+    if (vehicle_number) {
+      const vNum = vehicle_number.toUpperCase();
+      // ownerId is already available
+      
+      const vehicle = await TruckVehicles.findOne({ where: { vehicle_number: vNum } });
+      if (vehicle) {
+        // Check for ownership change
+        if (ownerId && vehicle.truck_owner_id !== ownerId) {
+          await VehicleOwnershipHistory.create({
+            vehicle_number: vNum,
+            previous_owner_id: vehicle.truck_owner_id,
+            new_owner_id: ownerId,
+            changed_by: req.user ? req.user.username : 'system'
+          });
+        }
+
+        // Update if new info provided, otherwise keep existing
+        const updates = {};
+        if (driver_name) updates.driver_name = driver_name;
+        if (tyre_type) updates.tyre_type = tyre_type;
+        if (ownerId) updates.truck_owner_id = ownerId;
+        
+        if (Object.keys(updates).length > 0) {
+          await vehicle.update(updates);
+        }
+      } else {
+        await TruckVehicles.create({
+          vehicle_number: vNum,
+          driver_name: driver_name || null,
+          tyre_type: tyre_type || null,
+          truck_owner_id: ownerId || null
+        });
+      }
     }
 
     console.log('Receipt created successfully:', newReceipt);
@@ -224,6 +309,20 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error creating receipt:', error);
     res.status(500).json({ error: 'Failed to create receipt' });
+  }
+});
+
+// Get receipt history
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await ReceiptEditHistory.findAll({
+      where: { receipt_id: req.params.id },
+      order: [['change_date', 'DESC']]
+    });
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching receipt history:', error);
+    res.status(500).json({ error: 'Failed to fetch receipt history' });
   }
 });
 
@@ -240,12 +339,34 @@ router.put('/:id', async (req, res) => {
     }
 
     // Calculate new credit amount
-    const cashPaidValue = parseFloat(cash_paid || existingReceipt.cash_paid);
+    const cashPaidValue = req.body.cash_paid !== undefined ? parseFloat(req.body.cash_paid) : parseFloat(existingReceipt.cash_paid);
     const creditAmount = existingReceipt.total_amount - cashPaidValue;
     const paymentStatus = cashPaidValue >= existingReceipt.total_amount ? 'paid' : 
                          cashPaidValue > 0 ? 'partial' : 'unpaid';
 
     // Update receipt
+    // Track changes
+    if (parseFloat(existingReceipt.cash_paid) !== parseFloat(cashPaidValue)) {
+      await ReceiptEditHistory.create({
+        receipt_id: existingReceipt.id,
+        field_name: 'cash_paid',
+        old_value: existingReceipt.cash_paid.toString(),
+        new_value: cashPaidValue.toString(),
+        changed_by: req.user ? req.user.username : 'unknown',
+        reason: 'Payment update'
+      });
+    }
+    if (existingReceipt.payment_status !== paymentStatus) {
+      await ReceiptEditHistory.create({
+        receipt_id: existingReceipt.id,
+        field_name: 'payment_status',
+        old_value: existingReceipt.payment_status,
+        new_value: paymentStatus,
+        changed_by: req.user ? req.user.username : 'unknown',
+        reason: 'Payment status update'
+      });
+    }
+
     await existingReceipt.update({ cash_paid: cashPaidValue, credit_amount: creditAmount, payment_status: paymentStatus, notes: notes || existingReceipt.notes });
 
     // If payment made, record in credit_payments

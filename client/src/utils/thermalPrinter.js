@@ -78,6 +78,8 @@ export const generateThermalReceiptHTML = (receipt, settings = {}) => {
     buildSectionLines([
       [receipt.gst_rate ? 'BILLED TO' : 'OWNER', owner],
       ['VEHICLE', vehicle],
+      ['DRIVER', truncate(receipt.driver_name || '-', 20)],
+      ['TYRE', truncate(receipt.tyre_type || '-', 10)],
       ['TYPE', (receipt.is_partner ? 'PARTNER' : 'REGULAR')]
     ], widthChars),
     '-'.repeat(widthChars)

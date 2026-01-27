@@ -789,9 +789,8 @@ const DailyRegister = () => {
               }`}
             >
               <div className="flex flex-col items-center">
-                <span>Partial</span>
-                <span className="text-xs">50%</span>
-              </div>
+                      <span>Partial</span>
+                    </div>
             </button>
             
             <button
@@ -818,26 +817,27 @@ const DailyRegister = () => {
           </div>
         </div>
         
-        {/* Custom Amount for Partial Payment */}
-        {editableReceipt.payment_status === 'partial' && (
-          <div>
+        {/* Custom Amount Input - Always Visible */}
+        <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Custom Cash Paid Amount
+              Cash Paid Amount
             </label>
             <div className="flex space-x-2">
               <input
                 type="number"
-                value={editableReceipt.cash_paid || ''}
+                value={editableReceipt.cash_paid}
                 onChange={(e) => {
-                  const cashPaid = parseFloat(e.target.value) || 0;
+                  const val = e.target.value;
+                  const cashPaid = val === '' ? '' : parseFloat(val);
+                  const numCash = val === '' ? 0 : parseFloat(val);
                   const total = parseFloat(editableReceipt.total_amount);
-                  const credit = total - cashPaid;
+                  const credit = total - numCash;
                   setEditableReceipt({
                     ...editableReceipt,
                     cash_paid: cashPaid,
                     credit_amount: credit,
-                    payment_status: cashPaid >= total ? 'paid' : 
-                                   cashPaid > 0 ? 'partial' : 'unpaid'
+                    payment_status: numCash >= total ? 'paid' : 
+                                   numCash > 0 ? 'partial' : 'unpaid'
                   });
                 }}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -865,7 +865,6 @@ const DailyRegister = () => {
               Enter cash amount paid now (0 to ₹{editableReceipt.total_amount})
             </p>
           </div>
-        )}
         
         {/* Payment Summary */}
         <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">

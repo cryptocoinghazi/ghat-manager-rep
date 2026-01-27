@@ -6,7 +6,8 @@ import {
   generateMonthlyReportPDF,
   generateFinancialSummaryPDF,
   generateExpenseReportPDF,
-  generateDepositReportPDF
+  generateDepositReportPDF,
+  generateDailyTransactionsPDF
 } from '../utils/pdfGenerator';
 import {
   FiFilter,
@@ -29,6 +30,7 @@ import {
   FiClock
 } from 'react-icons/fi';
 import { FaCalendarAlt, FaRupeeSign } from 'react-icons/fa';
+import OwnerLedgerReport from './OwnerLedgerReport';
 
 const Reports = ({ initialTab }) => {
   const [activeReport, setActiveReport] = useState('credit');
@@ -38,6 +40,8 @@ const Reports = ({ initialTab }) => {
   const [clientFilters, setClientFilters] = useState({ preset: 'This Month', startDate: '', endDate: '', truckOwner: 'all' });
   const [expenseFilters, setExpenseFilters] = useState({ preset: 'This Month', startDate: '', endDate: '', category: 'all' });
   const [partnerFilters, setPartnerFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
+  const [dailyTxnFilters, setDailyTxnFilters] = useState({ preset: 'Today', startDate: '', endDate: '', truckOwner: '', driverName: '', vehicleNumber: '', paymentMode: 'all' });
+  const [appliedDailyTxnFilters, setAppliedDailyTxnFilters] = useState(null); // New state for applied filters
   const [partnerOwnerQuery, setPartnerOwnerQuery] = useState('');
   const [partnerOwnerFocused, setPartnerOwnerFocused] = useState(false);
   const [owners, setOwners] = useState([]);
@@ -228,6 +232,26 @@ const Reports = ({ initialTab }) => {
     setByPreset(partnerFilters.preset, setPartnerFilters);
   }, [partnerFilters.preset]);
 
+  useEffect(() => {
+    const today = getCurrentISTDate();
+    const startOfMonth = getStartOfMonthIST();
+    const setByPreset = (preset, setter) => {
+      let start = today, end = today;
+      if (preset === 'Today') { start = today; end = today; }
+      else if (preset === 'This Week') {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diff);
+        start = monday.toISOString().split('T')[0];
+        end = today;
+      } else if (preset === 'This Month') { start = startOfMonth; end = today; }
+      setter(prev => ({ ...prev, startDate: start, endDate: end }));
+    };
+    setByPreset(dailyTxnFilters.preset, setDailyTxnFilters);
+  }, [dailyTxnFilters.preset]);
+
   // Format time to IST
   const formatToIST = (dateString, includeDate = false) => {
     if (!dateString) return '';
@@ -350,6 +374,20 @@ const Reports = ({ initialTab }) => {
           });
           setReportsData(prev => ({ ...prev, partnerRoyalty: response.data }));
           break;
+        case 'dailyTransactions':
+          response = await axios.get('/api/reports/daily-transactions', {
+            params: {
+              period: dailyTxnFilters.preset === 'Today' ? 'daily' : (dailyTxnFilters.preset === 'This Week' ? 'weekly' : (dailyTxnFilters.preset === 'This Month' ? 'monthly' : 'custom')),
+              startDate: dailyTxnFilters.startDate,
+              endDate: dailyTxnFilters.endDate,
+              truckOwner: dailyTxnFilters.truckOwner,
+              driverName: dailyTxnFilters.driverName,
+              vehicleNumber: dailyTxnFilters.vehicleNumber,
+              paymentMode: dailyTxnFilters.paymentMode
+            }
+          });
+          setReportsData(prev => ({ ...prev, dailyTransactions: response.data }));
+          break;
           
         default:
           break;
@@ -366,7 +404,7 @@ const Reports = ({ initialTab }) => {
     if (activeReport) {
       fetchReportData();
     }
-  }, [activeReport, selectedMonth, dateRange, depositFilters]);
+  }, [activeReport, selectedMonth, dateRange, depositFilters, appliedDailyTxnFilters]);
 
   const handleExportCSV = async (reportType) => {
     try {
@@ -399,6 +437,49 @@ const Reports = ({ initialTab }) => {
             transactionType: depositFilters.transactionType
           };
           break;
+        case 'dailyTransactions':
+          if (!reportsData.dailyTransactions || !reportsData.dailyTransactions.transactions) {
+            toast.error('No data to export');
+            return;
+          }
+          
+          // Client-side CSV generation
+          const dailyTxns = reportsData.dailyTransactions.transactions;
+          const headers = ['Date', 'Time', 'Receipt No', 'Owner', 'Driver', 'Vehicle', 'Tyre Type', 'Brass', 'Amount', 'Payment Mode', 'Status'];
+          const csvRows = [headers.join(',')];
+          
+          dailyTxns.forEach(txn => {
+            const dateObj = new Date(txn.date_time);
+            const dateStr = dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+            const timeStr = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true });
+            
+            const row = [
+              dateStr,
+              timeStr,
+              txn.receipt_no,
+              `"${txn.truck_owner}"`,
+              `"${txn.driver_name || ''}"`,
+              txn.vehicle_number,
+              txn.tyre_type || '',
+              txn.brass_qty,
+              txn.total_amount,
+              txn.payment_method,
+              txn.payment_status
+            ];
+            csvRows.push(row.join(','));
+          });
+          
+          const csvString = csvRows.join('\n');
+          const blob = new Blob([csvString], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `daily-transactions-${new Date().toISOString().split('T')[0]}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          toast.success('CSV exported successfully!');
+          return;
         default:
           return;
       }
@@ -463,6 +544,13 @@ const Reports = ({ initialTab }) => {
             return;
           }
           generateDepositReportPDF(reportsData.deposit, depositFilters);
+          break;
+        case 'dailyTransactions':
+          if (!reportsData.dailyTransactions) {
+            toast.error('No daily transactions data available');
+            return;
+          }
+          generateDailyTransactionsPDF(reportsData.dailyTransactions, appliedDailyTxnFilters);
           break;
           
         default:
@@ -774,61 +862,312 @@ const Reports = ({ initialTab }) => {
     );
   };
 
-  // Render Financial Summary
-  const renderFinancialSummary = () => {
-    if (!reportsData.financial) return null;
-    
-    const { date, summary, recentTransactions } = reportsData.financial;
-    
+  // Render Owner Ledger Report
+  const renderOwnerLedgerReport = () => {
+    return (
+      <OwnerLedgerReport 
+        owners={owners} 
+        formatCurrency={formatCurrency} 
+        formatDate={formatDate}
+        formatToIST={formatToIST}
+      />
+    );
+  };
+
+  const handleGenerateDailyReport = () => {
+    setAppliedDailyTxnFilters(dailyTxnFilters);
+    fetchReportData();
+  };
+
+  // Render Daily Transactions Report
+  function renderDailyTransactionsReport() {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Financial Summary
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Daily Summary for {formatDate(dateRange.endDate)}
-            </p>
+        <div className="bg-white dark:bg-[#1A1A1A] p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Daily Transactions Filter</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
+              <select 
+                value={dailyTxnFilters.preset} 
+                onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, preset: e.target.value }))} 
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
+              >
+                <option>Today</option>
+                <option>This Week</option>
+                <option>This Month</option>
+                <option>Custom Range</option>
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 md:col-span-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
+                <input 
+                  type="date" 
+                  value={dailyTxnFilters.startDate} 
+                  onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, startDate: e.target.value }))} 
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
+                <input 
+                  type="date" 
+                  value={dailyTxnFilters.endDate} 
+                  onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, endDate: e.target.value }))} 
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" 
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex space-x-2">
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Truck Owner</label>
+              <input 
+                type="text" 
+                value={dailyTxnFilters.truckOwner} 
+                onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, truckOwner: e.target.value }))}
+                placeholder="Search Owner..." 
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Driver Name</label>
+              <input 
+                type="text" 
+                value={dailyTxnFilters.driverName} 
+                onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, driverName: e.target.value }))}
+                placeholder="Search Driver..." 
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Vehicle Number</label>
+              <input 
+                type="text" 
+                value={dailyTxnFilters.vehicleNumber} 
+                onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                placeholder="Search Vehicle..." 
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Mode</label>
+              <select 
+                value={dailyTxnFilters.paymentMode} 
+                onChange={(e) => setDailyTxnFilters(prev => ({ ...prev, paymentMode: e.target.value }))} 
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
+              >
+                <option value="all">All Modes</option>
+                <option value="cash">Cash</option>
+                <option value="credit">Credit</option>
+                <option value="online">Online</option>
+                <option value="deposit">Deposit</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex justify-end">
             <button
-              onClick={() => handleExportPDF('financial')}
-              className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+              onClick={handleGenerateDailyReport}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
             >
-              <FiFileText className="h-4 w-4" />
-              <span>Export PDF</span>
-            </button>
-            <button
-              onClick={() => handleExportCSV('financial')}
-              className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
-            >
-              <FiDownload className="h-4 w-4" />
-              <span>Export CSV</span>
+              <FiRefreshCw className="mr-2" />
+              Generate Report
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Preset</label>
-            <select value={financialFilters.preset} onChange={(e) => setFinancialFilters(prev => ({ ...prev, preset: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white">
-              <option>Today</option>
-              <option>This Week</option>
-              <option>This Month</option>
-              <option>Custom Range</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-2 md:col-span-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
-              <input type="date" value={financialFilters.startDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, startDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
+        {appliedDailyTxnFilters && reportsData.dailyTransactions ? (
+          <>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Transaction Results ({reportsData.dailyTransactions.transactions?.length || 0})
+              </h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleExportPDF('dailyTransactions')}
+                  className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+                >
+                  <FiFileText className="h-4 w-4" />
+                  <span>Export PDF</span>
+                </button>
+                <button
+                  onClick={() => handleExportCSV('dailyTransactions')}
+                  className="flex items-center space-x-2 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm"
+                >
+                  <FiDownload className="h-4 w-4" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
-              <input type="date" value={financialFilters.endDate} onChange={(e) => setFinancialFilters(prev => ({ ...prev, endDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white" />
+
+            <div className="overflow-x-auto bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-[#262626]">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date/Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receipt No</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Driver</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mode</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
+                  {reportsData.dailyTransactions.transactions.map((txn, index) => (
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                        {formatToIST(txn.date_time, true)}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{txn.receipt_no}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{txn.truck_owner}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{txn.vehicle_number}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{txn.driver_name || '-'}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(txn.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 capitalize">{txn.payment_method}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          txn.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                          txn.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {txn.payment_status.toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          </>
+        ) : (
+          <div className="text-center py-12 bg-white dark:bg-[#1A1A1A] rounded-lg border border-gray-200 dark:border-gray-700">
+            <FiFilter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400">Set filters and click Generate Report to view transactions</p>
           </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports & Analytics</h1>
+        
+        {/* Report Type Selector */}
+        <div className="flex overflow-x-auto pb-2 md:pb-0 space-x-2 no-scrollbar">
+          <button
+            onClick={() => setActiveReport('credit')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'credit' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Credit Report
+          </button>
+          <button
+            onClick={() => setActiveReport('monthly')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'monthly' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Monthly Summary
+          </button>
+          <button
+            onClick={() => setActiveReport('financial')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'financial' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Financial Day Book
+          </button>
+          <button
+            onClick={() => setActiveReport('dailyTransactions')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'dailyTransactions' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Daily Transactions
+          </button>
+          <button
+            onClick={() => setActiveReport('ownerLedger')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'ownerLedger' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Owner Ledger
+          </button>
+          <button
+            onClick={() => setActiveReport('expense')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'expense' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Expenses
+          </button>
+          <button
+            onClick={() => setActiveReport('deposit')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
+              activeReport === 'deposit' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white dark:bg-[#1A1A1A] text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
+          >
+            Deposit History
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="min-h-[500px]">
+          {activeReport === 'credit' && renderCreditReport()}
+          {activeReport === 'monthly' && renderMonthlyReport()}
+          {activeReport === 'financial' && renderFinancialSummary()}
+          {activeReport === 'dailyTransactions' && renderDailyTransactionsReport()}
+          {activeReport === 'ownerLedger' && renderOwnerLedgerReport()}
+          {activeReport === 'expense' && renderExpenseReport()}
+          {activeReport === 'deposit' && renderDepositReport()}
+        </div>
+      )}
+    </div>
+  );
+
+  function renderFinancialSummary() {
+    if (!reportsData.financial) return null;
+    const { summary, recentTransactions } = reportsData.financial;
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={fetchReportData}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FiRefreshCw className="h-4 w-4" />
+            <span>Generate Report</span>
+          </button>
         </div>
 
         {/* Summary Cards */}
@@ -920,7 +1259,7 @@ const Reports = ({ initialTab }) => {
   };
 
   // Render Expense Report
-  const renderExpenseReport = () => {
+  function renderExpenseReport() {
     if (!reportsData.expense) return null;
     
     const { period, summary, categoryBreakdown, dailyTotals } = reportsData.expense;
@@ -1095,7 +1434,9 @@ const Reports = ({ initialTab }) => {
     );
   };
 
-  const renderDepositReport = () => {
+
+
+  function renderDepositReport() {
     const data = reportsData.deposit;
     if (!data) return null;
     const { transactions = [], summary = {}, pagination = {} } = data;
@@ -1239,7 +1580,7 @@ const Reports = ({ initialTab }) => {
   };
 
   // Render Client Report
-  const renderClientReport = () => {
+  function renderClientReport() {
     if (!reportsData.client) return null;
     
     const { creditReport, totalCustomers, totalCredit } = reportsData.client;
@@ -1402,7 +1743,7 @@ const Reports = ({ initialTab }) => {
   };
 
   // Render Partner Royalty Report
-  const renderPartnerRoyaltyReport = () => {
+  function renderPartnerRoyaltyReport() {
     if (!reportsData.partnerRoyalty) return null;
     
     const { partnerSummary, regularSummary, partnerTotals, regularTotals, royalty, period } = reportsData.partnerRoyalty;
@@ -1643,7 +1984,9 @@ const Reports = ({ initialTab }) => {
               { id: 'deposit', label: 'Deposit Reports', icon: FiDollarSign },
               { id: 'client', label: 'Client Report', icon: FiUsers },
               { id: 'expense', label: 'Expense Report', icon: FiTrendingDown },
-              { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers }
+              { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers },
+              { id: 'dailyTransactions', label: 'Daily Transactions', icon: FiTruck },
+              { id: 'ownerLedger', label: 'Owner Ledger', icon: FiFileText }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1664,6 +2007,7 @@ const Reports = ({ initialTab }) => {
         </div>
 
         {/* Report Controls */}
+        {activeReport !== 'dailyTransactions' && activeReport !== 'ownerLedger' && (
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeReport === 'monthly' ? (
@@ -1719,6 +2063,7 @@ const Reports = ({ initialTab }) => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Report Content */}
         <div className="p-6">
@@ -1736,6 +2081,15 @@ const Reports = ({ initialTab }) => {
               {activeReport === 'client' && renderClientReport()}
               {activeReport === 'expense' && renderExpenseReport()}
               {activeReport === 'partnerRoyalty' && renderPartnerRoyaltyReport()}
+              {activeReport === 'dailyTransactions' && renderDailyTransactionsReport()}
+              {activeReport === 'ownerLedger' && (
+                <OwnerLedgerReport 
+                  owners={owners} 
+                  formatCurrency={formatCurrency} 
+                  formatDate={formatDate} 
+                  formatToIST={formatToIST} 
+                />
+              )}
             </>
           )}
         </div>

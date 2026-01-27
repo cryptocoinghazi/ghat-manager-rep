@@ -1,4 +1,4 @@
-import { getDB } from '../db.js';
+
 
 export async function generateReceiptNumber(db) {
   // Get settings for receipt number

@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
-import { Settings, TruckOwners, DepositTransactions, sequelize, Users, Receipts, CreditPayments } from '../models/index.js';
+import { Settings, TruckOwners, DepositTransactions, sequelize, Users, Receipts, CreditPayments, TruckVehicles, TruckOwnerEditHistory, VehicleEditHistory } from '../models/index.js';
 import { requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -110,6 +110,78 @@ router.get('/truck-owners', async (req, res) => {
   }
 });
 
+// Truck Vehicles lookup: list/search
+router.get('/truck-vehicles', async (req, res) => {
+  try {
+    const { q } = req.query;
+    const where = q ? { vehicle_number: { [Op.like]: `%${q.toUpperCase()}%` } } : {};
+    const rows = await TruckVehicles.findAll({ where, order: [['vehicle_number','ASC']] });
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch truck vehicles' });
+  }
+});
+
+// Create/update truck vehicle
+router.post('/truck-vehicles', async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { vehicle_number, truck_owner_id, driver_name, tyre_type } = req.body;
+    if (!vehicle_number) return res.status(400).json({ error: 'Vehicle number is required' });
+    
+    const existing = await TruckVehicles.findOne({ where: { vehicle_number: vehicle_number.toUpperCase() }, transaction: t });
+    
+    if (existing) {
+      // Track changes
+      const changes = [];
+      if (truck_owner_id !== undefined && existing.truck_owner_id != truck_owner_id) {
+         changes.push({ field: 'truck_owner_id', old: existing.truck_owner_id, new: truck_owner_id });
+      }
+      if (driver_name !== undefined && existing.driver_name != driver_name) {
+         changes.push({ field: 'driver_name', old: existing.driver_name, new: driver_name });
+      }
+      if (tyre_type !== undefined && existing.tyre_type != tyre_type) {
+         changes.push({ field: 'tyre_type', old: existing.tyre_type, new: tyre_type });
+      }
+
+      await existing.update({ 
+        truck_owner_id: truck_owner_id || existing.truck_owner_id, 
+        driver_name: driver_name || existing.driver_name, 
+        tyre_type: tyre_type || existing.tyre_type 
+      }, { transaction: t });
+
+      // Log history
+      for (const change of changes) {
+        await VehicleEditHistory.create({
+          vehicle_number: existing.vehicle_number,
+          field_name: change.field,
+          old_value: String(change.old || ''),
+          new_value: String(change.new || ''),
+          changed_by: req.user ? req.user.username : 'system',
+          reason: 'Update via settings'
+        }, { transaction: t });
+      }
+
+      await t.commit();
+      return res.json({ message: 'Vehicle updated', vehicle: existing });
+    } else {
+      const created = await TruckVehicles.create({ 
+        vehicle_number: vehicle_number.toUpperCase(), 
+        truck_owner_id: truck_owner_id || null, 
+        driver_name: driver_name || null, 
+        tyre_type: tyre_type || null 
+      }, { transaction: t });
+      
+      await t.commit();
+      return res.json({ message: 'Vehicle added', vehicle: created });
+    }
+  } catch (error) {
+    await t.rollback();
+    console.error('Error saving truck vehicle:', error);
+    res.status(500).json({ error: 'Failed to save truck vehicle' });
+  }
+});
+
 // Get single truck owner by name
 router.get('/truck-owners/by-name/:name', async (req, res) => {
   try {
@@ -123,19 +195,62 @@ router.get('/truck-owners/by-name/:name', async (req, res) => {
 
 // Create or update truck owner
 router.post('/truck-owners', async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { name, contact, address, phone, vehicle_number, is_partner, partner_rate } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
     if (!vehicle_number) return res.status(400).json({ error: 'Vehicle number is required' });
-    const existing = await TruckOwners.findOne({ where: { name } });
+    
+    const existing = await TruckOwners.findOne({ where: { name }, transaction: t });
+    
     if (existing) {
-      await existing.update({ phone: phone || contact || null, address: address || null, vehicle_number: vehicle_number || null, is_partner: is_partner ? 1 : 0, partner_rate: partner_rate || null });
+      // Track changes
+      const changes = [];
+      const newPhone = phone || contact || null;
+      if (newPhone !== undefined && existing.phone != newPhone) changes.push({ field: 'phone', old: existing.phone, new: newPhone });
+      if (address !== undefined && existing.address != address) changes.push({ field: 'address', old: existing.address, new: address });
+      if (vehicle_number !== undefined && existing.vehicle_number != vehicle_number) changes.push({ field: 'vehicle_number', old: existing.vehicle_number, new: vehicle_number });
+      if (is_partner !== undefined && existing.is_partner != (is_partner ? 1 : 0)) changes.push({ field: 'is_partner', old: existing.is_partner, new: is_partner ? 1 : 0 });
+      if (partner_rate !== undefined && existing.partner_rate != partner_rate) changes.push({ field: 'partner_rate', old: existing.partner_rate, new: partner_rate });
+
+      await existing.update({ 
+        phone: newPhone, 
+        address: address || null, 
+        vehicle_number: vehicle_number || null, 
+        is_partner: is_partner ? 1 : 0, 
+        partner_rate: partner_rate || null 
+      }, { transaction: t });
+
+      // Log history
+      for (const change of changes) {
+        await TruckOwnerEditHistory.create({
+          owner_id: existing.id,
+          field_name: change.field,
+          old_value: String(change.old || ''),
+          new_value: String(change.new || ''),
+          changed_by: req.user ? req.user.username : 'system',
+          reason: 'Update via settings'
+        }, { transaction: t });
+      }
+
+      await t.commit();
       return res.json({ message: 'Truck owner updated successfully', owner: existing });
     } else {
-      const created = await TruckOwners.create({ name, phone: phone || contact || null, address: address || null, vehicle_number: vehicle_number || null, is_partner: is_partner ? 1 : 0, partner_rate: partner_rate || null, is_active: 1 });
+      const created = await TruckOwners.create({ 
+        name, 
+        phone: phone || contact || null, 
+        address: address || null, 
+        vehicle_number: vehicle_number || null, 
+        is_partner: is_partner ? 1 : 0, 
+        partner_rate: partner_rate || null, 
+        is_active: 1 
+      }, { transaction: t });
+      
+      await t.commit();
       return res.json({ message: 'Truck owner created successfully', owner: created });
     }
   } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: 'Failed to save truck owner' });
   }
 });
@@ -199,11 +314,26 @@ router.put('/truck-owners/:id/deposit/set', requireAdmin, async (req, res) => {
 
 // Update truck owner by ID
 router.put('/truck-owners/:id', requireAdmin, async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
     const { name, phone, address, vehicle_number, is_partner, partner_rate } = req.body;
-    const owner = await TruckOwners.findByPk(id);
-    if (!owner) return res.status(404).json({ error: 'Truck owner not found' });
+    
+    const owner = await TruckOwners.findByPk(id, { transaction: t });
+    if (!owner) {
+      await t.rollback();
+      return res.status(404).json({ error: 'Truck owner not found' });
+    }
+
+    // Track changes
+    const changes = [];
+    if (name !== undefined && owner.name != name) changes.push({ field: 'name', old: owner.name, new: name });
+    if (phone !== undefined && owner.phone != phone) changes.push({ field: 'phone', old: owner.phone, new: phone });
+    if (address !== undefined && owner.address != address) changes.push({ field: 'address', old: owner.address, new: address });
+    if (vehicle_number !== undefined && owner.vehicle_number != vehicle_number) changes.push({ field: 'vehicle_number', old: owner.vehicle_number, new: vehicle_number });
+    if (is_partner !== undefined && owner.is_partner != (is_partner ? 1 : 0)) changes.push({ field: 'is_partner', old: owner.is_partner, new: is_partner ? 1 : 0 });
+    if (partner_rate !== undefined && owner.partner_rate != partner_rate) changes.push({ field: 'partner_rate', old: owner.partner_rate, new: partner_rate });
+
     await owner.update({
       name: name ?? owner.name,
       phone: phone || null,
@@ -211,9 +341,24 @@ router.put('/truck-owners/:id', requireAdmin, async (req, res) => {
       vehicle_number: vehicle_number || null,
       is_partner: is_partner ? 1 : 0,
       partner_rate: partner_rate || null
-    });
+    }, { transaction: t });
+
+    // Log history
+    for (const change of changes) {
+      await TruckOwnerEditHistory.create({
+        owner_id: owner.id,
+        field_name: change.field,
+        old_value: String(change.old || ''),
+        new_value: String(change.new || ''),
+        changed_by: req.user ? req.user.username : 'system',
+        reason: 'Update via settings'
+      }, { transaction: t });
+    }
+
+    await t.commit();
     res.json({ message: 'Truck owner updated successfully', owner });
   } catch (error) {
+    await t.rollback();
     console.error('Error updating truck owner:', error);
     res.status(500).json({ error: 'Failed to update truck owner' });
   }
