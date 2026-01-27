@@ -121,6 +121,97 @@ app.get('/api/admin/info', (req, res) => {
   });
 });
 
+app.get('/db-browser', async (req, res) => {
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+    const tables = await queryInterface.showAllTables();
+    const listItems = tables.map((table) => `<li><a href="/db-browser/${encodeURIComponent(table)}">${table}</a></li>`).join('');
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Database Browser</title>
+<style>
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 16px; }
+h1, h2 { margin-bottom: 8px; }
+ul { list-style: none; padding-left: 0; }
+li { margin: 4px 0; }
+a { text-decoration: none; color: #2563eb; }
+a:hover { text-decoration: underline; }
+code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Database Browser</h1>
+<p>Select a table to view the first 100 rows.</p>
+<ul>${listItems}</ul>
+</body>
+</html>`;
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`Error loading tables: ${err.message}`);
+  }
+});
+
+app.get('/db-browser/:table', async (req, res) => {
+  try {
+    const table = req.params.table;
+    const queryInterface = sequelize.getQueryInterface();
+    const tables = await queryInterface.showAllTables();
+    if (!tables.includes(table)) {
+      res.status(404).send('Table not found');
+      return;
+    }
+    const limit = Number(req.query.limit) || 100;
+    const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 1000 ? limit : 100;
+    const [rows] = await sequelize.query(`SELECT * FROM \`${table}\` LIMIT ${safeLimit}`);
+    const columns = rows.length ? Object.keys(rows[0]) : [];
+    const headerCells = columns.map((col) => `<th>${col}</th>`).join('');
+    const bodyRows = rows
+      .map((row) => {
+        const cells = columns
+          .map((col) => {
+            const value = row[col];
+            const text = value === null || value === undefined ? '' : String(value);
+            const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `<td>${escaped}</td>`;
+          })
+          .join('');
+        return `<tr>${cells}</tr>`;
+      })
+      .join('');
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Table ${table}</title>
+<style>
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 16px; }
+table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 12px; }
+th, td { border: 1px solid #e5e7eb; padding: 4px 6px; text-align: left; }
+th { background: #f3f4f6; }
+tr:nth-child(even) { background: #f9fafb; }
+a { text-decoration: none; color: #2563eb; }
+a:hover { text-decoration: underline; }
+code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Table: ${table}</h1>
+<p><a href="/db-browser">Back to tables</a></p>
+<p>Showing up to ${safeLimit} rows.</p>
+<table>
+<thead><tr>${headerCells}</tr></thead>
+<tbody>${bodyRows}</tbody>
+</table>
+</body>
+</html>`;
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`Error loading table: ${err.message}`);
+  }
+});
+
 // In production, serve static files from React build
 if (process.env.NODE_ENV === 'production') {
   const clientPath = path.join(__dirname, '../client/dist');
