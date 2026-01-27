@@ -2,6 +2,10 @@ node_modules/
 client/node_modules/
 server/node_modules/
 server/database/
+local_db/
+local_node/
+node.zip
+local_php/
 .env
 .env.local
 *.db
