@@ -366,7 +366,7 @@ const Settings = ({ settings, fetchSettings }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
           <p className="text-gray-600 dark:text-gray-400">Configure application settings and preferences</p>
@@ -383,7 +383,7 @@ const Settings = ({ settings, fetchSettings }) => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-6 overflow-x-auto whitespace-nowrap no-scrollbar -mx-4 px-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -871,7 +871,7 @@ const Settings = ({ settings, fetchSettings }) => {
             </div>
 
             {/* Vehicles List */}
-            <div className="bg-white dark:bg-[#262626] shadow overflow-hidden rounded-lg">
+            <div className="bg-white dark:bg-[#262626] shadow overflow-x-auto rounded-lg">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-[#262626]">
                   <tr>
@@ -1142,17 +1142,17 @@ const Settings = ({ settings, fetchSettings }) => {
                   )}
                 </div>
               </div>
-              <div className="mt-4 flex items-center space-x-3">
-                <button onClick={handleDbBackup} className="btn-primary flex items-center space-x-2">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button onClick={handleDbBackup} className="btn-primary w-full sm:w-auto flex items-center justify-center space-x-2">
                   <FiDownload className="h-5 w-5" />
                   <span>Backup Database</span>
                 </button>
-                <label className="btn-secondary flex items-center space-x-2 cursor-pointer">
+                <label className="btn-secondary w-full sm:w-auto flex items-center justify-center space-x-2 cursor-pointer">
                   <FiUpload className="h-5 w-5" />
                   <span>Restore Database</span>
                   <input type="file" accept=".sql" className="hidden" onChange={handleDbRestore} />
                 </label>
-                <button onClick={handleDbBackupList} className="btn-secondary">Refresh List</button>
+                <button onClick={handleDbBackupList} className="btn-secondary w-full sm:w-auto">Refresh List</button>
               </div>
               <div className="mt-4">
                 {dbBackups.length === 0 ? (
