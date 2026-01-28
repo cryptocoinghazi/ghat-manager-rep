@@ -23,6 +23,7 @@ import {
   FiBarChart2,
   FiPieChart,
   FiRefreshCw,
+  FiChevronDown,
   FiChevronRight,
   FiChevronLeft,
   FiEye,
@@ -60,6 +61,18 @@ const Reports = ({ initialTab }) => {
     if (!el) return;
     el.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
   };
+  const [showMoreTabs, setShowMoreTabs] = useState(false);
+  const tabsList = [
+    { id: 'credit', label: 'Credit Report', icon: FiCreditCard },
+    { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
+    { id: 'financial', label: 'Financial Summary', icon: FiDollarSign },
+    { id: 'deposit', label: 'Deposit Reports', icon: FiDollarSign },
+    { id: 'client', label: 'Client Report', icon: FiUsers },
+    { id: 'expense', label: 'Expense Report', icon: FiTrendingDown },
+    { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers },
+    { id: 'dailyTransactions', label: 'Daily Transactions', icon: FiTruck },
+    { id: 'ownerLedger', label: 'Owner Ledger', icon: FiFileText }
+  ];
   
   // Get current date in IST
   const getCurrentISTDate = () => {
@@ -1063,12 +1076,20 @@ const Reports = ({ initialTab }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-0 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Reports & Analytics</h1>
         
         {/* Report Type Selector */}
-        <div className="flex overflow-x-auto pb-2 md:pb-0 space-x-2 no-scrollbar">
+        <div className="relative flex items-center">
+          <button
+            aria-label="Scroll left"
+            onClick={() => scrollTabs('left')}
+            className="hidden md:flex items-center justify-center mr-2 h-8 w-8 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <FiChevronLeft className="h-5 w-5" />
+          </button>
+          <div ref={tabScrollRef} className="flex overflow-x-auto pb-2 md:pb-0 space-x-2 no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveReport('credit')}
             className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
@@ -1138,6 +1159,14 @@ const Reports = ({ initialTab }) => {
             }`}
           >
             Deposit History
+          </button>
+          </div>
+          <button
+            aria-label="Scroll right"
+            onClick={() => scrollTabs('right')}
+            className="hidden md:flex items-center justify-center ml-2 h-8 w-8 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <FiChevronRight className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -1979,80 +2008,22 @@ const Reports = ({ initialTab }) => {
         </div>
       </div>
 
-      {/* Report Selection Tabs */}
+      {/* Report Selection */}
       <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <div className="md:hidden px-2 py-2">
-            <select
-              value={activeReport}
-              onChange={(e) => setActiveReport(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
-            >
-              {[
-                { id: 'credit', label: 'Credit Report' },
-                { id: 'monthly', label: 'Monthly Summary' },
-                { id: 'financial', label: 'Financial Summary' },
-                { id: 'deposit', label: 'Deposit Reports' },
-                { id: 'client', label: 'Client Report' },
-                { id: 'expense', label: 'Expense Report' },
-                { id: 'partnerRoyalty', label: 'Partner Royalty' },
-                { id: 'dailyTransactions', label: 'Daily Transactions' },
-                { id: 'ownerLedger', label: 'Owner Ledger' }
-              ].map(opt => (
-                <option key={opt.id} value={opt.id}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="relative hidden md:block">
-            <div className="overflow-x-auto overflow-y-hidden" ref={tabScrollRef}>
-              <nav className="inline-flex whitespace-nowrap gap-2 px-2 py-2">
-            {[
-              { id: 'credit', label: 'Credit Report', icon: FiCreditCard },
-              { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
-              { id: 'financial', label: 'Financial Summary', icon: FiDollarSign },
-              { id: 'deposit', label: 'Deposit Reports', icon: FiDollarSign },
-              { id: 'client', label: 'Client Report', icon: FiUsers },
-              { id: 'expense', label: 'Expense Report', icon: FiTrendingDown },
-              { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers },
-              { id: 'dailyTransactions', label: 'Daily Transactions', icon: FiTruck },
-              { id: 'ownerLedger', label: 'Owner Ledger', icon: FiFileText }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveReport(tab.id)}
-                className={`
-                  min-w-max flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium border-b-2
-                  ${activeReport === tab.id 
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' 
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                  }
-                `}
-              >
-                <tab.icon className="h-5 w-5" />
-                <span>{tab.label}</span>
-              </button>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select Report
+          </label>
+          <select
+            value={activeReport}
+            onChange={(e) => setActiveReport(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
+          >
+            {tabsList.map(opt => (
+              <option key={opt.id} value={opt.id}>{opt.label}</option>
             ))}
-              </nav>
-            </div>
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-              <button
-                onClick={() => scrollTabs('left')}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                aria-label="Scroll left"
-              >
-                <FiChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => scrollTabs('right')}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                aria-label="Scroll right"
-              >
-                <FiChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          </select>
         </div>
-
         {/* Report Controls */}
         {activeReport !== 'dailyTransactions' && activeReport !== 'ownerLedger' && (
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">

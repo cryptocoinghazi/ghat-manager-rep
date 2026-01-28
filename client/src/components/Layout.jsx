@@ -385,7 +385,7 @@ const Layout = ({ user, onLogout }) => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-y-auto bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
+      <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
         {/* Top bar */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A] px-4 shadow-sm lg:px-6">
           <div className="flex items-center space-x-4">
@@ -454,7 +454,7 @@ const Layout = ({ user, onLogout }) => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
+        <main className="flex-1 min-h-0 bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
           <div className="p-4 md:p-6">
             {/* Date header */}
             <div className="mb-6">
