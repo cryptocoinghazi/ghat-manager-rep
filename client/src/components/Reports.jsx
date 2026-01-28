@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import {
@@ -54,6 +54,12 @@ const Reports = ({ initialTab }) => {
     limit: 50,
     preset: 'Today'
   });
+  const tabScrollRef = useRef(null);
+  const scrollTabs = (direction) => {
+    const el = tabScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+  };
   
   // Get current date in IST
   const getCurrentISTDate = () => {
@@ -1976,7 +1982,30 @@ const Reports = ({ initialTab }) => {
       {/* Report Selection Tabs */}
       <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex -mb-px overflow-x-auto">
+          <div className="md:hidden px-2 py-2">
+            <select
+              value={activeReport}
+              onChange={(e) => setActiveReport(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
+            >
+              {[
+                { id: 'credit', label: 'Credit Report' },
+                { id: 'monthly', label: 'Monthly Summary' },
+                { id: 'financial', label: 'Financial Summary' },
+                { id: 'deposit', label: 'Deposit Reports' },
+                { id: 'client', label: 'Client Report' },
+                { id: 'expense', label: 'Expense Report' },
+                { id: 'partnerRoyalty', label: 'Partner Royalty' },
+                { id: 'dailyTransactions', label: 'Daily Transactions' },
+                { id: 'ownerLedger', label: 'Owner Ledger' }
+              ].map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative hidden md:block">
+            <div className="overflow-x-auto overflow-y-hidden" ref={tabScrollRef}>
+              <nav className="inline-flex whitespace-nowrap gap-2 px-2 py-2">
             {[
               { id: 'credit', label: 'Credit Report', icon: FiCreditCard },
               { id: 'monthly', label: 'Monthly Summary', icon: FiCalendar },
@@ -1992,7 +2021,7 @@ const Reports = ({ initialTab }) => {
                 key={tab.id}
                 onClick={() => setActiveReport(tab.id)}
                 className={`
-                  flex-1 flex items-center justify-center space-x-2 py-4 px-4 text-sm font-medium border-b-2 whitespace-nowrap
+                  min-w-max flex items-center justify-center space-x-2 py-3 px-4 text-sm font-medium border-b-2
                   ${activeReport === tab.id 
                     ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' 
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
@@ -2003,7 +2032,25 @@ const Reports = ({ initialTab }) => {
                 <span>{tab.label}</span>
               </button>
             ))}
-          </nav>
+              </nav>
+            </div>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+              <button
+                onClick={() => scrollTabs('left')}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                aria-label="Scroll left"
+              >
+                <FiChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => scrollTabs('right')}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                aria-label="Scroll right"
+              >
+                <FiChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Report Controls */}

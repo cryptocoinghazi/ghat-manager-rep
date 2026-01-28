@@ -819,21 +819,21 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sand Mining Billing</h1>
           <p className="text-gray-600 dark:text-gray-400">Create new gate pass for sand trucks</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+          <div className="sm:text-right">
             <p className="text-sm text-gray-500">Receipt No.</p>
             <p className="text-xl font-bold text-blue-600">{receiptNumber}</p>
           </div>
           <button 
             onClick={handleThermalPrint}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="flex-1 sm:flex-none h-12 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base bg-blue-600 text-white hover:bg-blue-700"
           >
             <FiPrinter className="h-5 w-5" />
             <span>Print Receipt (Thermal)</span>
           </button>
           <button 
             onClick={handlePrintPreview}
-            className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2"
+            className="flex-1 sm:flex-none h-12 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base bg-gray-100 text-gray-800 hover:bg-gray-200"
             title="Switch to A4 format"
           >
             <FiPrinter className="h-5 w-5" />
