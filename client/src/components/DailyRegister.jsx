@@ -690,10 +690,10 @@ const DailyRegister = () => {
 
  {/* Edit Receipt Modal */}
 {isEditModalOpen && editableReceipt && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white dark:bg-[#1A1A1A] rounded-lg p-6 max-w-md w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Payment Status</h3>
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="bg-white dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-w-md sm:rounded-lg flex flex-col">
+      <div className="flex justify-between items-center px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-[#1A1A1A] z-10">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Edit Payment Status</h3>
         <button
           onClick={() => {
             setIsEditModalOpen(false);
@@ -705,9 +705,9 @@ const DailyRegister = () => {
         </button>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-4 px-4 sm:px-6 py-4 overflow-y-auto">
         <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-gray-500 dark:text-gray-400">Receipt No:</p>
               <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.receipt_no}</p>
@@ -727,7 +727,7 @@ const DailyRegister = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
             <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Amount</p>
             <p className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</p>
@@ -749,7 +749,7 @@ const DailyRegister = () => {
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Change Payment Status
           </label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => {
@@ -822,7 +822,7 @@ const DailyRegister = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Cash Paid Amount
             </label>
-            <div className="flex space-x-2">
+            <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
               <input
                 type="number"
                 value={editableReceipt.cash_paid}
@@ -868,7 +868,7 @@ const DailyRegister = () => {
         
         {/* Payment Summary */}
         <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Cash to be Paid</p>
               <p className="text-lg font-bold text-green-600 dark:text-green-400">
@@ -913,25 +913,25 @@ const DailyRegister = () => {
           />
         </div>
         
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end space-x-3">
-          <button
-            onClick={() => {
-              setIsEditModalOpen(false);
-              setEditableReceipt(null);
-            }}
-            className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdateReceipt}
-            disabled={isUpdating}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
-          >
-            <FiSave className="h-5 w-5" />
-            <span>{isUpdating ? 'Updating...' : 'Update Payment'}</span>
-          </button>
-        </div>
+      </div>
+      <div className="border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex justify-end space-x-3 sticky bottom-0 bg-white dark:bg-[#1A1A1A]">
+        <button
+          onClick={() => {
+            setIsEditModalOpen(false);
+            setEditableReceipt(null);
+          }}
+          className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleUpdateReceipt}
+          disabled={isUpdating}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
+        >
+          <FiSave className="h-5 w-5" />
+          <span>{isUpdating ? 'Updating...' : 'Update Payment'}</span>
+        </button>
       </div>
     </div>
   </div>
