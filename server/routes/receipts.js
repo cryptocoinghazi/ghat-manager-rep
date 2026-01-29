@@ -1,6 +1,6 @@
 import express from 'express';
 import { Op } from 'sequelize';
-import { Receipts, TruckOwners, DepositTransactions, CreditPayments, TruckVehicles, ReceiptEditHistory, VehicleOwnershipHistory } from '../models/index.js';
+import { Receipts, TruckOwners, DepositTransactions, CreditPayments, TruckVehicles, ReceiptEditHistory, VehicleOwnershipHistory, sequelize } from '../models/index.js';
 
 const router = express.Router();
 
@@ -326,10 +326,16 @@ router.get('/:id/history', async (req, res) => {
   }
 });
 
-// Update receipt (no changes needed here)
+// Update receipt (full edit capability)
 router.put('/:id', async (req, res) => {
   try {
-    const { cash_paid, notes } = req.body;
+    const { 
+      cash_paid, 
+      notes, 
+      brass_qty, 
+      rate, 
+      loading_charge 
+    } = req.body;
 
     // Get existing receipt
     const existingReceipt = await Receipts.findByPk(req.params.id);
@@ -338,49 +344,175 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Receipt not found' });
     }
 
-    // Calculate new credit amount
-    const cashPaidValue = req.body.cash_paid !== undefined ? parseFloat(req.body.cash_paid) : parseFloat(existingReceipt.cash_paid);
-    const creditAmount = existingReceipt.total_amount - cashPaidValue;
-    const paymentStatus = cashPaidValue >= existingReceipt.total_amount ? 'paid' : 
-                         cashPaidValue > 0 ? 'partial' : 'unpaid';
+    const t = await sequelize.transaction();
 
-    // Update receipt
-    // Track changes
-    if (parseFloat(existingReceipt.cash_paid) !== parseFloat(cashPaidValue)) {
-      await ReceiptEditHistory.create({
-        receipt_id: existingReceipt.id,
-        field_name: 'cash_paid',
-        old_value: existingReceipt.cash_paid.toString(),
-        new_value: cashPaidValue.toString(),
-        changed_by: req.user ? req.user.username : 'unknown',
-        reason: 'Payment update'
+    try {
+      // Determine new values (use provided or fallback to existing)
+      const newQty = brass_qty !== undefined ? parseFloat(brass_qty) : parseFloat(existingReceipt.brass_qty);
+      const newRate = rate !== undefined ? parseFloat(rate) : parseFloat(existingReceipt.rate);
+      const newLoading = loading_charge !== undefined ? parseFloat(loading_charge) : parseFloat(existingReceipt.loading_charge);
+      
+      // Recalculate totals
+      const newTotalMaterial = newQty * newRate;
+      const newTotalAmount = newTotalMaterial + newLoading;
+
+      // Handle Deposit Logic
+      // If the new total is LESS than what was deducted from deposit, we must refund the difference
+      let newDepositDeducted = parseFloat(existingReceipt.deposit_deducted || 0);
+      let depositRefund = 0;
+
+      if (newDepositDeducted > newTotalAmount) {
+        depositRefund = newDepositDeducted - newTotalAmount;
+        newDepositDeducted = newTotalAmount;
+
+        // Refund to owner
+        if (existingReceipt.owner_id) {
+          const owner = await TruckOwners.findByPk(existingReceipt.owner_id, { transaction: t });
+          if (owner) {
+            const currentBalance = parseFloat(owner.deposit_balance || 0);
+            await owner.update({ 
+              deposit_balance: currentBalance + depositRefund 
+            }, { transaction: t });
+
+            // Log deposit transaction
+            await DepositTransactions.create({
+              owner_id: owner.id,
+              type: 'refund',
+              amount: depositRefund,
+              previous_balance: currentBalance,
+              new_balance: currentBalance + depositRefund,
+              receipt_no: existingReceipt.receipt_no,
+              notes: `Refund due to receipt edit (Total reduced)`
+            }, { transaction: t });
+          }
+        }
+      }
+
+      // Determine new cash paid (use provided or fallback)
+      let newCashPaid = cash_paid !== undefined ? parseFloat(cash_paid) : parseFloat(existingReceipt.cash_paid);
+      
+      // Handle Excess Cash Payment (Refund to Deposit)
+      // Logic: If (Cash Paid + Deposit Deducted) > New Total Amount
+      // Then: Refund the excess cash to Deposit Balance
+      const totalPaidSoFar = newCashPaid + newDepositDeducted;
+      if (totalPaidSoFar > newTotalAmount) {
+        const excessAmount = totalPaidSoFar - newTotalAmount;
+        
+        // We reduce the cash_paid on the receipt to match the total (minus deposit)
+        // Effectively moving the "excess" cash to the Deposit Balance
+        newCashPaid = newCashPaid - excessAmount;
+        
+        if (existingReceipt.owner_id) {
+          const owner = await TruckOwners.findByPk(existingReceipt.owner_id, { transaction: t });
+          if (owner) {
+             const currentBalance = parseFloat(owner.deposit_balance || 0);
+             await owner.update({
+               deposit_balance: currentBalance + excessAmount
+             }, { transaction: t });
+
+             // Log deposit transaction
+             await DepositTransactions.create({
+               owner_id: owner.id,
+               type: 'refund', // or 'add' - conceptually it's a refund from receipt to deposit
+               amount: excessAmount,
+               previous_balance: currentBalance,
+               new_balance: currentBalance + excessAmount,
+               receipt_no: existingReceipt.receipt_no,
+               notes: `Excess payment moved to deposit (Receipt Edit)`
+             }, { transaction: t });
+          }
+        }
+      }
+
+      // Calculate Credit
+      const finalTotalPaid = newCashPaid + newDepositDeducted;
+      const newCreditAmount = Math.max(0, newTotalAmount - finalTotalPaid); 
+      
+      // Determine status
+      let paymentStatus;
+      if (newCreditAmount <= 0.01) { // Floating point tolerance
+          paymentStatus = 'paid';
+      } else if (finalTotalPaid > 0) {
+          paymentStatus = 'partial';
+      } else {
+          paymentStatus = 'unpaid';
+      }
+
+      // Track changes
+      const changes = [];
+      const user = req.user ? req.user.username : 'unknown';
+
+      if (parseFloat(existingReceipt.brass_qty) !== newQty) {
+        changes.push({ field: 'brass_qty', old: existingReceipt.brass_qty, new: newQty });
+      }
+      if (parseFloat(existingReceipt.rate) !== newRate) {
+        changes.push({ field: 'rate', old: existingReceipt.rate, new: newRate });
+      }
+      if (parseFloat(existingReceipt.loading_charge) !== newLoading) {
+        changes.push({ field: 'loading_charge', old: existingReceipt.loading_charge, new: newLoading });
+      }
+      if (parseFloat(existingReceipt.cash_paid) !== newCashPaid) {
+        changes.push({ field: 'cash_paid', old: existingReceipt.cash_paid, new: newCashPaid });
+      }
+      if (parseFloat(existingReceipt.total_amount) !== newTotalAmount) {
+        changes.push({ field: 'total_amount', old: existingReceipt.total_amount, new: newTotalAmount });
+      }
+      if (parseFloat(existingReceipt.deposit_deducted) !== newDepositDeducted) {
+        changes.push({ field: 'deposit_deducted', old: existingReceipt.deposit_deducted, new: newDepositDeducted });
+      }
+      if (existingReceipt.payment_status !== paymentStatus) {
+        changes.push({ field: 'payment_status', old: existingReceipt.payment_status, new: paymentStatus });
+      }
+
+      for (const change of changes) {
+        await ReceiptEditHistory.create({
+          receipt_id: existingReceipt.id,
+          field_name: change.field,
+          old_value: change.old.toString(),
+          new_value: change.new.toString(),
+          changed_by: user,
+          reason: 'Receipt Edit'
+        }, { transaction: t });
+      }
+
+      // Update receipt
+      await existingReceipt.update({
+        brass_qty: newQty,
+        rate: newRate,
+        loading_charge: newLoading,
+        total_amount: newTotalAmount,
+        cash_paid: newCashPaid,
+        deposit_deducted: newDepositDeducted,
+        credit_amount: newCreditAmount,
+        payment_status: paymentStatus,
+        notes: notes || existingReceipt.notes
+      }, { transaction: t });
+
+      // Handle Cash Payment Adjustments (Increase or Decrease)
+      const oldCash = parseFloat(existingReceipt.cash_paid);
+      if (Math.abs(newCashPaid - oldCash) > 0.01) {
+        const paymentDiff = newCashPaid - oldCash;
+        await CreditPayments.create({ 
+            receipt_id: req.params.id, 
+            amount_paid: paymentDiff,
+            payment_mode: paymentDiff > 0 ? 'cash_adjustment' : 'cash_refund'
+        }, { transaction: t });
+      }
+
+      await t.commit();
+      
+      // Return updated receipt
+      const updatedReceipt = await Receipts.findByPk(req.params.id);
+      res.json({
+        message: 'Receipt updated successfully',
+        receipt: updatedReceipt
       });
-    }
-    if (existingReceipt.payment_status !== paymentStatus) {
-      await ReceiptEditHistory.create({
-        receipt_id: existingReceipt.id,
-        field_name: 'payment_status',
-        old_value: existingReceipt.payment_status,
-        new_value: paymentStatus,
-        changed_by: req.user ? req.user.username : 'unknown',
-        reason: 'Payment status update'
-      });
+
+    } catch (err) {
+      await t.rollback();
+      throw err;
     }
 
-    await existingReceipt.update({ cash_paid: cashPaidValue, credit_amount: creditAmount, payment_status: paymentStatus, notes: notes || existingReceipt.notes });
-
-    // If payment made, record in credit_payments
-    if (cashPaidValue > existingReceipt.cash_paid) {
-      const paymentAmount = cashPaidValue - existingReceipt.cash_paid;
-      await CreditPayments.create({ receipt_id: req.params.id, amount_paid: paymentAmount });
-    }
-
-    const updatedReceipt = await Receipts.findByPk(req.params.id);
-
-    res.json({
-      message: 'Receipt updated successfully',
-      receipt: updatedReceipt
-    });
   } catch (error) {
     console.error('Error updating receipt:', error);
     res.status(500).json({ error: 'Failed to update receipt' });

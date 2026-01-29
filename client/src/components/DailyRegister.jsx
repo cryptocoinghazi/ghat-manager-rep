@@ -158,34 +158,65 @@ const DailyRegister = () => {
     setIsEditModalOpen(true);
   };
 
- const handleUpdateReceipt = async () => {
-  if (!editableReceipt) return;
-
-  setIsUpdating(true);
-  try {
-    const response = await axios.put(`/api/receipts/${editableReceipt.id}`, {
-      cash_paid: parseFloat(editableReceipt.cash_paid),
-      payment_status: editableReceipt.payment_status,
-      notes: editableReceipt.notes || ''
-    });
-
-    if (response.data.receipt) {
-      toast.success('Payment updated successfully!');
-      
-      // Refresh the data
-      fetchDailyData();
-      
-      // Close modal
-      setIsEditModalOpen(false);
-      setEditableReceipt(null);
-    }
-  } catch (error) {
-    console.error('Error updating receipt:', error);
-    toast.error(error.response?.data?.error || 'Failed to update receipt');
-  } finally {
-    setIsUpdating(false);
-  }
-};
+   const handleUpdateReceipt = async () => {
+     if (!editableReceipt) return;
+ 
+     setIsUpdating(true);
+     try {
+       const response = await axios.put(`/api/receipts/${editableReceipt.id}`, {
+         brass_qty: parseFloat(editableReceipt.brass_qty),
+         rate: parseFloat(editableReceipt.rate),
+         loading_charge: parseFloat(editableReceipt.loading_charge),
+         cash_paid: parseFloat(editableReceipt.cash_paid),
+         payment_status: editableReceipt.payment_status,
+         notes: editableReceipt.notes || ''
+       });
+ 
+       if (response.data.receipt) {
+         toast.success('Receipt updated successfully!');
+         
+         // Refresh the data
+         fetchDailyData();
+         
+         // Close modal
+         setIsEditModalOpen(false);
+         setEditableReceipt(null);
+       }
+     } catch (error) {
+       console.error('Error updating receipt:', error);
+       toast.error(error.response?.data?.error || 'Failed to update receipt');
+     } finally {
+       setIsUpdating(false);
+     }
+   };
+ 
+   const updateCalculations = (field, value) => {
+     const updated = { ...editableReceipt, [field]: value };
+     const qty = parseFloat(updated.brass_qty) || 0;
+     const rate = parseFloat(updated.rate) || 0;
+     const loading = parseFloat(updated.loading_charge) || 0;
+     
+     // Calculate new total
+     const total = (qty * rate) + loading;
+     
+     // Calculate new credit
+     const cash = parseFloat(updated.cash_paid) || 0;
+     const deposit = parseFloat(updated.deposit_deducted) || 0;
+     const paid = cash + deposit;
+     const credit = total - paid;
+     
+     // Determine status
+     let status = 'unpaid';
+     if (credit <= 0.01) status = 'paid';
+     else if (paid > 0) status = 'partial';
+     
+     setEditableReceipt({
+       ...updated,
+       total_amount: total.toFixed(2),
+       credit_amount: credit.toFixed(2),
+       payment_status: status
+     });
+   };
 
   const handleReprintReceipt = async (receipt) => {
     try {
@@ -688,254 +719,175 @@ const DailyRegister = () => {
         </div>
       )}
 
- {/* Edit Receipt Modal */}
-{isEditModalOpen && editableReceipt && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div className="bg-white dark:bg-[#1A1A1A] w-full h-full sm:h-auto sm:max-w-md sm:rounded-lg flex flex-col">
-      <div className="flex justify-between items-center px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-[#1A1A1A] z-10">
-        <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Edit Payment Status</h3>
-        <button
-          onClick={() => {
-            setIsEditModalOpen(false);
-            setEditableReceipt(null);
-          }}
-          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          <FiX className="h-6 w-6" />
-        </button>
-      </div>
-      
-      <div className="space-y-4 px-4 sm:px-6 py-4 overflow-y-auto">
-        <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Receipt No:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.receipt_no}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Date:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time.split(',')[0]}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Time:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time.split(',')[1]?.trim()}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Vehicle:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.vehicle_number}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Amount</p>
-            <p className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</p>
-          </div>
-          <div className="bg-gray-50 dark:bg-[#262626] p-3 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Current Status</p>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-              editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-            }`}>
-              {editableReceipt.payment_status?.toUpperCase()}
-            </span>
-          </div>
-        </div>
-        
-        {/* Payment Status Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Change Payment Status
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setEditableReceipt({
-                  ...editableReceipt,
-                  payment_status: 'paid',
-                  cash_paid: editableReceipt.total_amount,
-                  credit_amount: 0
-                });
-              }}
-              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                editableReceipt.payment_status === 'paid' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                <span>Paid</span>
-                <span className="text-xs">₹{editableReceipt.total_amount}</span>
-              </div>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => {
-                setEditableReceipt({
-                  ...editableReceipt,
-                  payment_status: 'partial',
-                  cash_paid: editableReceipt.total_amount * 0.5, // Default 50%
-                  credit_amount: editableReceipt.total_amount * 0.5
-                });
-              }}
-              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                editableReceipt.payment_status === 'partial' 
-                  ? 'bg-yellow-600 text-white' 
-                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                      <span>Partial</span>
-                    </div>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => {
-                setEditableReceipt({
-                  ...editableReceipt,
-                  payment_status: 'unpaid',
-                  cash_paid: 0,
-                  credit_amount: editableReceipt.total_amount
-                });
-              }}
-              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                editableReceipt.payment_status === 'unpaid' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                <span>Credit</span>
-                <span className="text-xs">₹0</span>
-              </div>
-            </button>
-          </div>
-        </div>
-        
-        {/* Custom Amount Input - Always Visible */}
-        <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Cash Paid Amount
-            </label>
-            <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
-              <input
-                type="number"
-                value={editableReceipt.cash_paid}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const cashPaid = val === '' ? '' : parseFloat(val);
-                  const numCash = val === '' ? 0 : parseFloat(val);
-                  const total = parseFloat(editableReceipt.total_amount);
-                  const credit = total - numCash;
-                  setEditableReceipt({
-                    ...editableReceipt,
-                    cash_paid: cashPaid,
-                    credit_amount: credit,
-                    payment_status: numCash >= total ? 'paid' : 
-                                   numCash > 0 ? 'partial' : 'unpaid'
-                  });
-                }}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter cash amount"
-                min="0"
-                max={editableReceipt.total_amount}
-              />
+      {/* Edit Receipt Modal */}
+      {isEditModalOpen && editableReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-[#1A1A1A] z-10">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Receipt</h3>
               <button
-                type="button"
                 onClick={() => {
-                  const cashPaid = parseFloat(editableReceipt.total_amount);
-                  setEditableReceipt({
-                    ...editableReceipt,
-                    cash_paid: cashPaid,
-                    credit_amount: 0,
-                    payment_status: 'paid'
-                  });
+                  setIsEditModalOpen(false);
+                  setEditableReceipt(null);
                 }}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
-                Full
+                <FiX className="h-6 w-6" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Enter cash amount paid now (0 to ₹{editableReceipt.total_amount})
-            </p>
-          </div>
-        
-        {/* Payment Summary */}
-        <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Cash to be Paid</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                ₹{editableReceipt.cash_paid || 0}
-              </p>
+            
+            <div className="p-6 space-y-6">
+              {/* Receipt Info */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Receipt No</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.receipt_no}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Date</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Owner</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.truck_owner}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Vehicle</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.vehicle_number}</p>
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Transaction Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Quantity (Brass)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.brass_qty}
+                      onChange={(e) => updateCalculations('brass_qty', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Rate per Brass
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.rate}
+                      onChange={(e) => updateCalculations('rate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Loading Charge
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.loading_charge}
+                      onChange={(e) => updateCalculations('loading_charge', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Summary */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">Total Amount</span>
+                  <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</span>
+                </div>
+                <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                  (Qty × Rate) + Loading Charge
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Payment Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Cash Paid
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.cash_paid}
+                      onChange={(e) => updateCalculations('cash_paid', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Credit Amount (Balance)
+                    </label>
+                    <div className={`w-full px-3 py-2 border rounded-lg bg-gray-50 dark:bg-[#262626] font-bold ${
+                      parseFloat(editableReceipt.credit_amount) > 0 
+                        ? 'text-red-600 border-red-200 dark:text-red-400 dark:border-red-900/30' 
+                        : 'text-green-600 border-green-200 dark:text-green-400 dark:border-green-900/30'
+                    }`}>
+                      ₹{editableReceipt.credit_amount}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between bg-gray-50 dark:bg-[#262626] p-3 rounded-lg">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Status:</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                    editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                    editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                  }`}>
+                    {editableReceipt.payment_status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={editableReceipt.notes || ''}
+                  onChange={(e) => setEditableReceipt({ ...editableReceipt, notes: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white h-20"
+                  placeholder="Reason for edit..."
+                />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Credit Amount</p>
-              <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                ₹{editableReceipt.credit_amount || 0}
-              </p>
-            </div>
-          </div>
-          
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New Payment Status:</span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-              }`}>
-                {editableReceipt.payment_status?.toUpperCase()}
-              </span>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end space-x-3 sticky bottom-0 bg-white dark:bg-[#1A1A1A]">
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditableReceipt(null);
+                }}
+                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateReceipt}
+                disabled={isUpdating}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
+              >
+                <FiSave className="h-5 w-5" />
+                <span>{isUpdating ? 'Saving...' : 'Save Changes'}</span>
+              </button>
             </div>
           </div>
         </div>
-        
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Payment Notes (Optional)
-          </label>
-          <textarea
-            value={editableReceipt.notes || ''}
-            onChange={(e) => setEditableReceipt({
-              ...editableReceipt,
-              notes: e.target.value
-            })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
-            placeholder="Add payment notes..."
-          />
-        </div>
-        
-      </div>
-      <div className="border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex justify-end space-x-3 sticky bottom-0 bg-white dark:bg-[#1A1A1A]">
-        <button
-          onClick={() => {
-            setIsEditModalOpen(false);
-            setEditableReceipt(null);
-          }}
-          className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleUpdateReceipt}
-          disabled={isUpdating}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
-        >
-          <FiSave className="h-5 w-5" />
-          <span>{isUpdating ? 'Updating...' : 'Update Payment'}</span>
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };
