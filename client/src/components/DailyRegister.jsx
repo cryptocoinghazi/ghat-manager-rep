@@ -18,7 +18,10 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const DailyRegister = () => {
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dateRange, setDateRange] = useState({
+    startDate: format(new Date(), "yyyy-MM-dd'T'00:00"),
+    endDate: format(new Date(), "yyyy-MM-dd'T'23:59")
+  });
   const [receipts, setReceipts] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -59,34 +62,27 @@ const DailyRegister = () => {
     return date.toLocaleString('en-IN', options);
   };
 
-  // Convert local date to UTC range for DB query
-  const getUTCRangeForLocalDate = (localDateString) => {
-    // localDateString is in YYYY-MM-DD format (IST date)
-    
-    // Start of day in IST: YYYY-MM-DDT00:00:00+05:30
-    const startIST = new Date(`${localDateString}T00:00:00+05:30`);
-    // End of day in IST: YYYY-MM-DDT23:59:59.999+05:30
-    const endIST = new Date(`${localDateString}T23:59:59.999+05:30`);
-    
-    // Convert to UTC for database query
-    const startUTC = startIST.toISOString();
-    const endUTC = endIST.toISOString();
-    
-    return { startUTC, endUTC };
+  // Convert IST datetime-local string to UTC for DB query
+  const getUTCFromIST = (localDateTimeString) => {
+    // localDateTimeString is in YYYY-MM-DDThh:mm format
+    // Append seconds and timezone offset for IST
+    // Note: If seconds are missing, we append :00
+    const dateIST = new Date(`${localDateTimeString}:00+05:30`);
+    return dateIST.toISOString();
   };
 
   useEffect(() => {
     fetchDailyData();
-  }, [selectedDate]);
+  }, [dateRange]);
 
   const fetchDailyData = async () => {
     setLoading(true);
     try {
-      // Get UTC range for the selected IST date
-      const { startUTC, endUTC } = getUTCRangeForLocalDate(selectedDate);
+      // Get UTC range for the selected IST date range
+      const startUTC = getUTCFromIST(dateRange.startDate);
+      const endUTC = getUTCFromIST(dateRange.endDate);
       
-      console.log('Fetching receipts for IST date:', selectedDate);
-      console.log('UTC range for query:', startUTC, 'to', endUTC);
+      console.log('Fetching receipts for IST range:', dateRange.startDate, 'to', dateRange.endDate);
       
       const receiptsResponse = await axios.get('/api/receipts', {
         params: {
@@ -246,11 +242,16 @@ const DailyRegister = () => {
     try {
       const doc = new jsPDF();
       
+      // Format dates for display
+      const startDateDisplay = format(new Date(dateRange.startDate), 'dd-MM-yyyy HH:mm');
+      const endDateDisplay = format(new Date(dateRange.endDate), 'dd-MM-yyyy HH:mm');
+      const filename = `daily-register-${dateRange.startDate.replace(/[:.]/g, '-')}-to-${dateRange.endDate.replace(/[:.]/g, '-')}.pdf`;
+
       // Title with local date
       doc.setFontSize(18);
       doc.text('Daily Register - Ghat Manager', 14, 22);
       doc.setFontSize(11);
-      doc.text(`Date: ${format(new Date(selectedDate), 'dd-MM-yyyy')} (IST)`, 14, 32);
+      doc.text(`Date Range: ${startDateDisplay} to ${endDateDisplay} (IST)`, 14, 32);
       doc.text(`Generated: ${getLocalDateTime(new Date().toISOString())}`, 14, 38);
       
       // Summary
@@ -266,11 +267,11 @@ const DailyRegister = () => {
         index + 1,
         receipt.receipt_no,
         getLocalTime(receipt.date_time), // Time only
+        format(new Date(receipt.date_time), 'dd-MM-yyyy'), // Date
         receipt.truck_owner,
         receipt.vehicle_number,
         receipt.tyre_type || '-',
         receipt.payment_method || '-',
-        receipt.deposit_deducted ? `₹${receipt.deposit_deducted}` : '-',
         receipt.brass_qty,
         `₹${receipt.total_amount}`,
         `₹${receipt.cash_paid}`,
@@ -279,7 +280,7 @@ const DailyRegister = () => {
       ]);
       
       doc.autoTable({
-        head: [['#', 'Receipt No', 'Time', 'Owner', 'Vehicle', 'Tyre', 'Mode', 'Deposit', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
+        head: [['#', 'Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre', 'Mode', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
         body: tableData,
         startY: 75,
         theme: 'grid',
@@ -287,7 +288,7 @@ const DailyRegister = () => {
         headStyles: { fillColor: [59, 130, 246] }
       });
       
-      doc.save(`daily-register-${selectedDate.replace(/-/g, '')}.pdf`);
+      doc.save(filename);
       toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -297,19 +298,19 @@ const DailyRegister = () => {
 
   const handleExportExcel = () => {
     try {
-      const headers = ['Receipt No', 'Date', 'Time', 'Owner', 'Vehicle', 'Tyre Type', 'Payment Mode', 'Deposit Deducted', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
+      const filename = `daily-register-${dateRange.startDate.replace(/[:.]/g, '-')}-to-${dateRange.endDate.replace(/[:.]/g, '-')}.csv`;
+      const headers = ['Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre Type', 'Payment Mode', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
       const csvData = filteredReceipts.map(receipt => {
         const date = format(new Date(receipt.date_time), 'dd-MM-yyyy', { timeZone: 'Asia/Kolkata' });
         const time = getLocalTime(receipt.date_time);
         return [
           receipt.receipt_no,
-          date,
           time,
+          date,
           `"${receipt.truck_owner}"`,
           receipt.vehicle_number,
           receipt.tyre_type || '-',
           receipt.payment_method || '-',
-          receipt.deposit_deducted || 0,
           receipt.brass_qty,
           receipt.rate,
           receipt.total_amount,
@@ -328,7 +329,7 @@ const DailyRegister = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `daily-register-${selectedDate.replace(/-/g, '')}.csv`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -368,21 +369,32 @@ const DailyRegister = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Register</h1>
           <p className="text-gray-600 dark:text-gray-400 flex items-center">
             <FiClock className="h-4 w-4 mr-2" />
-            System Date: {getLocalDateString()} | Display Date: {selectedDate}
+            System Date: {getLocalDateString()} | Display: {dateRange.startDate.replace('T', ' ')} to {dateRange.endDate.replace('T', ' ')}
           </p>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => {
-              const prevDate = subDays(new Date(selectedDate), 1);
-              setSelectedDate(format(prevDate, 'yyyy-MM-dd'));
+              const currentStart = new Date(dateRange.startDate);
+              const prevDate = subDays(currentStart, 1);
+              const prevDateStr = format(prevDate, 'yyyy-MM-dd');
+              setDateRange({ 
+                startDate: `${prevDateStr}T00:00`, 
+                endDate: `${prevDateStr}T23:59` 
+              });
             }}
             className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
           >
             Previous Day
           </button>
           <button
-            onClick={() => setSelectedDate(getLocalDateString())}
+            onClick={() => {
+              const today = getLocalDateString();
+              setDateRange({ 
+                startDate: `${today}T00:00`, 
+                endDate: `${today}T23:59` 
+              });
+            }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             Today ({format(new Date(), 'dd-MM-yyyy')})
@@ -392,18 +404,32 @@ const DailyRegister = () => {
 
       {/* Date Selector & Filters */}
       <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FaCalendar className="inline h-4 w-4 mr-1" />
-              Select Date (IST)
+              From Date & Time
             </label>
             <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              type="datetime-local"
+              value={dateRange.startDate}
+              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#262626] dark:text-white"
-              max={getLocalDateString()}
+              max={dateRange.endDate}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <FaCalendar className="inline h-4 w-4 mr-1" />
+              To Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              value={dateRange.endDate}
+              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#262626] dark:text-white"
+              min={dateRange.startDate}
             />
           </div>
           
@@ -417,14 +443,14 @@ const DailyRegister = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#2A2A2A] dark:text-white"
-              placeholder="Search by owner, vehicle..."
+              placeholder="Search..."
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FiFilter className="inline h-4 w-4 mr-1" />
-              Payment Status
+              Status
             </label>
             <select
               value={filterStatus}
@@ -502,7 +528,9 @@ const DailyRegister = () => {
       <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Transactions for {format(new Date(selectedDate), 'MMMM dd, yyyy')} (IST)
+            Transactions for {dateRange.startDate === dateRange.endDate 
+              ? format(new Date(dateRange.startDate), 'MMMM dd, yyyy') 
+              : `${format(new Date(dateRange.startDate), 'MMM dd')} - ${format(new Date(dateRange.endDate), 'MMM dd, yyyy')}`} (IST)
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
             <FiClock className="h-4 w-4 mr-1" />
@@ -522,7 +550,7 @@ const DailyRegister = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-gray-500 dark:text-gray-400">No transactions found for selected date</p>
+            <p className="text-gray-500 dark:text-gray-400">No transactions found for selected date range</p>
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Make sure receipts are booked within IST timezone</p>
             <button
               onClick={() => window.location.href = '/receipt'}
@@ -544,11 +572,11 @@ const DailyRegister = () => {
                       Time (IST)
                     </span>
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tyre Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Mode</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deposit Deducted</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
@@ -569,6 +597,9 @@ const DailyRegister = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
                       {getLocalTime(receipt.date_time)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {format(new Date(receipt.date_time), 'dd-MM-yyyy')}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {receipt.truck_owner}
                     </td>
@@ -580,9 +611,6 @@ const DailyRegister = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">
                       {receipt.payment_method || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {receipt.deposit_deducted ? `₹${receipt.deposit_deducted}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {receipt.brass_qty}
@@ -877,7 +905,7 @@ const DailyRegister = () => {
                 </label>
                 <textarea
                   value={editableReceipt.notes || ''}
-                  onChange={(e) => setEditableReceipt({ ...editableReceipt, notes: e.target.value })}
+                  onChange={(e) => updateCalculations('notes', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white h-20"
                   placeholder="Reason for edit..."
                 />
