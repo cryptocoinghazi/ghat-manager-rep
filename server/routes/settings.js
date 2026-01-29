@@ -450,23 +450,20 @@ router.get('/backup', requireAdmin, async (req, res) => {
       version: '1.0.0',
       data: {}
     };
-    const tables = {
-      receipts: Receipts,
-      truck_owners: TruckOwners,
-      settings: Settings,
-      credit_payments: CreditPayments,
-      users: Users,
-      deposit_transactions: DepositTransactions
-    };
-    for (const [name, Model] of Object.entries(tables)) {
+    
+    // Dynamically get all tables
+    const tableNames = await sequelize.getQueryInterface().showAllTables();
+    
+    for (const tableName of tableNames) {
       try {
-        const rows = await Model.findAll();
-        backupData.data[name] = rows.map(r => r.toJSON());
+        const [rows] = await sequelize.query(`SELECT * FROM \`${tableName}\``);
+        backupData.data[tableName] = rows;
       } catch (err) {
-        console.warn(`Error backing up table ${name}:`, err);
-        backupData.data[name] = [];
+        console.warn(`Error backing up table ${tableName}:`, err);
+        backupData.data[tableName] = [];
       }
     }
+    
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', 'attachment; filename="backup.json"');
     res.json(backupData);
@@ -484,28 +481,43 @@ router.post('/restore', requireAdmin, async (req, res) => {
     if (!backupData || !backupData.data) {
       return res.status(400).json({ error: 'Invalid backup data' });
     }
-    const tables = {
-      receipts: Receipts,
-      truck_owners: TruckOwners,
-      settings: Settings,
-      credit_payments: CreditPayments,
-      users: Users,
-      deposit_transactions: DepositTransactions
-    };
+
     const t = await sequelize.transaction();
     try {
-      for (const [name, Model] of Object.entries(tables)) {
-        if (!backupData.data[name]) continue;
-        await Model.destroy({ where: {}, truncate: true, transaction: t });
-        const rows = backupData.data[name];
-        if (rows.length > 0) {
-          await Model.bulkCreate(rows, { transaction: t, ignoreDuplicates: true });
+      // Disable FK checks
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction: t });
+
+      const tableNames = Object.keys(backupData.data);
+      const dbTables = await sequelize.getQueryInterface().showAllTables();
+
+      for (const tableName of tableNames) {
+        if (!dbTables.includes(tableName)) {
+          console.warn(`Table ${tableName} in backup does not exist in database. Skipping.`);
+          continue;
+        }
+
+        // Use DELETE FROM to be transaction-safe (TRUNCATE commits implicitly)
+        await sequelize.query(`DELETE FROM \`${tableName}\``, { transaction: t });
+        
+        const rows = backupData.data[tableName];
+        if (rows && rows.length > 0) {
+           // Use bulkInsert for efficiency and safety
+           // chunking is handled by sequelize usually, but being safe
+           const chunkSize = 500;
+           for (let i = 0; i < rows.length; i += chunkSize) {
+             const chunk = rows.slice(i, i + chunkSize);
+             await sequelize.getQueryInterface().bulkInsert(tableName, chunk, { transaction: t });
+           }
         }
       }
+
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction: t });
       await t.commit();
       res.json({ message: 'Backup restored successfully' });
     } catch (error) {
       await t.rollback();
+      // Re-enable FK checks just in case (though connection close usually resets)
+      try { await sequelize.query('SET FOREIGN_KEY_CHECKS = 1'); } catch {}
       throw error;
     }
   } catch (error) {
