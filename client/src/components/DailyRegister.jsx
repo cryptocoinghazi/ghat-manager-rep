@@ -268,6 +268,9 @@ const DailyRegister = () => {
         getLocalTime(receipt.date_time), // Time only
         receipt.truck_owner,
         receipt.vehicle_number,
+        receipt.tyre_type || '-',
+        receipt.payment_method || '-',
+        receipt.deposit_deducted ? `₹${receipt.deposit_deducted}` : '-',
         receipt.brass_qty,
         `₹${receipt.total_amount}`,
         `₹${receipt.cash_paid}`,
@@ -276,7 +279,7 @@ const DailyRegister = () => {
       ]);
       
       doc.autoTable({
-        head: [['#', 'Receipt No', 'Time', 'Owner', 'Vehicle', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
+        head: [['#', 'Receipt No', 'Time', 'Owner', 'Vehicle', 'Tyre', 'Mode', 'Deposit', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
         body: tableData,
         startY: 75,
         theme: 'grid',
@@ -294,7 +297,7 @@ const DailyRegister = () => {
 
   const handleExportExcel = () => {
     try {
-      const headers = ['Receipt No', 'Date', 'Time', 'Owner', 'Vehicle', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
+      const headers = ['Receipt No', 'Date', 'Time', 'Owner', 'Vehicle', 'Tyre Type', 'Payment Mode', 'Deposit Deducted', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
       const csvData = filteredReceipts.map(receipt => {
         const date = format(new Date(receipt.date_time), 'dd-MM-yyyy', { timeZone: 'Asia/Kolkata' });
         const time = getLocalTime(receipt.date_time);
@@ -304,6 +307,9 @@ const DailyRegister = () => {
           time,
           `"${receipt.truck_owner}"`,
           receipt.vehicle_number,
+          receipt.tyre_type || '-',
+          receipt.payment_method || '-',
+          receipt.deposit_deducted || 0,
           receipt.brass_qty,
           receipt.rate,
           receipt.total_amount,
@@ -540,6 +546,9 @@ const DailyRegister = () => {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tyre Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Mode</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deposit Deducted</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
@@ -565,6 +574,15 @@ const DailyRegister = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {receipt.vehicle_number}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {receipt.tyre_type || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">
+                      {receipt.payment_method || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {receipt.deposit_deducted ? `₹${receipt.deposit_deducted}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {receipt.brass_qty}
