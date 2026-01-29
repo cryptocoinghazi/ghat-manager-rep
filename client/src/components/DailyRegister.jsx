@@ -10,7 +10,8 @@ import {
   FiPrinter,
   FiSave,
   FiX,
-  FiClock
+  FiClock,
+  FiTrash2
 } from 'react-icons/fi';
 import { FaCalendar, FaTruck, FaUser } from 'react-icons/fa';
 import { format, subDays, parseISO } from 'date-fns';
@@ -32,6 +33,20 @@ const DailyRegister = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editableReceipt, setEditableReceipt] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [truckOwners, setTruckOwners] = useState([]);
+
+  useEffect(() => {
+    fetchTruckOwners();
+  }, []);
+
+  const fetchTruckOwners = async () => {
+    try {
+      const response = await axios.get('/api/settings/truck-owners');
+      setTruckOwners(response.data || []);
+    } catch (error) {
+      console.error('Error fetching truck owners:', error);
+    }
+  };
 
   // Get correct local timezone date
   const getLocalDateString = () => {
@@ -154,21 +169,48 @@ const DailyRegister = () => {
     setIsEditModalOpen(true);
   };
 
+  const handleDeleteReceipt = async (receipt) => {
+    if (window.confirm(`Are you sure you want to delete receipt ${receipt.receipt_no}? This action cannot be undone.`)) {
+      try {
+        await axios.delete(`/api/receipts/${receipt.id}`);
+        toast.success('Receipt deleted successfully');
+        fetchDailyData();
+        if (isViewModalOpen) setIsViewModalOpen(false);
+      } catch (error) {
+        console.error('Error deleting receipt:', error);
+        toast.error('Failed to delete receipt');
+      }
+    }
+  };
+
    const handleUpdateReceipt = async () => {
-     if (!editableReceipt) return;
- 
-     setIsUpdating(true);
-     try {
-       const response = await axios.put(`/api/receipts/${editableReceipt.id}`, {
-         brass_qty: parseFloat(editableReceipt.brass_qty),
-         rate: parseFloat(editableReceipt.rate),
-         loading_charge: parseFloat(editableReceipt.loading_charge),
-         cash_paid: parseFloat(editableReceipt.cash_paid),
-         payment_status: editableReceipt.payment_status,
-         notes: editableReceipt.notes || ''
-       });
- 
-       if (response.data.receipt) {
+    if (!editableReceipt) return;
+
+    // Validate Owner
+    const ownerExists = truckOwners.some(
+      o => o.name.toLowerCase() === editableReceipt.truck_owner.toLowerCase() || 
+           (o.truck_owner && o.truck_owner.toLowerCase() === editableReceipt.truck_owner.toLowerCase())
+    );
+    
+    if (!ownerExists) {
+      toast.error(`Owner "${editableReceipt.truck_owner}" not found. Please add the owner in Settings first.`);
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await axios.put(`/api/receipts/${editableReceipt.id}`, {
+        truck_owner: editableReceipt.truck_owner,
+        vehicle_number: editableReceipt.vehicle_number,
+        brass_qty: parseFloat(editableReceipt.brass_qty),
+        rate: parseFloat(editableReceipt.rate),
+        loading_charge: parseFloat(editableReceipt.loading_charge),
+        cash_paid: parseFloat(editableReceipt.cash_paid),
+        payment_status: editableReceipt.payment_status,
+        notes: editableReceipt.notes || ''
+      });
+
+      if (response.data.receipt) {
          toast.success('Receipt updated successfully!');
          
          // Refresh the data
@@ -646,6 +688,13 @@ const DailyRegister = () => {
                           <FiEdit className="h-4 w-4" />
                         </button>
                         <button
+                          onClick={() => handleDeleteReceipt(receipt)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Delete Receipt"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleReprintReceipt(receipt)}
                           className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10"
                           title="Reprint"
@@ -759,6 +808,12 @@ const DailyRegister = () => {
                 >
                   Reprint Receipt
                 </button>
+                <button
+                  onClick={() => handleDeleteReceipt(selectedReceipt)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                >
+                  Delete Receipt
+                </button>
               </div>
             </div>
           </div>
@@ -794,12 +849,36 @@ const DailyRegister = () => {
                   <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Owner</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.truck_owner}</p>
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Owner</label>
+                  <input
+                    type="text"
+                    list="owner-options"
+                    value={editableReceipt.truck_owner}
+                    onChange={(e) => {
+                       const val = e.target.value;
+                       const owner = truckOwners.find(o => o.name === val || (o.truck_owner === val));
+                       setEditableReceipt(prev => ({
+                         ...prev,
+                         truck_owner: val,
+                         vehicle_number: owner?.vehicle_number || prev.vehicle_number
+                       }));
+                    }}
+                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white font-semibold"
+                  />
+                  <datalist id="owner-options">
+                    {truckOwners.map(owner => (
+                      <option key={owner.id} value={owner.name} />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Vehicle</p>
-                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.vehicle_number}</p>
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Vehicle</label>
+                  <input
+                    type="text"
+                    value={editableReceipt.vehicle_number}
+                    onChange={(e) => setEditableReceipt(prev => ({ ...prev, vehicle_number: e.target.value.toUpperCase() }))}
+                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white font-semibold"
+                  />
                 </div>
               </div>
 

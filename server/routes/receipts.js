@@ -334,7 +334,9 @@ router.put('/:id', async (req, res) => {
       notes, 
       brass_qty, 
       rate, 
-      loading_charge 
+      loading_charge,
+      truck_owner,
+      vehicle_number
     } = req.body;
 
     // Get existing receipt
@@ -352,6 +354,49 @@ router.put('/:id', async (req, res) => {
       const newRate = rate !== undefined ? parseFloat(rate) : parseFloat(existingReceipt.rate);
       const newLoading = loading_charge !== undefined ? parseFloat(loading_charge) : parseFloat(existingReceipt.loading_charge);
       
+      // Handle Owner and Vehicle Updates
+      let newOwnerId = existingReceipt.owner_id;
+      let newTruckOwner = existingReceipt.truck_owner;
+      let newVehicleNumber = vehicle_number !== undefined ? vehicle_number.toUpperCase() : existingReceipt.vehicle_number;
+
+      if (truck_owner && truck_owner !== existingReceipt.truck_owner) {
+        // Verify owner exists
+        const ownerRec = await TruckOwners.findOne({ 
+          where: { name: truck_owner },
+          transaction: t
+        });
+        
+        if (!ownerRec) {
+          throw new Error(`Owner '${truck_owner}' not found in system. Please add the owner first.`);
+        }
+        
+        newOwnerId = ownerRec.id;
+        newTruckOwner = truck_owner;
+      }
+
+      // Update TruckVehicles lookup if vehicle number is present
+      if (newVehicleNumber) {
+        const vNum = newVehicleNumber.toUpperCase();
+        
+        const vehicle = await TruckVehicles.findOne({ 
+          where: { vehicle_number: vNum },
+          transaction: t 
+        });
+
+        if (!vehicle) {
+          // Create new vehicle if not exists
+          await TruckVehicles.create({
+            vehicle_number: vNum,
+            truck_owner_id: newOwnerId || null,
+            driver_name: null,
+            tyre_type: null
+          }, { transaction: t });
+        }
+        // NOTE: We do NOT update ownership of existing vehicles here.
+        // Different owners can use the same vehicle, or the vehicle might belong to someone else.
+        // Changing master data from a transaction edit is risky/undesired by user.
+      }
+
       // Recalculate totals
       const newTotalMaterial = newQty * newRate;
       const newTotalAmount = newTotalMaterial + newLoading;
@@ -463,13 +508,19 @@ router.put('/:id', async (req, res) => {
       if (existingReceipt.payment_status !== paymentStatus) {
         changes.push({ field: 'payment_status', old: existingReceipt.payment_status, new: paymentStatus });
       }
+      if (existingReceipt.truck_owner !== newTruckOwner) {
+        changes.push({ field: 'truck_owner', old: existingReceipt.truck_owner, new: newTruckOwner });
+      }
+      if (existingReceipt.vehicle_number !== newVehicleNumber) {
+        changes.push({ field: 'vehicle_number', old: existingReceipt.vehicle_number, new: newVehicleNumber });
+      }
 
       for (const change of changes) {
         await ReceiptEditHistory.create({
           receipt_id: existingReceipt.id,
           field_name: change.field,
-          old_value: change.old.toString(),
-          new_value: change.new.toString(),
+          old_value: change.old ? change.old.toString() : '',
+          new_value: change.new ? change.new.toString() : '',
           changed_by: user,
           reason: 'Receipt Edit'
         }, { transaction: t });
@@ -477,6 +528,9 @@ router.put('/:id', async (req, res) => {
 
       // Update receipt
       await existingReceipt.update({
+        truck_owner: newTruckOwner,
+        owner_id: newOwnerId,
+        vehicle_number: newVehicleNumber,
         brass_qty: newQty,
         rate: newRate,
         loading_charge: newLoading,
@@ -519,15 +573,57 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete receipt (soft delete)
+// Delete receipt (soft delete) with data integrity (Refund Deposit)
 router.delete('/:id', async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const rec = await Receipts.findByPk(req.params.id);
-    if (!rec) return res.status(404).json({ error: 'Receipt not found' });
-    await rec.update({ is_active: 0 });
+    if (!rec) {
+      await t.rollback();
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
 
+    // Refund deposit if applicable
+    if (parseFloat(rec.deposit_deducted) > 0 && rec.owner_id) {
+      const owner = await TruckOwners.findByPk(rec.owner_id, { transaction: t });
+      if (owner) {
+        const currentBalance = parseFloat(owner.deposit_balance || 0);
+        const refundAmount = parseFloat(rec.deposit_deducted);
+        
+        await owner.update({ 
+          deposit_balance: currentBalance + refundAmount 
+        }, { transaction: t });
+
+        // Log deposit transaction
+        await DepositTransactions.create({
+          owner_id: owner.id,
+          type: 'refund',
+          amount: refundAmount,
+          previous_balance: currentBalance,
+          new_balance: currentBalance + refundAmount,
+          receipt_no: rec.receipt_no,
+          notes: 'Refund due to receipt deletion'
+        }, { transaction: t });
+      }
+    }
+
+    // Soft delete the receipt
+    await rec.update({ is_active: 0 }, { transaction: t });
+    
+    // Log the deletion in history
+    await ReceiptEditHistory.create({
+      receipt_id: rec.id,
+      field_name: 'is_active',
+      old_value: '1',
+      new_value: '0',
+      changed_by: req.user ? req.user.username : 'system',
+      reason: 'Receipt Deleted'
+    }, { transaction: t });
+
+    await t.commit();
     res.json({ message: 'Receipt deleted successfully' });
   } catch (error) {
+    await t.rollback();
     console.error('Error deleting receipt:', error);
     res.status(500).json({ error: 'Failed to delete receipt' });
   }
