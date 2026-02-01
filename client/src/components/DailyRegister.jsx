@@ -102,7 +102,8 @@ const DailyRegister = () => {
       const receiptsResponse = await axios.get('/api/receipts', {
         params: {
           startDate: startUTC,
-          endDate: endUTC
+          endDate: endUTC,
+          limit: 10000 // Fetch all records for the selected range
         }
       });
       
