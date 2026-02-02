@@ -97,6 +97,17 @@ const ExpenseManager = () => {
     }
   };
 
+  const filteredCategoryBreakdown = React.useMemo(() => {
+    const breakdown = {};
+    expenses.forEach(expense => {
+      const cat = expense.category || 'Uncategorized';
+      breakdown[cat] = (breakdown[cat] || 0) + Number(expense.amount || 0);
+    });
+    return Object.entries(breakdown)
+      .map(([category, total]) => ({ category, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [expenses]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -353,11 +364,11 @@ const ExpenseManager = () => {
       </div>
 
       {/* Category Breakdown */}
-      {summary.categoryMonthly && summary.categoryMonthly.length > 0 && (
+      {filteredCategoryBreakdown && filteredCategoryBreakdown.length > 0 && (
         <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Monthly Category Breakdown</h3>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Category Breakdown (Filtered)</h3>
           <div className="flex flex-wrap gap-2">
-            {summary.categoryMonthly.map((cat) => (
+            {filteredCategoryBreakdown.map((cat) => (
               <div key={cat.category} className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(cat.category)}`}>
                 {cat.category}: {formatCurrency(cat.total)}
               </div>
