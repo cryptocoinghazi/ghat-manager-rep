@@ -6,6 +6,7 @@ import {
   FiPlus, FiEdit2, FiTrash2, FiFilter, FiX, FiDollarSign,
   FiCalendar, FiTag, FiMapPin, FiFileText, FiUser, FiCreditCard, FiDownload
 } from 'react-icons/fi';
+import { generateDisplayedExpensesPDF } from '../utils/pdfGenerator';
 
 const CATEGORIES = [
   'LABOR', 'FUEL', 'MAINTENANCE', 'OFFICE', 
@@ -44,7 +45,7 @@ const ExpenseManager = () => {
   };
 
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     category: 'LABOR',
     description: '',
     amount: '',
@@ -122,7 +123,7 @@ const ExpenseManager = () => {
   const handleEdit = (expense) => {
     setEditingExpense(expense);
     setFormData({
-      date: expense.date,
+      date: format(new Date(expense.date), "yyyy-MM-dd'T'HH:mm"),
       category: expense.category,
       description: expense.description,
       amount: expense.amount,
@@ -152,7 +153,7 @@ const ExpenseManager = () => {
 
   const resetForm = () => {
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       category: 'LABOR',
       description: '',
       amount: '',
@@ -177,16 +178,27 @@ const ExpenseManager = () => {
   };
 
   const exportDisplayedCSV = () => {
+    // Helper to format date for CSV
+    const formatDateForCSV = (dateStr) => {
+      if (!dateStr) return '';
+      try {
+        return format(new Date(dateStr), 'dd-MM-yyyy HH:mm');
+      } catch (e) {
+        return dateStr;
+      }
+    };
+
     const headers = [
-      'Date', 'Category', 'Description', 'Amount (₹)', 'Payment Mode',
+      'Date/Time', 'Category', 'Description', 'Amount (Rs)', 'Payment Mode',
       'Vendor', 'Ghat Location', 'Approved By', 'Remarks', 'Created By'
     ];
+    
     const rows = expenses.map((e) => [
-      csvEscape(e.date),
+      csvEscape(formatDateForCSV(e.date)),
       csvEscape(e.category),
       csvEscape(e.description),
       e.amount ?? '',
-      csvEscape(e.payment_mode || ''),
+      csvEscape(e.payment_mode?.replace('_', ' ') || ''),
       csvEscape(e.vendor_name || ''),
       csvEscape(e.ghat_location || ''),
       csvEscape(e.approved_by || ''),
@@ -194,13 +206,35 @@ const ExpenseManager = () => {
       csvEscape(e.created_by || '')
     ].join(','));
 
-    const period = `${filters.startDate || 'All'} to ${filters.endDate || 'All'}`;
-    const cat = filters.category || 'All Categories';
+    // Summary calculations
+    const totalAmount = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalEntries = expenses.length;
+
+    // Filter text
+    let periodText = 'All Time';
+    if (filters.startDate || filters.endDate) {
+      const start = filters.startDate ? formatDateForCSV(filters.startDate) : 'Beginning';
+      const end = filters.endDate ? formatDateForCSV(filters.endDate) : 'Now';
+      periodText = `${start} to ${end}`;
+    }
+    const catText = filters.category || 'All Categories';
+
+    // Helper to create a row with correct number of columns (10 columns total)
+    const createRow = (col1, col2 = '') => {
+      const row = Array(10).fill('');
+      row[0] = csvEscape(col1);
+      row[1] = csvEscape(col2);
+      return row.join(',');
+    };
+
     const headerBlock = [
-      'EXPENSES (Displayed Records)',
-      `Period: ${period}`,
-      `Filter: ${cat}`,
-      ''
+      createRow('EXPENSES REPORT'),
+      createRow('Generated on', formatDateForCSV(new Date())),
+      createRow('Period', periodText),
+      createRow('Filter Category', catText),
+      createRow('Total Entries', totalEntries),
+      createRow('Total Amount', `Rs ${totalAmount.toFixed(2)}`),
+      Array(10).fill('').join(',') // Empty row with delimiters
     ];
 
     const csv = [
@@ -209,15 +243,27 @@ const ExpenseManager = () => {
       ...rows
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    // Add Byte Order Mark (BOM) for Excel UTF-8 compatibility
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `expenses_displayed_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `expenses_report_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    toast.success('CSV Exported Successfully');
+  };
+
+  const exportDisplayedPDF = () => {
+    try {
+      generateDisplayedExpensesPDF(expenses, filters);
+      toast.success('PDF Exported Successfully');
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export PDF');
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -282,6 +328,20 @@ const ExpenseManager = () => {
             </div>
           </div>
         </div>
+
+        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Filtered Amount</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatCurrency(expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0))}
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+              <FiDollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Category Breakdown */}
@@ -322,7 +382,7 @@ const ExpenseManager = () => {
           </select>
           
           <input
-            type="date"
+            type="datetime-local"
             value={filters.startDate}
             onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
             className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-[#1A1A1A] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -330,7 +390,7 @@ const ExpenseManager = () => {
           />
           
           <input
-            type="date"
+            type="datetime-local"
             value={filters.endDate}
             onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
             className="px-3 py-2 border rounded-lg text-sm bg-white dark:bg-[#1A1A1A] border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -353,14 +413,24 @@ const ExpenseManager = () => {
           </button>
 
           {currentUser?.role === 'admin' && (
-            <button
-              onClick={exportDisplayedCSV}
-              className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
-              title="Export displayed expenses to CSV"
-            >
-              <FiDownload className="h-4 w-4" />
-              <span>Export CSV</span>
-            </button>
+            <>
+              <button
+                onClick={exportDisplayedPDF}
+                className="flex items-center space-x-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
+                title="Export displayed expenses to PDF"
+              >
+                <FiFileText className="h-4 w-4" />
+                <span>Export PDF</span>
+              </button>
+              <button
+                onClick={exportDisplayedCSV}
+                className="flex items-center space-x-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
+                title="Export displayed expenses to CSV"
+              >
+                <FiDownload className="h-4 w-4" />
+                <span>Export CSV</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -386,7 +456,7 @@ const ExpenseManager = () => {
                     Date *
                   </label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
@@ -595,7 +665,7 @@ const ExpenseManager = () => {
                 {expenses.map((expense) => (
                   <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {expense.date}
+                      {format(new Date(expense.date), 'dd-MM-yyyy HH:mm')}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(expense.category)}`}>

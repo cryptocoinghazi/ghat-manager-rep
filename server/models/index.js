@@ -136,7 +136,7 @@ export const Users = sequelize.define('users', {
 
 export const Expenses = sequelize.define('expenses', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  date: { type: DataTypes.DATEONLY },
+  date: { type: DataTypes.DATE },
   category: { type: DataTypes.STRING(64) },
   description: { type: DataTypes.TEXT },
   amount: { type: DataTypes.DECIMAL(10,2) },

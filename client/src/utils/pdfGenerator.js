@@ -537,6 +537,97 @@ export function generateDailyTransactionsPDF(data) {
   }
 }
 
+export function generateDisplayedExpensesPDF(expenses, filters) {
+  try {
+    if (!expenses || expenses.length === 0) {
+      // throw new Error('No expenses to export'); // Allow exporting empty report with headers? Better to warn.
+      // But if user clicks export on empty table, maybe just header.
+    }
+
+    const doc = new jsPDF({
+      orientation: 'landscape', // Landscape to fit more columns
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Title
+    let title = 'Expense Report';
+    let subtitle = `Generated on ${formatDateIST(new Date())}`;
+    
+    if (filters.startDate || filters.endDate) {
+       const start = filters.startDate ? formatDateIST(filters.startDate) : 'Beginning';
+       const end = filters.endDate ? formatDateIST(filters.endDate) : 'Now';
+       subtitle = `Period: ${start} to ${end}`;
+    }
+
+    let yPos = addHeader(doc, title, subtitle);
+
+    // Summary Box Logic
+    const totalAmount = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalEntries = expenses.length;
+    
+    // Summary Boxes
+    addSummaryBox(doc, 'Total Expenses', formatCurrencyPDF(totalAmount), margin, yPos, 60, [239, 68, 68]); // Red for expenses
+    addSummaryBox(doc, 'Total Entries', totalEntries, margin + 65, yPos, 40, [59, 130, 246]); // Blue for count
+
+    yPos += 35;
+
+    // Table
+    const tableData = expenses.map(e => [
+      `${formatDateIST(e.date)} ${formatTimeIST(e.date)}`,
+      e.category,
+      e.description,
+      formatCurrencyPDF(e.amount),
+      e.payment_mode?.replace('_', ' ') || '-',
+      e.vendor_name || '-',
+      e.ghat_location || '-',
+      e.approved_by || '-'
+    ]);
+
+    doc.autoTable({
+      startY: yPos,
+      head: [['Date/Time', 'Category', 'Description', 'Amount', 'Payment Mode', 'Vendor', 'Location', 'Approved By']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: [37, 99, 235], 
+        textColor: 255, 
+        fontStyle: 'bold', 
+        fontSize: 9,
+        halign: 'center'
+      },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 35 }, // Date
+        1: { cellWidth: 25 }, // Category
+        2: { cellWidth: 50 }, // Description
+        3: { cellWidth: 25, halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] }, // Amount (Red)
+        4: { cellWidth: 25 }, // Payment
+        5: { cellWidth: 30 }, // Vendor
+        6: { cellWidth: 25 }, // Location
+        7: { cellWidth: 25 }  // Approved By
+      },
+      margin: { left: margin, right: margin },
+      didDrawPage: function (data) {
+          // Footer is handled by addFooter, but we might want to ensure it doesn't overlap
+      }
+    });
+
+    addFooter(doc);
+
+    const fileName = `expense_report_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fileName);
+    return fileName;
+
+  } catch (error) {
+    console.error('Error generating displayed expenses PDF:', error);
+    throw error;
+  }
+}
+
 export function generatePDF(receiptData, settings = {}) {
   try {
     const data = {
