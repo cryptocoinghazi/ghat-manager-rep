@@ -62,12 +62,20 @@ const ExpenseManager = () => {
     fetchSummary();
   }, []);
 
+  const getUTCFromIST = (localDateTimeString) => {
+    if (!localDateTimeString) return null;
+    // localDateTimeString is in YYYY-MM-DDThh:mm format
+    // Append seconds and timezone offset for IST
+    const dateIST = new Date(`${localDateTimeString}:00+05:30`);
+    return dateIST.toISOString();
+  };
+
   const fetchExpenses = async () => {
     try {
       setLoading(true);
       const params = {};
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
+      if (filters.startDate) params.startDate = getUTCFromIST(filters.startDate);
+      if (filters.endDate) params.endDate = getUTCFromIST(filters.endDate);
       if (filters.category) params.category = filters.category;
       
       const response = await axios.get('/api/expenses', { params });
