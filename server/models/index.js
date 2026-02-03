@@ -122,7 +122,7 @@ export const CreditPayments = sequelize.define('credit_payments', {
   amount_paid: { type: DataTypes.DECIMAL(10,2), allowNull: false },
   payment_date: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   payment_mode: { type: DataTypes.STRING(32) },
-  reference_no: { type: DataTypes.STRING(64) }
+  reference_no: { type: DataTypes.TEXT }
 });
 
 export const Users = sequelize.define('users', {
