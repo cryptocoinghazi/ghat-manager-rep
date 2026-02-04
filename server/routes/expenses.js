@@ -19,7 +19,13 @@ router.get('/', async (req, res) => {
     if (startDate && endDate) where.date = { [Op.between]: [startDate, endDate] };
     if (category) where.category = category;
     if (ghatLocation) where.ghat_location = ghatLocation;
-    const expenses = await Expenses.findAll({ where, order: [['date','DESC'], ['id','DESC']] });
+    const expenses = await Expenses.findAll({ 
+      where, 
+      order: [
+        ['date', 'DESC'], 
+        ['id', 'DESC']
+      ] 
+    });
     return res.json(expenses);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -157,8 +163,18 @@ router.post('/', async (req, res) => {
   try {
     const { date, category, description, amount, payment_mode, receipt_number, vendor_name, ghat_location, approved_by, remarks } = req.body;
     const created_by = req.user ? req.user.username : null;
+    
+    // If date is provided without time, append current time for precise sorting
+    let finalDate = date;
+    if (date && date.indexOf('T') === -1) {
+      const now = new Date();
+      finalDate = `${date}T${now.toTimeString().split(' ')[0]}`;
+    } else if (!date) {
+        finalDate = new Date();
+    }
+
     const created = await Expenses.create({
-      date: date || new Date().toISOString().split('T')[0],
+      date: finalDate,
       category,
       description,
       amount,

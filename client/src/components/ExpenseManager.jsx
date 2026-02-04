@@ -79,7 +79,16 @@ const ExpenseManager = () => {
       if (filters.category) params.category = filters.category;
       
       const response = await axios.get('/api/expenses', { params });
-      setExpenses(response.data);
+      // Ensure sorting is applied on client side as well for safety
+      const sortedExpenses = response.data.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        if (dateB.getTime() !== dateA.getTime()) {
+          return dateB - dateA;
+        }
+        return b.id - a.id;
+      });
+      setExpenses(sortedExpenses);
     } catch (error) {
       console.error('Error fetching expenses:', error);
       toast.error('Failed to load expenses');
