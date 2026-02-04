@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { 
   FiPlus, FiEdit2, FiTrash2, FiFilter, FiX, FiDollarSign,
-  FiCalendar, FiTag, FiMapPin, FiFileText, FiUser, FiCreditCard, FiDownload
+  FiCalendar, FiTag, FiMapPin, FiFileText, FiUser, FiCreditCard, FiDownload,
+  FiArrowUp, FiArrowDown
 } from 'react-icons/fi';
 import { generateDisplayedExpensesPDF } from '../utils/pdfGenerator';
 
@@ -35,6 +36,48 @@ const ExpenseManager = () => {
     startDate: '',
     endDate: ''
   });
+
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortedExpenses = () => {
+    const sorted = [...expenses];
+    if (sortConfig.key) {
+      sorted.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        if (sortConfig.key === 'amount' || sortConfig.key === 'id') {
+          aValue = Number(aValue);
+          bValue = Number(bValue);
+        } else if (sortConfig.key === 'date') {
+          aValue = new Date(aValue).getTime();
+          bValue = new Date(bValue).getTime();
+        } else {
+          aValue = String(aValue).toLowerCase();
+          bValue = String(bValue).toLowerCase();
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sorted;
+  };
+
+  // Duplicate SortIcon removed
 
   const csvEscape = (v) => {
     if (v === null || v === undefined) return '';
@@ -151,7 +194,7 @@ const ExpenseManager = () => {
   const handleEdit = (expense) => {
     setEditingExpense(expense);
     setFormData({
-      date: format(new Date(expense.date), "yyyy-MM-dd'T'HH:mm"),
+      date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
       category: expense.category,
       description: expense.description,
       amount: expense.amount,
@@ -315,6 +358,19 @@ const ExpenseManager = () => {
       OTHER: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
     };
     return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
+  };
+
+  const SortIcon = ({ column }) => {
+    const active = sortConfig.key === column;
+    return (
+      <span className={`ml-2 inline-flex items-center ${active ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+        {active ? (
+          sortConfig.direction === 'asc' ? <FiArrowUp className="w-4 h-4" /> : <FiArrowDown className="w-4 h-4" />
+        ) : (
+          <span className="text-base font-bold">↕</span>
+        )}
+      </span>
+    );
   };
 
   return (
@@ -680,18 +736,50 @@ const ExpenseManager = () => {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-[#262626]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Category</th>
+                  <th 
+                    onClick={() => handleSort('id')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none group"
+                  >
+                    <div className="flex items-center">
+                      ID <SortIcon column="id" />
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('date')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none group"
+                  >
+                    <div className="flex items-center">
+                      Date <SortIcon column="date" />
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('category')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none group"
+                  >
+                    <div className="flex items-center">
+                      Category <SortIcon column="category" />
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Description</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
+                  <th 
+                    onClick={() => handleSort('amount')}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none group"
+                  >
+                    <div className="flex items-center">
+                      Amount <SortIcon column="amount" />
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Payment</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
-                {expenses.map((expense) => (
+                {getSortedExpenses().map((expense) => (
                   <tr key={expense.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {expense.id}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {format(new Date(expense.date), 'dd-MM-yyyy HH:mm')}
                     </td>
