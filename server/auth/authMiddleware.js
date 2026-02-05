@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { getDB } from '../db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-in-production';
 

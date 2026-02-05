@@ -1,4 +1,6 @@
 import express from 'express';
+console.log('Starting server script...');
+console.log('Force restart for OCR updates (Trim Fix)...');
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -51,7 +53,14 @@ app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-await syncModels();
+console.log('Syncing models...');
+try {
+  await syncModels();
+  console.log('Models synced successfully');
+} catch (error) {
+  console.error('Error syncing models:', error);
+  process.exit(1);
+}
 
 // Import routes
 import receiptRoutes from './routes/receipts.js';
@@ -62,14 +71,20 @@ import expenseRoutes from './routes/expenses.js';
 import databaseRoutes from './routes/database.js';
 import gstReceiptRoutes from './routes/gstReceipts.js';
 import gstReportRoutes from './routes/gstReports.js';
+import paymentRoutes from './routes/payments.js';
+import truckOwnerRoutes from './routes/truckOwners.js';
+import trucksPhotoRecognitionRoutes from './routes/trucksPhotoRecognition.js';
 
 // API Routes - Auth routes are public
 app.use('/api/auth', authRoutes);
 
 // Protected routes - require authentication
 app.use('/api/receipts', authenticateToken, receiptRoutes);
+app.use('/api/truck-owners', authenticateToken, truckOwnerRoutes);
+app.use('/api/trucks', authenticateToken, trucksPhotoRecognitionRoutes);
 app.use('/api/gst-receipts', authenticateToken, gstReceiptRoutes);
 app.use('/api/gst-reports', authenticateToken, requireAdmin, gstReportRoutes);
+app.use('/api/payments', authenticateToken, paymentRoutes);
 app.use('/api/settings', authenticateToken, settingsRoutes);
 app.use('/api/reports', authenticateToken, requireAdmin, reportsRoutes);
 app.use('/api/expenses', authenticateToken, expenseRoutes);
@@ -175,8 +190,13 @@ if (!fs.existsSync(backupsDir)) {
   fs.mkdirSync(backupsDir, { recursive: true });
 }
 
-let lastBackupDateSetting = await Settings.findByPk('auto_backup_last_run');
-let lastBackupDate = lastBackupDateSetting ? String(lastBackupDateSetting.value) : null;
+let lastBackupDate = null;
+try {
+  let lastBackupDateSetting = await Settings.findByPk('auto_backup_last_run');
+  lastBackupDate = lastBackupDateSetting ? String(lastBackupDateSetting.value) : null;
+} catch (error) {
+  console.error('Error fetching backup settings:', error);
+}
 
 async function performBackup() {
   const file = path.join(backupsDir, `backup-${Date.now()}.sql`);

@@ -272,9 +272,9 @@ const Layout = ({ user, onLogout }) => {
       <div className={`
         fixed inset-y-0 left-0 z-30 w-64 transform bg-white dark:bg-[#1A1A1A] shadow-xl dark:shadow-black/50
         transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-gray-200 dark:border-gray-700
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} overflow-y-auto max-h-screen
       `}>
-        <div className="flex h-full flex-col">
+        <div className="flex h-full flex-col min-h-0">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-900 dark:to-blue-950">
             <div className="flex items-center space-x-3">
@@ -295,7 +295,7 @@ const Layout = ({ user, onLogout }) => {
           </div>
 
           {/* Stats */}
-          <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-gradient-to-b from-blue-50 to-white dark:from-white/5 dark:to-transparent">
+          <div className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-gradient-to-b from-blue-50 to-white dark:from-white/5 dark:to-transparent flex-shrink-0">
             <div className="space-y-3">
               {statsData.map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between">
@@ -342,7 +342,7 @@ const Layout = ({ user, onLogout }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -367,7 +367,7 @@ const Layout = ({ user, onLogout }) => {
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-[#121212]">
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-[#121212] flex-shrink-0">
             <div className="rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-3 shadow-lg">
               <p className="text-xs font-semibold text-white">System Status</p>
               <div className="flex items-center justify-between mt-1">
@@ -385,7 +385,7 @@ const Layout = ({ user, onLogout }) => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
+      <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
         {/* Top bar */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A] px-4 shadow-sm lg:px-6">
           <div className="flex items-center space-x-4">
@@ -454,7 +454,7 @@ const Layout = ({ user, onLogout }) => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
+        <main className="flex-1 min-h-0 bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
           <div className="p-4 md:p-6">
             {/* Date header */}
             <div className="mb-6">

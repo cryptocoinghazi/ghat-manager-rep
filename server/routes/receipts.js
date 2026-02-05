@@ -1,6 +1,6 @@
 import express from 'express';
 import { Op } from 'sequelize';
-import { Receipts, TruckOwners, DepositTransactions, CreditPayments } from '../models/index.js';
+import { Receipts, TruckOwners, DepositTransactions, CreditPayments, TruckVehicles, ReceiptEditHistory, VehicleOwnershipHistory, sequelize } from '../models/index.js';
 
 const router = express.Router();
 
@@ -71,6 +71,30 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get receipt history
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await ReceiptEditHistory.findAll({
+      where: { receipt_id: req.params.id },
+      order: [['change_date', 'DESC']]
+    });
+    
+    // Also get credit payments history
+    const payments = await CreditPayments.findAll({
+      where: { receipt_id: req.params.id },
+      order: [['payment_date', 'DESC']]
+    });
+
+    res.json({
+      edits: history,
+      payments: payments
+    });
+  } catch (error) {
+    console.error('Error fetching receipt history:', error);
+    res.status(500).json({ error: 'Failed to fetch receipt history' });
+  }
+});
+
 // Create new receipt - FIXED: Normalize timestamp + Partner rates
 router.post('/', async (req, res) => {
   try {
@@ -78,6 +102,8 @@ router.post('/', async (req, res) => {
       receipt_no,
       truck_owner,
       vehicle_number,
+      driver_name,
+      tyre_type,
       brass_qty,
       rate,
       loading_charge,
@@ -91,7 +117,7 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     console.log('Creating receipt with data:', {
-      receipt_no, truck_owner, vehicle_number, brass_qty, rate,
+      receipt_no, truck_owner, vehicle_number, driver_name, tyre_type, brass_qty, rate,
       loading_charge, cash_paid, notes, date_time, owner_type, applied_rate,
       payment_method, deposit_deducted
     });
@@ -148,9 +174,14 @@ router.post('/', async (req, res) => {
       paymentStatus = (cashPaidValue >= remainingAfterDeposit) ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
       creditAmount = Math.max(0, totalAmount - cashPaidValue - toDeduct);
     } else {
-      paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
-                      cashPaidValue > 0 ? 'partial' : 'unpaid';
-      paymentMethod = cashPaidValue >= totalAmount ? 'cash' : (cashPaidValue > 0 ? 'cash' : 'credit');
+      if (paymentMethod === 'online') {
+        paymentStatus = cashPaidValue >= totalAmount ? 'paid' : (cashPaidValue > 0 ? 'partial' : 'unpaid');
+        paymentMethod = cashPaidValue >= totalAmount ? 'online' : 'online';
+      } else {
+        paymentStatus = cashPaidValue >= totalAmount ? 'paid' : 
+                        cashPaidValue > 0 ? 'partial' : 'unpaid';
+        paymentMethod = cashPaidValue >= totalAmount ? 'cash' : (cashPaidValue > 0 ? 'cash' : 'credit');
+      }
       creditAmount = Math.max(0, totalAmount - cashPaidValue);
     }
 
@@ -192,11 +223,35 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Find or create TruckOwner first to link ID
+    let ownerId = null;
+    let existingOwner = await TruckOwners.findOne({ where: { name: truck_owner } });
+    
+    if (existingOwner) {
+      // Update payment type if needed, but don't overwrite if it was already mixed? 
+      // Current logic: cashPaidValue >= totalAmount ? 'cash' : 'mixed'. 
+      // If he pays cash now, but has credit history, maybe 'mixed' is better? 
+      // But let's stick to existing logic for now to minimize side effects.
+      await existingOwner.update({ payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed' });
+      ownerId = existingOwner.id;
+    } else {
+      const newOwner = await TruckOwners.create({ 
+        name: truck_owner, 
+        payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed', 
+        is_partner: 0, 
+        is_active: 1 
+      });
+      ownerId = newOwner.id;
+      existingOwner = newOwner;
+    }
+
     let newReceipt;
     newReceipt = await Receipts.create({
         receipt_no: finalReceiptNo,
         truck_owner,
         vehicle_number,
+        driver_name: driver_name || null,
+        tyre_type: tyre_type || null,
         brass_qty,
         rate: finalRate,
         loading_charge: loading_charge || 0,
@@ -209,14 +264,44 @@ router.post('/', async (req, res) => {
         owner_type: finalOwnerType,
         applied_rate: finalAppliedRate || finalRate,
         notes: notes || '',
-        date_time: timestamp
+        date_time: timestamp,
+        owner_id: ownerId
       });
 
-    const existingOwner = await TruckOwners.findOne({ where: { name: truck_owner } });
-    if (existingOwner) {
-      await existingOwner.update({ payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed' });
-    } else {
-      await TruckOwners.create({ name: truck_owner, payment_type: cashPaidValue >= totalAmount ? 'cash' : 'mixed', is_partner: 0, is_active: 1 });
+    // Update TruckVehicles lookup
+    if (vehicle_number) {
+      const vNum = vehicle_number.toUpperCase();
+      // ownerId is already available
+      
+      const vehicle = await TruckVehicles.findOne({ where: { vehicle_number: vNum } });
+      if (vehicle) {
+        // Check for ownership change
+        if (ownerId && vehicle.truck_owner_id !== ownerId) {
+          await VehicleOwnershipHistory.create({
+            vehicle_number: vNum,
+            previous_owner_id: vehicle.truck_owner_id,
+            new_owner_id: ownerId,
+            changed_by: req.user ? req.user.username : 'system'
+          });
+        }
+
+        // Update if new info provided, otherwise keep existing
+        const updates = {};
+        if (driver_name) updates.driver_name = driver_name;
+        if (tyre_type) updates.tyre_type = tyre_type;
+        if (ownerId) updates.truck_owner_id = ownerId;
+        
+        if (Object.keys(updates).length > 0) {
+          await vehicle.update(updates);
+        }
+      } else {
+        await TruckVehicles.create({
+          vehicle_number: vNum,
+          driver_name: driver_name || null,
+          tyre_type: tyre_type || null,
+          truck_owner_id: ownerId || null
+        });
+      }
     }
 
     console.log('Receipt created successfully:', newReceipt);
@@ -227,10 +312,32 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update receipt (no changes needed here)
+// Get receipt history
+router.get('/:id/history', async (req, res) => {
+  try {
+    const history = await ReceiptEditHistory.findAll({
+      where: { receipt_id: req.params.id },
+      order: [['change_date', 'DESC']]
+    });
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching receipt history:', error);
+    res.status(500).json({ error: 'Failed to fetch receipt history' });
+  }
+});
+
+// Update receipt (full edit capability)
 router.put('/:id', async (req, res) => {
   try {
-    const { cash_paid, notes } = req.body;
+    const { 
+      cash_paid, 
+      notes, 
+      brass_qty, 
+      rate, 
+      loading_charge,
+      truck_owner,
+      vehicle_number
+    } = req.body;
 
     // Get existing receipt
     const existingReceipt = await Receipts.findByPk(req.params.id);
@@ -239,42 +346,284 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Receipt not found' });
     }
 
-    // Calculate new credit amount
-    const cashPaidValue = parseFloat(cash_paid || existingReceipt.cash_paid);
-    const creditAmount = existingReceipt.total_amount - cashPaidValue;
-    const paymentStatus = cashPaidValue >= existingReceipt.total_amount ? 'paid' : 
-                         cashPaidValue > 0 ? 'partial' : 'unpaid';
+    const t = await sequelize.transaction();
 
-    // Update receipt
-    await existingReceipt.update({ cash_paid: cashPaidValue, credit_amount: creditAmount, payment_status: paymentStatus, notes: notes || existingReceipt.notes });
+    try {
+      // Determine new values (use provided or fallback to existing)
+      const newQty = brass_qty !== undefined ? parseFloat(brass_qty) : parseFloat(existingReceipt.brass_qty);
+      const newRate = rate !== undefined ? parseFloat(rate) : parseFloat(existingReceipt.rate);
+      const newLoading = loading_charge !== undefined ? parseFloat(loading_charge) : parseFloat(existingReceipt.loading_charge);
+      
+      // Handle Owner and Vehicle Updates
+      let newOwnerId = existingReceipt.owner_id;
+      let newTruckOwner = existingReceipt.truck_owner;
+      let newVehicleNumber = vehicle_number !== undefined ? vehicle_number.toUpperCase() : existingReceipt.vehicle_number;
 
-    // If payment made, record in credit_payments
-    if (cashPaidValue > existingReceipt.cash_paid) {
-      const paymentAmount = cashPaidValue - existingReceipt.cash_paid;
-      await CreditPayments.create({ receipt_id: req.params.id, amount_paid: paymentAmount });
+      if (truck_owner && truck_owner !== existingReceipt.truck_owner) {
+        // Verify owner exists
+        const ownerRec = await TruckOwners.findOne({ 
+          where: { name: truck_owner },
+          transaction: t
+        });
+        
+        if (!ownerRec) {
+          throw new Error(`Owner '${truck_owner}' not found in system. Please add the owner first.`);
+        }
+        
+        newOwnerId = ownerRec.id;
+        newTruckOwner = truck_owner;
+      }
+
+      // Update TruckVehicles lookup if vehicle number is present
+      if (newVehicleNumber) {
+        const vNum = newVehicleNumber.toUpperCase();
+        
+        const vehicle = await TruckVehicles.findOne({ 
+          where: { vehicle_number: vNum },
+          transaction: t 
+        });
+
+        if (!vehicle) {
+          // Create new vehicle if not exists
+          await TruckVehicles.create({
+            vehicle_number: vNum,
+            truck_owner_id: newOwnerId || null,
+            driver_name: null,
+            tyre_type: null
+          }, { transaction: t });
+        }
+        // NOTE: We do NOT update ownership of existing vehicles here.
+        // Different owners can use the same vehicle, or the vehicle might belong to someone else.
+        // Changing master data from a transaction edit is risky/undesired by user.
+      }
+
+      // Recalculate totals
+      const newTotalMaterial = newQty * newRate;
+      const newTotalAmount = newTotalMaterial + newLoading;
+
+      // Handle Deposit Logic
+      // If the new total is LESS than what was deducted from deposit, we must refund the difference
+      let newDepositDeducted = parseFloat(existingReceipt.deposit_deducted || 0);
+      let depositRefund = 0;
+
+      if (newDepositDeducted > newTotalAmount) {
+        depositRefund = newDepositDeducted - newTotalAmount;
+        newDepositDeducted = newTotalAmount;
+
+        // Refund to owner
+        if (existingReceipt.owner_id) {
+          const owner = await TruckOwners.findByPk(existingReceipt.owner_id, { transaction: t });
+          if (owner) {
+            const currentBalance = parseFloat(owner.deposit_balance || 0);
+            await owner.update({ 
+              deposit_balance: currentBalance + depositRefund 
+            }, { transaction: t });
+
+            // Log deposit transaction
+            await DepositTransactions.create({
+              owner_id: owner.id,
+              type: 'refund',
+              amount: depositRefund,
+              previous_balance: currentBalance,
+              new_balance: currentBalance + depositRefund,
+              receipt_no: existingReceipt.receipt_no,
+              notes: `Refund due to receipt edit (Total reduced)`
+            }, { transaction: t });
+          }
+        }
+      }
+
+      // Determine new cash paid (use provided or fallback)
+      let newCashPaid = cash_paid !== undefined ? parseFloat(cash_paid) : parseFloat(existingReceipt.cash_paid);
+      
+      // Handle Excess Cash Payment (Refund to Deposit)
+      // Logic: If (Cash Paid + Deposit Deducted) > New Total Amount
+      // Then: Refund the excess cash to Deposit Balance
+      const totalPaidSoFar = newCashPaid + newDepositDeducted;
+      if (totalPaidSoFar > newTotalAmount) {
+        const excessAmount = totalPaidSoFar - newTotalAmount;
+        
+        // We reduce the cash_paid on the receipt to match the total (minus deposit)
+        // Effectively moving the "excess" cash to the Deposit Balance
+        newCashPaid = newCashPaid - excessAmount;
+        
+        if (existingReceipt.owner_id) {
+          const owner = await TruckOwners.findByPk(existingReceipt.owner_id, { transaction: t });
+          if (owner) {
+             const currentBalance = parseFloat(owner.deposit_balance || 0);
+             await owner.update({
+               deposit_balance: currentBalance + excessAmount
+             }, { transaction: t });
+
+             // Log deposit transaction
+             await DepositTransactions.create({
+               owner_id: owner.id,
+               type: 'refund', // or 'add' - conceptually it's a refund from receipt to deposit
+               amount: excessAmount,
+               previous_balance: currentBalance,
+               new_balance: currentBalance + excessAmount,
+               receipt_no: existingReceipt.receipt_no,
+               notes: `Excess payment moved to deposit (Receipt Edit)`
+             }, { transaction: t });
+          }
+        }
+      }
+
+      // Calculate Credit
+      const finalTotalPaid = newCashPaid + newDepositDeducted;
+      const newCreditAmount = Math.max(0, newTotalAmount - finalTotalPaid); 
+      
+      // Determine status
+      let paymentStatus;
+      if (newCreditAmount <= 0.01) { // Floating point tolerance
+          paymentStatus = 'paid';
+      } else if (finalTotalPaid > 0) {
+          paymentStatus = 'partial';
+      } else {
+          paymentStatus = 'unpaid';
+      }
+
+      // Track changes
+      const changes = [];
+      const user = req.user ? req.user.username : 'unknown';
+
+      if (parseFloat(existingReceipt.brass_qty) !== newQty) {
+        changes.push({ field: 'brass_qty', old: existingReceipt.brass_qty, new: newQty });
+      }
+      if (parseFloat(existingReceipt.rate) !== newRate) {
+        changes.push({ field: 'rate', old: existingReceipt.rate, new: newRate });
+      }
+      if (parseFloat(existingReceipt.loading_charge) !== newLoading) {
+        changes.push({ field: 'loading_charge', old: existingReceipt.loading_charge, new: newLoading });
+      }
+      if (parseFloat(existingReceipt.cash_paid) !== newCashPaid) {
+        changes.push({ field: 'cash_paid', old: existingReceipt.cash_paid, new: newCashPaid });
+      }
+      if (parseFloat(existingReceipt.total_amount) !== newTotalAmount) {
+        changes.push({ field: 'total_amount', old: existingReceipt.total_amount, new: newTotalAmount });
+      }
+      if (parseFloat(existingReceipt.deposit_deducted) !== newDepositDeducted) {
+        changes.push({ field: 'deposit_deducted', old: existingReceipt.deposit_deducted, new: newDepositDeducted });
+      }
+      if (existingReceipt.payment_status !== paymentStatus) {
+        changes.push({ field: 'payment_status', old: existingReceipt.payment_status, new: paymentStatus });
+      }
+      if (existingReceipt.truck_owner !== newTruckOwner) {
+        changes.push({ field: 'truck_owner', old: existingReceipt.truck_owner, new: newTruckOwner });
+      }
+      if (existingReceipt.vehicle_number !== newVehicleNumber) {
+        changes.push({ field: 'vehicle_number', old: existingReceipt.vehicle_number, new: newVehicleNumber });
+      }
+
+      for (const change of changes) {
+        await ReceiptEditHistory.create({
+          receipt_id: existingReceipt.id,
+          field_name: change.field,
+          old_value: change.old ? change.old.toString() : '',
+          new_value: change.new ? change.new.toString() : '',
+          changed_by: user,
+          reason: 'Receipt Edit'
+        }, { transaction: t });
+      }
+
+      // Update receipt
+      await existingReceipt.update({
+        truck_owner: newTruckOwner,
+        owner_id: newOwnerId,
+        vehicle_number: newVehicleNumber,
+        brass_qty: newQty,
+        rate: newRate,
+        loading_charge: newLoading,
+        total_amount: newTotalAmount,
+        cash_paid: newCashPaid,
+        deposit_deducted: newDepositDeducted,
+        credit_amount: newCreditAmount,
+        payment_status: paymentStatus,
+        notes: notes || existingReceipt.notes
+      }, { transaction: t });
+
+      // Handle Cash Payment Adjustments (Increase or Decrease)
+      const oldCash = parseFloat(existingReceipt.cash_paid);
+      if (Math.abs(newCashPaid - oldCash) > 0.01) {
+        const paymentDiff = newCashPaid - oldCash;
+        await CreditPayments.create({ 
+            receipt_id: req.params.id, 
+            amount_paid: paymentDiff,
+            payment_mode: paymentDiff > 0 ? 'cash_adjustment' : 'cash_refund'
+        }, { transaction: t });
+      }
+
+      await t.commit();
+      
+      // Return updated receipt
+      const updatedReceipt = await Receipts.findByPk(req.params.id);
+      res.json({
+        message: 'Receipt updated successfully',
+        receipt: updatedReceipt
+      });
+
+    } catch (err) {
+      await t.rollback();
+      throw err;
     }
 
-    const updatedReceipt = await Receipts.findByPk(req.params.id);
-
-    res.json({
-      message: 'Receipt updated successfully',
-      receipt: updatedReceipt
-    });
   } catch (error) {
     console.error('Error updating receipt:', error);
     res.status(500).json({ error: 'Failed to update receipt' });
   }
 });
 
-// Delete receipt (soft delete)
+// Delete receipt (soft delete) with data integrity (Refund Deposit)
 router.delete('/:id', async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const rec = await Receipts.findByPk(req.params.id);
-    if (!rec) return res.status(404).json({ error: 'Receipt not found' });
-    await rec.update({ is_active: 0 });
+    if (!rec) {
+      await t.rollback();
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
 
+    // Refund deposit if applicable
+    if (parseFloat(rec.deposit_deducted) > 0 && rec.owner_id) {
+      const owner = await TruckOwners.findByPk(rec.owner_id, { transaction: t });
+      if (owner) {
+        const currentBalance = parseFloat(owner.deposit_balance || 0);
+        const refundAmount = parseFloat(rec.deposit_deducted);
+        
+        await owner.update({ 
+          deposit_balance: currentBalance + refundAmount 
+        }, { transaction: t });
+
+        // Log deposit transaction
+        await DepositTransactions.create({
+          owner_id: owner.id,
+          type: 'refund',
+          amount: refundAmount,
+          previous_balance: currentBalance,
+          new_balance: currentBalance + refundAmount,
+          receipt_no: rec.receipt_no,
+          notes: 'Refund due to receipt deletion'
+        }, { transaction: t });
+      }
+    }
+
+    // Soft delete the receipt
+    await rec.update({ is_active: 0 }, { transaction: t });
+    
+    // Log the deletion in history
+    await ReceiptEditHistory.create({
+      receipt_id: rec.id,
+      field_name: 'is_active',
+      old_value: '1',
+      new_value: '0',
+      changed_by: req.user ? req.user.username : 'system',
+      reason: 'Receipt Deleted'
+    }, { transaction: t });
+
+    await t.commit();
     res.json({ message: 'Receipt deleted successfully' });
   } catch (error) {
+    await t.rollback();
     console.error('Error deleting receipt:', error);
     res.status(500).json({ error: 'Failed to delete receipt' });
   }

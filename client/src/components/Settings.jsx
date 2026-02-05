@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2, FiEdit2, FiX } from 'react-icons/fi';
+import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2, FiEdit2, FiX, FiTruck } from 'react-icons/fi';
 import { FaDollarSign } from 'react-icons/fa';
 
 const Settings = ({ settings, fetchSettings }) => {
@@ -14,6 +14,12 @@ const Settings = ({ settings, fetchSettings }) => {
   const [editingOwnerId, setEditingOwnerId] = useState(null);
   const [dbBackups, setDbBackups] = useState([]);
   const [isDbConnected, setIsDbConnected] = useState(false);
+  
+  // Truck Vehicles State
+  const [truckVehicles, setTruckVehicles] = useState([]);
+  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [newVehicle, setNewVehicle] = useState({ vehicle_number: '', driver_name: '', tyre_type: '', truck_owner_id: '' });
 
   // Initialize formData with settings.flat (since backend now returns { flat, categorized })
   useEffect(() => {
@@ -28,6 +34,7 @@ const Settings = ({ settings, fetchSettings }) => {
   // Fetch truck owners
   useEffect(() => {
     fetchTruckOwners();
+    fetchTruckVehicles();
     checkDbStatus();
     handleDbBackupList();
   }, []);
@@ -41,6 +48,24 @@ const Settings = ({ settings, fetchSettings }) => {
       setTruckOwners([]);
     }
   };
+
+  const fetchTruckVehicles = async () => {
+    try {
+      const response = await axios.get(`/api/settings/truck-vehicles?q=${vehicleSearch}`);
+      setTruckVehicles(response.data || []);
+    } catch (error) {
+      console.error('Error fetching truck vehicles:', error);
+      setTruckVehicles([]);
+    }
+  };
+
+  // Debounced search for vehicles
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchTruckVehicles();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [vehicleSearch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -197,6 +222,27 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   };
 
+  const handleSaveVehicle = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = editingVehicle ? editingVehicle : newVehicle;
+      if (!payload.vehicle_number) {
+        toast.error('Vehicle number is required');
+        return;
+      }
+      
+      await axios.post('/api/settings/truck-vehicles', payload);
+      toast.success(editingVehicle ? 'Vehicle updated' : 'Vehicle added');
+      
+      setEditingVehicle(null);
+      setNewVehicle({ vehicle_number: '', driver_name: '', tyre_type: '', truck_owner_id: '' });
+      fetchTruckVehicles();
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      toast.error('Failed to save vehicle');
+    }
+  };
+
   const handleAddTruckOwner = async () => {
     if (!newOwner.name.trim()) {
       toast.error('Owner name is required');
@@ -312,6 +358,7 @@ const Settings = ({ settings, fetchSettings }) => {
     { id: 'company', name: 'Company', icon: FiHome },
     { id: 'financial', name: 'Financial', icon: FaDollarSign },
     { id: 'receipt', name: 'Receipt', icon: FiPrinter },
+    { id: 'truck-vehicles', name: 'Truck Vehicles', icon: FiTruck },
     { id: 'truck-owners', name: 'Truck Owners', icon: FiShield },
     { id: 'data', name: 'Data Management', icon: FiShield },
   ];
@@ -319,7 +366,7 @@ const Settings = ({ settings, fetchSettings }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
           <p className="text-gray-600 dark:text-gray-400">Configure application settings and preferences</p>
@@ -336,7 +383,7 @@ const Settings = ({ settings, fetchSettings }) => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-6 overflow-x-auto whitespace-nowrap no-scrollbar -mx-4 px-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -702,6 +749,181 @@ const Settings = ({ settings, fetchSettings }) => {
           </div>
         )}
 
+        {activeTab === 'truck-vehicles' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Truck Vehicles Management</h3>
+              <div className="w-64">
+                <input
+                  type="text"
+                  placeholder="Search vehicles..."
+                  value={vehicleSearch}
+                  onChange={(e) => setVehicleSearch(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* Add/Edit Form */}
+            <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg mb-6">
+              <h4 className="font-medium text-gray-900 dark:text-white mb-4">
+                {editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
+              </h4>
+              <form onSubmit={handleSaveVehicle} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Vehicle Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={editingVehicle ? editingVehicle.vehicle_number : newVehicle.vehicle_number}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      editingVehicle 
+                        ? setEditingVehicle({...editingVehicle, vehicle_number: val})
+                        : setNewVehicle({...newVehicle, vehicle_number: val});
+                    }}
+                    className="input-field"
+                    placeholder="KA01AB1234"
+                    disabled={!!editingVehicle} // Disable primary key edit
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Driver Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editingVehicle ? editingVehicle.driver_name || '' : newVehicle.driver_name}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      editingVehicle 
+                        ? setEditingVehicle({...editingVehicle, driver_name: val})
+                        : setNewVehicle({...newVehicle, driver_name: val});
+                    }}
+                    className="input-field"
+                    placeholder="Driver Name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Tyre Type
+                  </label>
+                  <select
+                    value={editingVehicle ? editingVehicle.tyre_type || '' : newVehicle.tyre_type}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      editingVehicle 
+                        ? setEditingVehicle({...editingVehicle, tyre_type: val})
+                        : setNewVehicle({...newVehicle, tyre_type: val});
+                    }}
+                    className="input-field"
+                  >
+                    <option value="">Select Type</option>
+                    <option value="6 Tyre">6 Tyre</option>
+                    <option value="10 Tyre">10 Tyre</option>
+                    <option value="12 Tyre">12 Tyre</option>
+                    <option value="14 Tyre">14 Tyre</option>
+                    <option value="16 Tyre">16 Tyre</option>
+                    <option value="18 Tyre">18 Tyre</option>
+                    <option value="22 Tyre">22 Tyre</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Truck Owner (Optional)
+                  </label>
+                  <select
+                    value={editingVehicle ? editingVehicle.truck_owner_id || '' : newVehicle.truck_owner_id}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      editingVehicle 
+                        ? setEditingVehicle({...editingVehicle, truck_owner_id: val})
+                        : setNewVehicle({...newVehicle, truck_owner_id: val});
+                    }}
+                    className="input-field"
+                  >
+                    <option value="">Select Owner</option>
+                    {truckOwners.map(owner => (
+                      <option key={owner.id} value={owner.id}>{owner.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md:col-span-4 flex justify-end space-x-2 mt-2">
+                  {editingVehicle && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingVehicle(null)}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                  >
+                    {editingVehicle ? 'Update Vehicle' : 'Add Vehicle'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Vehicles List */}
+            <div className="bg-white dark:bg-[#262626] shadow overflow-x-auto rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-[#262626]">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle Number</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Driver</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tyre Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {truckVehicles.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No vehicles found
+                      </td>
+                    </tr>
+                  ) : (
+                    truckVehicles.map((vehicle) => {
+                      const owner = truckOwners.find(o => o.id === vehicle.truck_owner_id);
+                      return (
+                        <tr key={vehicle.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {vehicle.vehicle_number}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {vehicle.driver_name || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {vehicle.tyre_type || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {owner ? owner.name : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={() => setEditingVehicle(vehicle)}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-4"
+                            >
+                              <FiEdit2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'truck-owners' && (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Truck Owners Management</h3>
@@ -920,17 +1142,17 @@ const Settings = ({ settings, fetchSettings }) => {
                   )}
                 </div>
               </div>
-              <div className="mt-4 flex items-center space-x-3">
-                <button onClick={handleDbBackup} className="btn-primary flex items-center space-x-2">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button onClick={handleDbBackup} className="btn-primary w-full sm:w-auto flex items-center justify-center space-x-2">
                   <FiDownload className="h-5 w-5" />
                   <span>Backup Database</span>
                 </button>
-                <label className="btn-secondary flex items-center space-x-2 cursor-pointer">
+                <label className="btn-secondary w-full sm:w-auto flex items-center justify-center space-x-2 cursor-pointer">
                   <FiUpload className="h-5 w-5" />
                   <span>Restore Database</span>
                   <input type="file" accept=".sql" className="hidden" onChange={handleDbRestore} />
                 </label>
-                <button onClick={handleDbBackupList} className="btn-secondary">Refresh List</button>
+                <button onClick={handleDbBackupList} className="btn-secondary w-full sm:w-auto">Refresh List</button>
               </div>
               <div className="mt-4">
                 {dbBackups.length === 0 ? (

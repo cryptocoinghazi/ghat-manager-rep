@@ -462,21 +462,11 @@ export function generateDepositReportPDF(data, filters) {
       ]);
       doc.autoTable({
         startY: yPos,
-        head: [['Date', 'Owner', 'Type', 'Amount', 'Prev Bal', 'New Bal', 'Receipt No', 'Notes']],
+        head: [['Date/Time', 'Owner', 'Type', 'Amount', 'Prev Bal', 'New Bal', 'Receipt', 'Notes']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold', fontSize: 8 },
         bodyStyles: { fontSize: 8 },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 35 },
-          2: { cellWidth: 18, halign: 'center' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 25, halign: 'right' },
-          5: { cellWidth: 25, halign: 'right' },
-          6: { cellWidth: 25 },
-          7: { cellWidth: 28 }
-        },
         margin: { left: margin, right: margin }
       });
     }
@@ -486,6 +476,154 @@ export function generateDepositReportPDF(data, filters) {
     return fileName;
   } catch (error) {
     console.error('Error generating deposit report PDF:', error);
+    throw error;
+  }
+}
+
+export function generateDailyTransactionsPDF(data) {
+  try {
+    if (!data || !data.transactions) {
+      throw new Error('No daily transactions data available');
+    }
+
+    const { transactions } = data;
+    
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const margin = 15;
+    
+    // Header
+    let yPos = addHeader(doc, 'Daily Transactions Report', `Generated on ${formatDateIST(new Date())}`);
+    
+    yPos += 20;
+    
+    const tableData = transactions.map(txn => [
+        formatDateIST(txn.date_time),
+        formatTimeIST(txn.date_time),
+        txn.receipt_no,
+        txn.truck_owner,
+        txn.driver_name || '',
+        txn.vehicle_number,
+        txn.tyre_type || '',
+        txn.brass_qty,
+        formatCurrencyPDF(txn.total_amount),
+        txn.payment_method,
+        txn.payment_status
+    ]);
+
+    doc.autoTable({
+        startY: yPos,
+        head: [['Date', 'Time', 'Receipt', 'Owner', 'Driver', 'Vehicle', 'Tyre', 'Brass', 'Amount', 'Mode', 'Status']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: margin, right: margin }
+    });
+    
+    addFooter(doc);
+    
+    const fileName = `daily-transactions-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    return fileName;
+
+  } catch (error) {
+    console.error('Error generating daily transactions PDF:', error);
+    throw error;
+  }
+}
+
+export function generateDisplayedExpensesPDF(expenses, filters) {
+  try {
+    if (!expenses || expenses.length === 0) {
+      // throw new Error('No expenses to export'); // Allow exporting empty report with headers? Better to warn.
+      // But if user clicks export on empty table, maybe just header.
+    }
+
+    const doc = new jsPDF({
+      orientation: 'landscape', // Landscape to fit more columns
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Title
+    let title = 'Expense Report';
+    let subtitle = `Generated on ${formatDateIST(new Date())}`;
+    
+    if (filters.startDate || filters.endDate) {
+       const start = filters.startDate ? formatDateIST(filters.startDate) : 'Beginning';
+       const end = filters.endDate ? formatDateIST(filters.endDate) : 'Now';
+       subtitle = `Period: ${start} to ${end}`;
+    }
+
+    let yPos = addHeader(doc, title, subtitle);
+
+    // Summary Box Logic
+    const totalAmount = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalEntries = expenses.length;
+    
+    // Summary Boxes
+    addSummaryBox(doc, 'Total Expenses', formatCurrencyPDF(totalAmount), margin, yPos, 60, [239, 68, 68]); // Red for expenses
+    addSummaryBox(doc, 'Total Entries', totalEntries, margin + 65, yPos, 40, [59, 130, 246]); // Blue for count
+
+    yPos += 35;
+
+    // Table
+    const tableData = expenses.map(e => [
+      `${formatDateIST(e.date)} ${formatTimeIST(e.date)}`,
+      e.category,
+      e.description,
+      formatCurrencyPDF(e.amount),
+      e.payment_mode?.replace('_', ' ') || '-',
+      e.vendor_name || '-',
+      e.ghat_location || '-',
+      e.approved_by || '-'
+    ]);
+
+    doc.autoTable({
+      startY: yPos,
+      head: [['Date/Time', 'Category', 'Description', 'Amount', 'Payment Mode', 'Vendor', 'Location', 'Approved By']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: [37, 99, 235], 
+        textColor: 255, 
+        fontStyle: 'bold', 
+        fontSize: 9,
+        halign: 'center'
+      },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 35 }, // Date
+        1: { cellWidth: 25 }, // Category
+        2: { cellWidth: 50 }, // Description
+        3: { cellWidth: 25, halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] }, // Amount (Red)
+        4: { cellWidth: 25 }, // Payment
+        5: { cellWidth: 30 }, // Vendor
+        6: { cellWidth: 25 }, // Location
+        7: { cellWidth: 25 }  // Approved By
+      },
+      margin: { left: margin, right: margin },
+      didDrawPage: function (data) {
+          // Footer is handled by addFooter, but we might want to ensure it doesn't overlap
+      }
+    });
+
+    addFooter(doc);
+
+    const fileName = `expense_report_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fileName);
+    return fileName;
+
+  } catch (error) {
+    console.error('Error generating displayed expenses PDF:', error);
     throw error;
   }
 }
@@ -569,6 +707,18 @@ export function generatePDF(receiptData, settings = {}) {
     doc.text(data.vehicle_number || 'N/A', 45, y);
 
     y += 12;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text('Driver Name:', 15, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text((data.driver_name || 'N/A'), 45, y);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text('Tyre Type:', 100, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text((data.tyre_type || 'N/A'), 130, y);
+  
+  y += 12;
 
     const brassQty = parseFloat(data.brass_qty) || 0;
     const rate = parseFloat(data.rate) || 0;

@@ -1128,4 +1128,53 @@ router.get('/test', (req, res) => {
   });
 });
 
+// Daily transactions report with filters
+router.get('/daily-transactions', async (req, res) => {
+  try {
+    const { period = 'daily', startDate, endDate, truckOwner, driverName, vehicleNumber, paymentMode } = req.query;
+    let sDate = startDate;
+    let eDate = endDate;
+    const today = new Date();
+    const toISODate = (d) => d.toISOString().split('T')[0];
+    if (!startDate || !endDate) {
+      if (period === 'weekly') {
+        const start = new Date(today); start.setDate(start.getDate() - 6);
+        sDate = toISODate(start); eDate = toISODate(today);
+      } else if (period === 'monthly') {
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        sDate = toISODate(start); eDate = toISODate(end);
+      } else {
+        sDate = toISODate(today); eDate = toISODate(today);
+      }
+    }
+    let query = `
+      SELECT r.id, r.receipt_no, r.date_time, r.truck_owner, r.vehicle_number, r.driver_name, r.tyre_type,
+             r.brass_qty, r.rate, r.loading_charge, r.total_amount, r.cash_paid, r.credit_amount,
+             r.payment_method, r.payment_status
+      FROM receipts r
+      WHERE r.is_active = 1 AND DATE(r.date_time) BETWEEN ? AND ?
+    `;
+    const params = [sDate, eDate];
+    if (truckOwner) { query += ' AND r.truck_owner LIKE ?'; params.push(`%${truckOwner}%`); }
+    if (driverName) { query += ' AND r.driver_name LIKE ?'; params.push(`%${driverName}%`); }
+    if (vehicleNumber) { query += ' AND r.vehicle_number LIKE ?'; params.push(`%${vehicleNumber}%`); }
+    if (paymentMode && paymentMode !== 'all') { query += ' AND r.payment_method = ?'; params.push(paymentMode); }
+    query += ' ORDER BY r.date_time DESC';
+    const [rows] = await sequelize.query(query, { replacements: params });
+    const totals = rows.reduce((acc, r) => {
+      acc.trips += 1;
+      acc.totalBrass += Number(r.brass_qty || 0);
+      acc.totalAmount += Number(r.total_amount || 0);
+      acc.cash += Number(r.cash_paid || 0);
+      acc.credit += Number(r.credit_amount || Math.max(0, Number(r.total_amount || 0) - Number(r.cash_paid || 0)));
+      return acc;
+    }, { trips: 0, totalBrass: 0, totalAmount: 0, cash: 0, credit: 0 });
+    res.json({ period, startDate: sDate, endDate: eDate, totals, transactions: rows });
+  } catch (error) {
+    console.error('Error fetching daily transactions:', error);
+    res.status(500).json({ error: 'Failed to fetch daily transactions' });
+  }
+});
+
 export default router;

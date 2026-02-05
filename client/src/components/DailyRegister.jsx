@@ -10,7 +10,8 @@ import {
   FiPrinter,
   FiSave,
   FiX,
-  FiClock
+  FiClock,
+  FiTrash2
 } from 'react-icons/fi';
 import { FaCalendar, FaTruck, FaUser } from 'react-icons/fa';
 import { format, subDays, parseISO } from 'date-fns';
@@ -18,7 +19,10 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const DailyRegister = () => {
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dateRange, setDateRange] = useState({
+    startDate: format(new Date(), "yyyy-MM-dd'T'00:00"),
+    endDate: format(new Date(), "yyyy-MM-dd'T'23:59")
+  });
   const [receipts, setReceipts] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +33,20 @@ const DailyRegister = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editableReceipt, setEditableReceipt] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [truckOwners, setTruckOwners] = useState([]);
+
+  useEffect(() => {
+    fetchTruckOwners();
+  }, []);
+
+  const fetchTruckOwners = async () => {
+    try {
+      const response = await axios.get('/api/settings/truck-owners');
+      setTruckOwners(response.data || []);
+    } catch (error) {
+      console.error('Error fetching truck owners:', error);
+    }
+  };
 
   // Get correct local timezone date
   const getLocalDateString = () => {
@@ -59,39 +77,33 @@ const DailyRegister = () => {
     return date.toLocaleString('en-IN', options);
   };
 
-  // Convert local date to UTC range for DB query
-  const getUTCRangeForLocalDate = (localDateString) => {
-    // localDateString is in YYYY-MM-DD format (IST date)
-    
-    // Start of day in IST: YYYY-MM-DDT00:00:00+05:30
-    const startIST = new Date(`${localDateString}T00:00:00+05:30`);
-    // End of day in IST: YYYY-MM-DDT23:59:59.999+05:30
-    const endIST = new Date(`${localDateString}T23:59:59.999+05:30`);
-    
-    // Convert to UTC for database query
-    const startUTC = startIST.toISOString();
-    const endUTC = endIST.toISOString();
-    
-    return { startUTC, endUTC };
+  // Convert IST datetime-local string to UTC for DB query
+  const getUTCFromIST = (localDateTimeString) => {
+    // localDateTimeString is in YYYY-MM-DDThh:mm format
+    // Append seconds and timezone offset for IST
+    // Note: If seconds are missing, we append :00
+    const dateIST = new Date(`${localDateTimeString}:00+05:30`);
+    return dateIST.toISOString();
   };
 
   useEffect(() => {
     fetchDailyData();
-  }, [selectedDate]);
+  }, [dateRange]);
 
   const fetchDailyData = async () => {
     setLoading(true);
     try {
-      // Get UTC range for the selected IST date
-      const { startUTC, endUTC } = getUTCRangeForLocalDate(selectedDate);
+      // Get UTC range for the selected IST date range
+      const startUTC = getUTCFromIST(dateRange.startDate);
+      const endUTC = getUTCFromIST(dateRange.endDate);
       
-      console.log('Fetching receipts for IST date:', selectedDate);
-      console.log('UTC range for query:', startUTC, 'to', endUTC);
+      console.log('Fetching receipts for IST range:', dateRange.startDate, 'to', dateRange.endDate);
       
       const receiptsResponse = await axios.get('/api/receipts', {
         params: {
           startDate: startUTC,
-          endDate: endUTC
+          endDate: endUTC,
+          limit: 10000 // Fetch all records for the selected range
         }
       });
       
@@ -158,34 +170,92 @@ const DailyRegister = () => {
     setIsEditModalOpen(true);
   };
 
- const handleUpdateReceipt = async () => {
-  if (!editableReceipt) return;
-
-  setIsUpdating(true);
-  try {
-    const response = await axios.put(`/api/receipts/${editableReceipt.id}`, {
-      cash_paid: parseFloat(editableReceipt.cash_paid),
-      payment_status: editableReceipt.payment_status,
-      notes: editableReceipt.notes || ''
-    });
-
-    if (response.data.receipt) {
-      toast.success('Payment updated successfully!');
-      
-      // Refresh the data
-      fetchDailyData();
-      
-      // Close modal
-      setIsEditModalOpen(false);
-      setEditableReceipt(null);
+  const handleDeleteReceipt = async (receipt) => {
+    if (window.confirm(`Are you sure you want to delete receipt ${receipt.receipt_no}? This action cannot be undone.`)) {
+      try {
+        await axios.delete(`/api/receipts/${receipt.id}`);
+        toast.success('Receipt deleted successfully');
+        fetchDailyData();
+        if (isViewModalOpen) setIsViewModalOpen(false);
+      } catch (error) {
+        console.error('Error deleting receipt:', error);
+        toast.error('Failed to delete receipt');
+      }
     }
-  } catch (error) {
-    console.error('Error updating receipt:', error);
-    toast.error(error.response?.data?.error || 'Failed to update receipt');
-  } finally {
-    setIsUpdating(false);
-  }
-};
+  };
+
+   const handleUpdateReceipt = async () => {
+    if (!editableReceipt) return;
+
+    // Validate Owner
+    const ownerExists = truckOwners.some(
+      o => o.name.toLowerCase() === editableReceipt.truck_owner.toLowerCase() || 
+           (o.truck_owner && o.truck_owner.toLowerCase() === editableReceipt.truck_owner.toLowerCase())
+    );
+    
+    if (!ownerExists) {
+      toast.error(`Owner "${editableReceipt.truck_owner}" not found. Please add the owner in Settings first.`);
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await axios.put(`/api/receipts/${editableReceipt.id}`, {
+        truck_owner: editableReceipt.truck_owner,
+        vehicle_number: editableReceipt.vehicle_number,
+        brass_qty: parseFloat(editableReceipt.brass_qty),
+        rate: parseFloat(editableReceipt.rate),
+        loading_charge: parseFloat(editableReceipt.loading_charge),
+        cash_paid: parseFloat(editableReceipt.cash_paid),
+        payment_status: editableReceipt.payment_status,
+        notes: editableReceipt.notes || ''
+      });
+
+      if (response.data.receipt) {
+         toast.success('Receipt updated successfully!');
+         
+         // Refresh the data
+         fetchDailyData();
+         
+         // Close modal
+         setIsEditModalOpen(false);
+         setEditableReceipt(null);
+       }
+     } catch (error) {
+       console.error('Error updating receipt:', error);
+       toast.error(error.response?.data?.error || 'Failed to update receipt');
+     } finally {
+       setIsUpdating(false);
+     }
+   };
+ 
+   const updateCalculations = (field, value) => {
+     const updated = { ...editableReceipt, [field]: value };
+     const qty = parseFloat(updated.brass_qty) || 0;
+     const rate = parseFloat(updated.rate) || 0;
+     const loading = parseFloat(updated.loading_charge) || 0;
+     
+     // Calculate new total
+     const total = (qty * rate) + loading;
+     
+     // Calculate new credit
+     const cash = parseFloat(updated.cash_paid) || 0;
+     const deposit = parseFloat(updated.deposit_deducted) || 0;
+     const paid = cash + deposit;
+     const credit = total - paid;
+     
+     // Determine status
+     let status = 'unpaid';
+     if (credit <= 0.01) status = 'paid';
+     else if (paid > 0) status = 'partial';
+     
+     setEditableReceipt({
+       ...updated,
+       total_amount: total.toFixed(2),
+       credit_amount: credit.toFixed(2),
+       payment_status: status
+     });
+   };
 
   const handleReprintReceipt = async (receipt) => {
     try {
@@ -215,11 +285,16 @@ const DailyRegister = () => {
     try {
       const doc = new jsPDF();
       
+      // Format dates for display
+      const startDateDisplay = format(new Date(dateRange.startDate), 'dd-MM-yyyy HH:mm');
+      const endDateDisplay = format(new Date(dateRange.endDate), 'dd-MM-yyyy HH:mm');
+      const filename = `daily-register-${dateRange.startDate.replace(/[:.]/g, '-')}-to-${dateRange.endDate.replace(/[:.]/g, '-')}.pdf`;
+
       // Title with local date
       doc.setFontSize(18);
       doc.text('Daily Register - Ghat Manager', 14, 22);
       doc.setFontSize(11);
-      doc.text(`Date: ${format(new Date(selectedDate), 'dd-MM-yyyy')} (IST)`, 14, 32);
+      doc.text(`Date Range: ${startDateDisplay} to ${endDateDisplay} (IST)`, 14, 32);
       doc.text(`Generated: ${getLocalDateTime(new Date().toISOString())}`, 14, 38);
       
       // Summary
@@ -235,8 +310,11 @@ const DailyRegister = () => {
         index + 1,
         receipt.receipt_no,
         getLocalTime(receipt.date_time), // Time only
+        format(new Date(receipt.date_time), 'dd-MM-yyyy'), // Date
         receipt.truck_owner,
         receipt.vehicle_number,
+        receipt.tyre_type || '-',
+        receipt.payment_method || '-',
         receipt.brass_qty,
         `₹${receipt.total_amount}`,
         `₹${receipt.cash_paid}`,
@@ -245,7 +323,7 @@ const DailyRegister = () => {
       ]);
       
       doc.autoTable({
-        head: [['#', 'Receipt No', 'Time', 'Owner', 'Vehicle', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
+        head: [['#', 'Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre', 'Mode', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
         body: tableData,
         startY: 75,
         theme: 'grid',
@@ -253,7 +331,7 @@ const DailyRegister = () => {
         headStyles: { fillColor: [59, 130, 246] }
       });
       
-      doc.save(`daily-register-${selectedDate.replace(/-/g, '')}.pdf`);
+      doc.save(filename);
       toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -263,16 +341,19 @@ const DailyRegister = () => {
 
   const handleExportExcel = () => {
     try {
-      const headers = ['Receipt No', 'Date', 'Time', 'Owner', 'Vehicle', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
+      const filename = `daily-register-${dateRange.startDate.replace(/[:.]/g, '-')}-to-${dateRange.endDate.replace(/[:.]/g, '-')}.csv`;
+      const headers = ['Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre Type', 'Payment Mode', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
       const csvData = filteredReceipts.map(receipt => {
         const date = format(new Date(receipt.date_time), 'dd-MM-yyyy', { timeZone: 'Asia/Kolkata' });
         const time = getLocalTime(receipt.date_time);
         return [
           receipt.receipt_no,
-          date,
           time,
+          date,
           `"${receipt.truck_owner}"`,
           receipt.vehicle_number,
+          receipt.tyre_type || '-',
+          receipt.payment_method || '-',
           receipt.brass_qty,
           receipt.rate,
           receipt.total_amount,
@@ -291,7 +372,7 @@ const DailyRegister = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `daily-register-${selectedDate.replace(/-/g, '')}.csv`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -331,21 +412,32 @@ const DailyRegister = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Register</h1>
           <p className="text-gray-600 dark:text-gray-400 flex items-center">
             <FiClock className="h-4 w-4 mr-2" />
-            System Date: {getLocalDateString()} | Display Date: {selectedDate}
+            System Date: {getLocalDateString()} | Display: {dateRange.startDate.replace('T', ' ')} to {dateRange.endDate.replace('T', ' ')}
           </p>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => {
-              const prevDate = subDays(new Date(selectedDate), 1);
-              setSelectedDate(format(prevDate, 'yyyy-MM-dd'));
+              const currentStart = new Date(dateRange.startDate);
+              const prevDate = subDays(currentStart, 1);
+              const prevDateStr = format(prevDate, 'yyyy-MM-dd');
+              setDateRange({ 
+                startDate: `${prevDateStr}T00:00`, 
+                endDate: `${prevDateStr}T23:59` 
+              });
             }}
             className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
           >
             Previous Day
           </button>
           <button
-            onClick={() => setSelectedDate(getLocalDateString())}
+            onClick={() => {
+              const today = getLocalDateString();
+              setDateRange({ 
+                startDate: `${today}T00:00`, 
+                endDate: `${today}T23:59` 
+              });
+            }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             Today ({format(new Date(), 'dd-MM-yyyy')})
@@ -355,18 +447,32 @@ const DailyRegister = () => {
 
       {/* Date Selector & Filters */}
       <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FaCalendar className="inline h-4 w-4 mr-1" />
-              Select Date (IST)
+              From Date & Time
             </label>
             <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              type="datetime-local"
+              value={dateRange.startDate}
+              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#262626] dark:text-white"
-              max={getLocalDateString()}
+              max={dateRange.endDate}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <FaCalendar className="inline h-4 w-4 mr-1" />
+              To Date & Time
+            </label>
+            <input
+              type="datetime-local"
+              value={dateRange.endDate}
+              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#262626] dark:text-white"
+              min={dateRange.startDate}
             />
           </div>
           
@@ -380,14 +486,14 @@ const DailyRegister = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-[#2A2A2A] dark:text-white"
-              placeholder="Search by owner, vehicle..."
+              placeholder="Search..."
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FiFilter className="inline h-4 w-4 mr-1" />
-              Payment Status
+              Status
             </label>
             <select
               value={filterStatus}
@@ -465,7 +571,9 @@ const DailyRegister = () => {
       <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Transactions for {format(new Date(selectedDate), 'MMMM dd, yyyy')} (IST)
+            Transactions for {dateRange.startDate === dateRange.endDate 
+              ? format(new Date(dateRange.startDate), 'MMMM dd, yyyy') 
+              : `${format(new Date(dateRange.startDate), 'MMM dd')} - ${format(new Date(dateRange.endDate), 'MMM dd, yyyy')}`} (IST)
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
             <FiClock className="h-4 w-4 mr-1" />
@@ -485,7 +593,7 @@ const DailyRegister = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-gray-500 dark:text-gray-400">No transactions found for selected date</p>
+            <p className="text-gray-500 dark:text-gray-400">No transactions found for selected date range</p>
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Make sure receipts are booked within IST timezone</p>
             <button
               onClick={() => window.location.href = '/receipt'}
@@ -507,8 +615,11 @@ const DailyRegister = () => {
                       Time (IST)
                     </span>
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tyre Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Mode</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
@@ -529,11 +640,20 @@ const DailyRegister = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-mono">
                       {getLocalTime(receipt.date_time)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {format(new Date(receipt.date_time), 'dd-MM-yyyy')}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {receipt.truck_owner}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {receipt.vehicle_number}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {receipt.tyre_type || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">
+                      {receipt.payment_method || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {receipt.brass_qty}
@@ -567,6 +687,13 @@ const DailyRegister = () => {
                           title="Edit Payment"
                         >
                           <FiEdit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReceipt(receipt)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Delete Receipt"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleReprintReceipt(receipt)}
@@ -682,261 +809,211 @@ const DailyRegister = () => {
                 >
                   Reprint Receipt
                 </button>
+                <button
+                  onClick={() => handleDeleteReceipt(selectedReceipt)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                >
+                  Delete Receipt
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
- {/* Edit Receipt Modal */}
-{isEditModalOpen && editableReceipt && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white dark:bg-[#1A1A1A] rounded-lg p-6 max-w-md w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Payment Status</h3>
-        <button
-          onClick={() => {
-            setIsEditModalOpen(false);
-            setEditableReceipt(null);
-          }}
-          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          <FiX className="h-6 w-6" />
-        </button>
-      </div>
-      
-      <div className="space-y-4">
-        <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Receipt No:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.receipt_no}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Date:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time.split(',')[0]}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Time:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time.split(',')[1]?.trim()}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 dark:text-gray-400">Vehicle:</p>
-              <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.vehicle_number}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Amount</p>
-            <p className="text-lg font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</p>
-          </div>
-          <div className="bg-gray-50 dark:bg-[#262626] p-3 rounded-lg">
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Current Status</p>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-              editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-            }`}>
-              {editableReceipt.payment_status?.toUpperCase()}
-            </span>
-          </div>
-        </div>
-        
-        {/* Payment Status Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Change Payment Status
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setEditableReceipt({
-                  ...editableReceipt,
-                  payment_status: 'paid',
-                  cash_paid: editableReceipt.total_amount,
-                  credit_amount: 0
-                });
-              }}
-              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                editableReceipt.payment_status === 'paid' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                <span>Paid</span>
-                <span className="text-xs">₹{editableReceipt.total_amount}</span>
-              </div>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => {
-                setEditableReceipt({
-                  ...editableReceipt,
-                  payment_status: 'partial',
-                  cash_paid: editableReceipt.total_amount * 0.5, // Default 50%
-                  credit_amount: editableReceipt.total_amount * 0.5
-                });
-              }}
-              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                editableReceipt.payment_status === 'partial' 
-                  ? 'bg-yellow-600 text-white' 
-                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                <span>Partial</span>
-                <span className="text-xs">50%</span>
-              </div>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => {
-                setEditableReceipt({
-                  ...editableReceipt,
-                  payment_status: 'unpaid',
-                  cash_paid: 0,
-                  credit_amount: editableReceipt.total_amount
-                });
-              }}
-              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                editableReceipt.payment_status === 'unpaid' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
-              }`}
-            >
-              <div className="flex flex-col items-center">
-                <span>Credit</span>
-                <span className="text-xs">₹0</span>
-              </div>
-            </button>
-          </div>
-        </div>
-        
-        {/* Custom Amount for Partial Payment */}
-        {editableReceipt.payment_status === 'partial' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Custom Cash Paid Amount
-            </label>
-            <div className="flex space-x-2">
-              <input
-                type="number"
-                value={editableReceipt.cash_paid || ''}
-                onChange={(e) => {
-                  const cashPaid = parseFloat(e.target.value) || 0;
-                  const total = parseFloat(editableReceipt.total_amount);
-                  const credit = total - cashPaid;
-                  setEditableReceipt({
-                    ...editableReceipt,
-                    cash_paid: cashPaid,
-                    credit_amount: credit,
-                    payment_status: cashPaid >= total ? 'paid' : 
-                                   cashPaid > 0 ? 'partial' : 'unpaid'
-                  });
-                }}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter cash amount"
-                min="0"
-                max={editableReceipt.total_amount}
-              />
+      {/* Edit Receipt Modal */}
+      {isEditModalOpen && editableReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-[#1A1A1A] z-10">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Receipt</h3>
               <button
-                type="button"
                 onClick={() => {
-                  const cashPaid = parseFloat(editableReceipt.total_amount);
-                  setEditableReceipt({
-                    ...editableReceipt,
-                    cash_paid: cashPaid,
-                    credit_amount: 0,
-                    payment_status: 'paid'
-                  });
+                  setIsEditModalOpen(false);
+                  setEditableReceipt(null);
                 }}
-                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
-                Full
+                <FiX className="h-6 w-6" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Enter cash amount paid now (0 to ₹{editableReceipt.total_amount})
-            </p>
-          </div>
-        )}
-        
-        {/* Payment Summary */}
-        <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Cash to be Paid</p>
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                ₹{editableReceipt.cash_paid || 0}
-              </p>
+            
+            <div className="p-6 space-y-6">
+              {/* Receipt Info */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-[#262626] p-4 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Receipt No</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.receipt_no}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Date</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{editableReceipt.local_time}</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Owner</label>
+                  <input
+                    type="text"
+                    list="owner-options"
+                    value={editableReceipt.truck_owner}
+                    onChange={(e) => {
+                       const val = e.target.value;
+                       const owner = truckOwners.find(o => o.name === val || (o.truck_owner === val));
+                       setEditableReceipt(prev => ({
+                         ...prev,
+                         truck_owner: val,
+                         vehicle_number: owner?.vehicle_number || prev.vehicle_number
+                       }));
+                    }}
+                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white font-semibold"
+                  />
+                  <datalist id="owner-options">
+                    {truckOwners.map(owner => (
+                      <option key={owner.id} value={owner.name} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Vehicle</label>
+                  <input
+                    type="text"
+                    value={editableReceipt.vehicle_number}
+                    onChange={(e) => setEditableReceipt(prev => ({ ...prev, vehicle_number: e.target.value.toUpperCase() }))}
+                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Transaction Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Quantity (Brass)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.brass_qty}
+                      onChange={(e) => updateCalculations('brass_qty', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Rate per Brass
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.rate}
+                      onChange={(e) => updateCalculations('rate', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Loading Charge
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.loading_charge}
+                      onChange={(e) => updateCalculations('loading_charge', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Summary */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-blue-700 dark:text-blue-300 font-medium">Total Amount</span>
+                  <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</span>
+                </div>
+                <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                  (Qty × Rate) + Loading Charge
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div>
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Payment Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Cash Paid
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editableReceipt.cash_paid}
+                      onChange={(e) => updateCalculations('cash_paid', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Credit Amount (Balance)
+                    </label>
+                    <div className={`w-full px-3 py-2 border rounded-lg bg-gray-50 dark:bg-[#262626] font-bold ${
+                      parseFloat(editableReceipt.credit_amount) > 0 
+                        ? 'text-red-600 border-red-200 dark:text-red-400 dark:border-red-900/30' 
+                        : 'text-green-600 border-green-200 dark:text-green-400 dark:border-green-900/30'
+                    }`}>
+                      ₹{editableReceipt.credit_amount}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center justify-between bg-gray-50 dark:bg-[#262626] p-3 rounded-lg">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Payment Status:</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                    editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                    editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                  }`}>
+                    {editableReceipt.payment_status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={editableReceipt.notes || ''}
+                  onChange={(e) => updateCalculations('notes', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#2A2A2A] dark:text-white h-20"
+                  placeholder="Reason for edit..."
+                />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Credit Amount</p>
-              <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                ₹{editableReceipt.credit_amount || 0}
-              </p>
-            </div>
-          </div>
-          
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New Payment Status:</span>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                editableReceipt.payment_status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                editableReceipt.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-              }`}>
-                {editableReceipt.payment_status?.toUpperCase()}
-              </span>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end space-x-3 sticky bottom-0 bg-white dark:bg-[#1A1A1A]">
+              <button
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditableReceipt(null);
+                }}
+                className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateReceipt}
+                disabled={isUpdating}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
+              >
+                <FiSave className="h-5 w-5" />
+                <span>{isUpdating ? 'Saving...' : 'Save Changes'}</span>
+              </button>
             </div>
           </div>
         </div>
-        
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Payment Notes (Optional)
-          </label>
-          <textarea
-            value={editableReceipt.notes || ''}
-            onChange={(e) => setEditableReceipt({
-              ...editableReceipt,
-              notes: e.target.value
-            })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#2A2A2A] text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
-            placeholder="Add payment notes..."
-          />
-        </div>
-        
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 flex justify-end space-x-3">
-          <button
-            onClick={() => {
-              setIsEditModalOpen(false);
-              setEditableReceipt(null);
-            }}
-            className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdateReceipt}
-            disabled={isUpdating}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
-          >
-            <FiSave className="h-5 w-5" />
-            <span>{isUpdating ? 'Updating...' : 'Update Payment'}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };
