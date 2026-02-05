@@ -86,31 +86,44 @@ export async function ocrNumberPlate(filePath) {
       formData.append('OCREngine', '2'); // Engine 2 is better for number plates/digits
       formData.append('scale', 'true');
 
-      const res = await fetch('https://api.ocr.space/parse/image', {
-        method: 'POST',
-        body: formData,
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      if (!res.ok) {
-        throw new Error(`OCR.space request failed: ${res.status} ${await res.text()}`);
+      try {
+        const res = await fetch('https://api.ocr.space/parse/image', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          throw new Error(`OCR.space request failed: ${res.status} ${await res.text()}`);
+        }
+
+        const json = await res.json();
+        result.raw = json;
+
+        if (json.IsErroredOnProcessing) {
+          throw new Error(`OCR.space error: ${json.ErrorMessage}`);
+        }
+
+        const parsedText = json.ParsedResults?.[0]?.ParsedText || '';
+        
+        if (parsedText) {
+          const normalized = extractBestPlate(parsedText) || normalizePlate(parsedText);
+          result.text = normalized || parsedText.trim().toUpperCase();
+          result.confidence = 90; 
+        }
+        
+        return result;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('OCR.space request timed out (15s)');
+        }
+        throw error;
       }
-
-      const json = await res.json();
-      result.raw = json;
-
-      if (json.IsErroredOnProcessing) {
-        throw new Error(`OCR.space error: ${json.ErrorMessage}`);
-      }
-
-      const parsedText = json.ParsedResults?.[0]?.ParsedText || '';
-      
-      if (parsedText) {
-        const normalized = extractBestPlate(parsedText) || normalizePlate(parsedText);
-        result.text = normalized || parsedText.trim().toUpperCase();
-        result.confidence = 90; 
-      }
-      
-      return result;
 
     } catch (error) {
       console.error('OCR.space failed:', error);
