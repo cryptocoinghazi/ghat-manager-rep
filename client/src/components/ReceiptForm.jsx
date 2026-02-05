@@ -27,8 +27,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     driver_name: '',
     tyre_type: '',
     brass_qty: '',
-    rate: flatSettings.default_rate || '1200',
-    loading_charge: flatSettings.loading_charge || '150',
+    rate: flatSettings.default_rate || '',
+    loading_charge: flatSettings.loading_charge || '',
     cash_paid: '',
     notes: ''
   });
@@ -125,11 +125,11 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       
       // Only auto-populate rate if not overridden by user AND this is a new selection
       if (!isRateOverridden && ownerInfo) {
-        let rateToApply = flatSettings.default_rate || '1200';
+        let rateToApply = flatSettings.default_rate || '';
         
         if (ownerInfo.is_partner) {
           // Apply partner rate
-          rateToApply = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+          rateToApply = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '';
         }
         
         setFormData(prev => ({

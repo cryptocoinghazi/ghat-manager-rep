@@ -25,8 +25,8 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     truck_owner: '',
     vehicle_number: '',
     brass_qty: '',
-    rate: flatSettings.default_rate || '1200',
-    loading_charge: flatSettings.loading_charge || '150',
+    rate: flatSettings.default_rate || '',
+    loading_charge: flatSettings.loading_charge || '',
     cash_paid: '',
     notes: '',
     gst_rate: '5.00'
@@ -187,7 +187,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     setSelectedOwnerInfo(ownerInfo || null);
     
     // Partner Rate Logic
-    let appliedRate = flatSettings.default_rate || '1200';
+    let appliedRate = flatSettings.default_rate || '';
     if (ownerInfo?.is_partner) {
       appliedRate = ownerInfo.partner_rate || flatSettings.default_partner_rate || appliedRate;
     }
