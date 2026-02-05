@@ -58,6 +58,10 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   const [useDepositBalance, setUseDepositBalance] = useState(false);
   const [customDepositDeduction, setCustomDepositDeduction] = useState('');
   const [selectedPaymentMode, setSelectedPaymentMode] = useState('cash');
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [ocrConfidence, setOcrConfidence] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState('');
 
   // Helper to set payment mode and amount
   const handlePaymentModeSelect = (mode) => {
@@ -204,6 +208,98 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     
     return () => clearInterval(interval);
   }, [fetchTruckOwners]);
+
+  const handlePhotoUploadChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOcrError('');
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setOcrError('Only JPEG or PNG images are supported');
+      toast.error('Only JPEG or PNG images are supported');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setOcrError('File too large. Max 5MB');
+      toast.error('File too large. Max 5MB');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+    setOcrLoading(true);
+    try {
+      const form = new FormData();
+      form.append('image', file);
+      const res = await axios.post('/api/trucks/photo-recognition', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setOcrConfidence(res.data.confidence);
+      
+      // PREFER DB MATCHED VALUES over raw OCR
+      const matchedVehicleNumber = res.data.match?.vehicle?.vehicle_number;
+      const extractedPlate = res.data.extracted_plate;
+      const finalPlate = matchedVehicleNumber || extractedPlate || '';
+      
+      if (finalPlate) {
+        // Find owner in local list to ensure exact string match (avoids creating duplicates due to spaces/case)
+        let ownerName = res.data.match?.owner?.name || '';
+        let ownerObj = res.data.match?.owner;
+        
+        if (ownerObj && truckOwners) {
+            const localOwner = truckOwners.find(o => o.id === ownerObj.id);
+            if (localOwner) {
+              ownerName = localOwner.name; // Use the exact string from the dropdown list
+              ownerObj = localOwner;
+            }
+         }
+         
+         // Auto-calculate rate based on owner (BAU process)
+         let rateToApply = flatSettings.default_rate || '1200';
+         if (ownerObj) {
+            if (ownerObj.is_partner) {
+                rateToApply = ownerObj.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+            }
+         }
+
+         // Extract driver and tyre from matched vehicle
+         const driverName = res.data.match?.vehicle?.driver_name || '';
+         const tyreType = res.data.match?.vehicle?.tyre_type || '';
+
+         setFormData(prev => ({ 
+           ...prev, 
+           vehicle_number: finalPlate,
+           // Auto-populate owner if found
+           truck_owner: ownerName,
+           // Auto-populate driver/tyre if found in DB
+           driver_name: driverName || prev.driver_name,
+           tyre_type: tyreType || prev.tyre_type,
+           // Auto-populate rate
+           rate: rateToApply.toString()
+         }));
+         
+         if (ownerObj) {
+           setSelectedOwnerInfo(ownerObj);
+           setOriginalRate(rateToApply);
+         } else {
+           setSelectedOwnerInfo(null);
+         }
+      }
+      if (res.data.needs_manual) {
+        toast((t) => (
+          <span>
+            OCR confidence {Math.round(res.data.confidence || 0)}%. Please verify vehicle number.
+            <button onClick={() => toast.dismiss(t.id)} className="ml-2 border px-2 py-1 rounded">OK</button>
+          </span>
+        ));
+      } else {
+        toast.success('Number plate recognized');
+      }
+    } catch (error) {
+      setOcrError(error.response?.data?.error || 'Photo recognition failed');
+      toast.error(error.response?.data?.error || 'Photo recognition failed');
+    } finally {
+      setOcrLoading(false);
+    }
+  };
 
   const fetchNextReceiptNumber = async () => {
     try {
@@ -931,14 +1027,25 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 )}
               </div>
 
-              {/* Vehicle Number - FIXED */}
               <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Vehicle Number *
-                  {errors.vehicle_number && (
-                    <span className="text-red-600 text-sm ml-2">{errors.vehicle_number}</span>
-                  )}
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Vehicle Number *
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input id="photoUploadInput" type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUploadChange} />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('photoUploadInput')?.click()}
+                      className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      Upload Photo
+                    </button>
+                  </div>
+                </div>
+                {errors.vehicle_number && (
+                  <span className="text-red-600 text-sm mb-2 block">{errors.vehicle_number}</span>
+                )}
                 <input
                   type="text"
                   name="vehicle_number"
@@ -948,6 +1055,22 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   placeholder="MH-31-XXXX"
                   style={{ textTransform: 'uppercase' }}
                 />
+                {(photoPreview || ocrLoading || ocrConfidence !== null || ocrError) && (
+                  <div className="mt-2 flex items-center space-x-3">
+                    {photoPreview && (
+                      <img src={photoPreview} alt="Uploaded" className="h-12 w-20 object-cover rounded border border-gray-200 dark:border-gray-700" />
+                    )}
+                    {ocrLoading && (
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Processing...</span>
+                    )}
+                    {!ocrLoading && ocrConfidence !== null && (
+                      <span className="text-sm text-gray-700 dark:text-gray-300">OCR Confidence: {Math.round(ocrConfidence)}%</span>
+                    )}
+                    {ocrError && (
+                      <span className="text-sm text-red-600">{ocrError}</span>
+                    )}
+                  </div>
+                )}
                 
                 {/* Vehicle suggestions */}
                 {vehicleSuggestions.length > 0 && (

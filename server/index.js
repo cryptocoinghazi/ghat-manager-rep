@@ -1,5 +1,6 @@
 import express from 'express';
 console.log('Starting server script...');
+console.log('Force restart for OCR updates (Trim Fix)...');
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -72,6 +73,7 @@ import gstReceiptRoutes from './routes/gstReceipts.js';
 import gstReportRoutes from './routes/gstReports.js';
 import paymentRoutes from './routes/payments.js';
 import truckOwnerRoutes from './routes/truckOwners.js';
+import trucksPhotoRecognitionRoutes from './routes/trucksPhotoRecognition.js';
 
 // API Routes - Auth routes are public
 app.use('/api/auth', authRoutes);
@@ -79,6 +81,7 @@ app.use('/api/auth', authRoutes);
 // Protected routes - require authentication
 app.use('/api/receipts', authenticateToken, receiptRoutes);
 app.use('/api/truck-owners', authenticateToken, truckOwnerRoutes);
+app.use('/api/trucks', authenticateToken, trucksPhotoRecognitionRoutes);
 app.use('/api/gst-receipts', authenticateToken, gstReceiptRoutes);
 app.use('/api/gst-reports', authenticateToken, requireAdmin, gstReportRoutes);
 app.use('/api/payments', authenticateToken, paymentRoutes);

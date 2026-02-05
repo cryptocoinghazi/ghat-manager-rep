@@ -3,7 +3,7 @@ import sequelize from '../mysql.js';
 
 export const Receipts = sequelize.define('receipts', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  receipt_no: { type: DataTypes.STRING(64), unique: true, allowNull: false },
+  receipt_no: { type: DataTypes.STRING(64), allowNull: false },
   truck_owner: { type: DataTypes.STRING(255), allowNull: false },
   vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
   driver_name: { type: DataTypes.STRING(255) },
@@ -27,7 +27,7 @@ export const Receipts = sequelize.define('receipts', {
 
 export const GstReceipts = sequelize.define('gst_receipts', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  receipt_no: { type: DataTypes.STRING(64), unique: true, allowNull: false },
+  receipt_no: { type: DataTypes.STRING(64), allowNull: false },
   truck_owner: { type: DataTypes.STRING(255), allowNull: false },
   vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
   date_time: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
@@ -55,7 +55,7 @@ export const GstReceipts = sequelize.define('gst_receipts', {
 
 export const TruckOwners = sequelize.define('truck_owners', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  name: { type: DataTypes.STRING(255), unique: true, allowNull: false },
+  name: { type: DataTypes.STRING(255), allowNull: false },
   phone: { type: DataTypes.STRING(64) },
   address: { type: DataTypes.TEXT },
   credit_limit: { type: DataTypes.DECIMAL(10,2), defaultValue: 0 },
@@ -70,7 +70,7 @@ export const TruckOwners = sequelize.define('truck_owners', {
 
 export const TruckVehicles = sequelize.define('truck_vehicles', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  vehicle_number: { type: DataTypes.STRING(64), unique: true, allowNull: false },
+  vehicle_number: { type: DataTypes.STRING(64), allowNull: false },
   truck_owner_id: { type: DataTypes.INTEGER, allowNull: true },
   driver_name: { type: DataTypes.STRING(255) },
   tyre_type: { type: DataTypes.STRING(16) }
@@ -176,6 +176,22 @@ export const VehicleOwnershipHistory = sequelize.define('vehicle_ownership_histo
   changed_by: { type: DataTypes.STRING(64) }
 });
 
+export const VehicleImages = sequelize.define('vehicle_images', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  receipt_id: { type: DataTypes.INTEGER, allowNull: true },
+  truck_vehicle_id: { type: DataTypes.INTEGER, allowNull: true },
+  vehicle_number_extracted: { type: DataTypes.STRING(64) },
+  ocr_confidence: { type: DataTypes.DECIMAL(5,2) },
+  ocr_provider: { type: DataTypes.STRING(32) },
+  ocr_raw_json: { type: DataTypes.TEXT },
+  original_filename: { type: DataTypes.STRING(255) },
+  filename_encrypted: { type: DataTypes.STRING(255), allowNull: false },
+  mime_type: { type: DataTypes.STRING(64), allowNull: false },
+  size_bytes: { type: DataTypes.INTEGER, allowNull: false },
+  processed_at: { type: DataTypes.DATE },
+  created_by: { type: DataTypes.STRING(64) }
+});
+
 Receipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constraints: false });
 GstReceipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constraints: false });
 CreditPayments.belongsTo(Receipts, { foreignKey: 'receipt_id' });
@@ -183,6 +199,8 @@ DepositTransactions.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
 TruckVehicles.belongsTo(TruckOwners, { foreignKey: 'truck_owner_id', as: 'owner' });
 ReceiptEditHistory.belongsTo(Receipts, { foreignKey: 'receipt_id' });
 TruckOwnerEditHistory.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
+VehicleImages.belongsTo(Receipts, { foreignKey: 'receipt_id' });
+VehicleImages.belongsTo(TruckVehicles, { foreignKey: 'truck_vehicle_id', as: 'vehicle' });
 
 export async function syncModels() {
   console.log('Authenticating sequelize...');

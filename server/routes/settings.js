@@ -234,6 +234,28 @@ router.post('/truck-owners', async (req, res) => {
       }
 
       await t.commit();
+      
+      // SYNC: Ensure TruckVehicles is updated with the new relationship
+      if (vehicle_number) {
+        try {
+          // Use a new transaction or separate operation since previous one is committed
+          const v = await TruckVehicles.findOne({ where: { vehicle_number } });
+          if (v) {
+            if (v.truck_owner_id !== existing.id) {
+               await v.update({ truck_owner_id: existing.id });
+            }
+          } else {
+            await TruckVehicles.create({
+              vehicle_number,
+              truck_owner_id: existing.id
+            });
+          }
+        } catch (err) {
+          console.error('Error syncing TruckVehicles:', err);
+          // Don't fail the request, just log it
+        }
+      }
+
       return res.json({ message: 'Truck owner updated successfully', owner: existing });
     } else {
       const created = await TruckOwners.create({ 
@@ -247,6 +269,26 @@ router.post('/truck-owners', async (req, res) => {
       }, { transaction: t });
       
       await t.commit();
+
+      // SYNC: Ensure TruckVehicles is updated for new owner
+      if (vehicle_number) {
+        try {
+           const v = await TruckVehicles.findOne({ where: { vehicle_number } });
+           if (v) {
+             if (v.truck_owner_id !== created.id) {
+                await v.update({ truck_owner_id: created.id });
+             }
+           } else {
+             await TruckVehicles.create({
+               vehicle_number,
+               truck_owner_id: created.id
+             });
+           }
+        } catch (err) {
+           console.error('Error syncing TruckVehicles (Create):', err);
+        }
+      }
+
       return res.json({ message: 'Truck owner created successfully', owner: created });
     }
   } catch (error) {
