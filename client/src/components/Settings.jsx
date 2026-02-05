@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2, FiEdit2, FiX, FiTruck } from 'react-icons/fi';
+import { FiSave, FiUpload, FiDownload, FiRefreshCw, FiHome, FiPrinter, FiShield, FiTrash2, FiEdit2, FiX, FiTruck, FiChevronDown, FiChevronRight, FiPlus, FiSearch } from 'react-icons/fi';
 import { FaDollarSign } from 'react-icons/fa';
 
 const Settings = ({ settings, fetchSettings }) => {
@@ -15,11 +15,29 @@ const Settings = ({ settings, fetchSettings }) => {
   const [dbBackups, setDbBackups] = useState([]);
   const [isDbConnected, setIsDbConnected] = useState(false);
   
-  // Truck Vehicles State
-  const [truckVehicles, setTruckVehicles] = useState([]);
-  const [vehicleSearch, setVehicleSearch] = useState('');
+  // Truck Vehicles State - REMOVED (Merged into Truck Owners)
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [newVehicle, setNewVehicle] = useState({ vehicle_number: '', driver_name: '', tyre_type: '', truck_owner_id: '' });
+  
+  // Multi-vehicle management state
+  const [expandedOwnerIds, setExpandedOwnerIds] = useState(new Set());
+  const [addingVehicleToOwner, setAddingVehicleToOwner] = useState(null);
+  
+  // Search and Unlinked Vehicles state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [unlinkedVehicles, setUnlinkedVehicles] = useState([]);
+
+  // Filter unlinked vehicles to ensure no duplicates from linked list appear
+  const linkedVehicleNumbers = new Set();
+  truckOwners.forEach(owner => {
+    if (owner.vehicles) {
+      owner.vehicles.forEach(v => linkedVehicleNumbers.add(v.vehicle_number.trim().toUpperCase()));
+    }
+  });
+  
+  const displayedUnlinkedVehicles = unlinkedVehicles.filter(v => 
+    !linkedVehicleNumbers.has(v.vehicle_number.trim().toUpperCase())
+  );
 
   // Initialize formData with settings.flat (since backend now returns { flat, categorized })
   useEffect(() => {
@@ -31,13 +49,7 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   }, [settings]);
 
-  // Fetch truck owners
-  useEffect(() => {
-    fetchTruckOwners();
-    fetchTruckVehicles();
-    checkDbStatus();
-    handleDbBackupList();
-  }, []);
+  // Moved useEffect to bottom to fix hoisting issues
 
   const fetchTruckOwners = async () => {
     try {
@@ -49,23 +61,14 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   };
 
-  const fetchTruckVehicles = async () => {
+  const fetchUnlinkedVehicles = async () => {
     try {
-      const response = await axios.get(`/api/settings/truck-vehicles?q=${vehicleSearch}`);
-      setTruckVehicles(response.data || []);
+      const response = await axios.get('/api/settings/truck-vehicles?unlinked=true');
+      setUnlinkedVehicles(response.data || []);
     } catch (error) {
-      console.error('Error fetching truck vehicles:', error);
-      setTruckVehicles([]);
+      console.error('Error fetching unlinked vehicles:', error);
     }
   };
-
-  // Debounced search for vehicles
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchTruckVehicles();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [vehicleSearch]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -196,6 +199,14 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   };
 
+  // Fetch initial data
+  useEffect(() => {
+    fetchTruckOwners();
+    fetchUnlinkedVehicles();
+    checkDbStatus();
+    handleDbBackupList();
+  }, []);
+
   const handleDbRestore = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -236,7 +247,9 @@ const Settings = ({ settings, fetchSettings }) => {
       
       setEditingVehicle(null);
       setNewVehicle({ vehicle_number: '', driver_name: '', tyre_type: '', truck_owner_id: '' });
-      fetchTruckVehicles();
+      setAddingVehicleToOwner(null);
+      fetchTruckOwners();
+      fetchUnlinkedVehicles();
     } catch (error) {
       console.error('Error saving vehicle:', error);
       toast.error('Failed to save vehicle');
@@ -354,11 +367,57 @@ const Settings = ({ settings, fetchSettings }) => {
     }
   };
 
+  const toggleOwnerExpand = (id) => {
+    const newSet = new Set(expandedOwnerIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setExpandedOwnerIds(newSet);
+  };
+
+  const handleUnlinkVehicle = async (vehicle) => {
+    if (window.confirm(`Are you sure you want to remove ${vehicle.vehicle_number} from this owner?`)) {
+      try {
+        await axios.put(`/api/settings/truck-vehicles/${vehicle.id}/unlink`);
+        toast.success('Vehicle unlinked successfully');
+        await fetchTruckOwners();
+        await fetchUnlinkedVehicles();
+      } catch (error) {
+        console.error('Error unlinking vehicle:', error);
+        toast.error('Failed to unlink vehicle');
+      }
+    }
+  };
+
+  const handleDeleteVehicle = async (vehicleId) => {
+    if (window.confirm('Are you sure you want to delete this vehicle permanently?')) {
+      try {
+        await axios.delete(`/api/settings/truck-vehicles/${vehicleId}`);
+        toast.success('Vehicle deleted successfully');
+        await fetchTruckOwners();
+        await fetchUnlinkedVehicles();
+      } catch (error) {
+        console.error('Error deleting vehicle:', error);
+        toast.error('Failed to delete vehicle');
+      }
+    }
+  };
+
+  const filteredOwners = truckOwners.filter(owner => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    const nameMatch = owner.name.toLowerCase().includes(search);
+    const legacyVehicleMatch = owner.vehicle_number && owner.vehicle_number.toLowerCase().includes(search);
+    const linkedVehicleMatch = owner.vehicles && owner.vehicles.some(v => v.vehicle_number.toLowerCase().includes(search));
+    return nameMatch || legacyVehicleMatch || linkedVehicleMatch;
+  });
+
   const tabs = [
     { id: 'company', name: 'Company', icon: FiHome },
     { id: 'financial', name: 'Financial', icon: FaDollarSign },
     { id: 'receipt', name: 'Receipt', icon: FiPrinter },
-    { id: 'truck-vehicles', name: 'Truck Vehicles', icon: FiTruck },
     { id: 'truck-owners', name: 'Truck Owners', icon: FiShield },
     { id: 'data', name: 'Data Management', icon: FiShield },
   ];
@@ -749,184 +808,24 @@ const Settings = ({ settings, fetchSettings }) => {
           </div>
         )}
 
-        {activeTab === 'truck-vehicles' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Truck Vehicles Management</h3>
-              <div className="w-64">
-                <input
-                  type="text"
-                  placeholder="Search vehicles..."
-                  value={vehicleSearch}
-                  onChange={(e) => setVehicleSearch(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#262626] text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-
-            {/* Add/Edit Form */}
-            <div className="bg-gray-50 dark:bg-[#262626] p-4 rounded-lg mb-6">
-              <h4 className="font-medium text-gray-900 dark:text-white mb-4">
-                {editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
-              </h4>
-              <form onSubmit={handleSaveVehicle} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Vehicle Number *
-                  </label>
-                  <input
-                    type="text"
-                    value={editingVehicle ? editingVehicle.vehicle_number : newVehicle.vehicle_number}
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase();
-                      editingVehicle 
-                        ? setEditingVehicle({...editingVehicle, vehicle_number: val})
-                        : setNewVehicle({...newVehicle, vehicle_number: val});
-                    }}
-                    className="input-field"
-                    placeholder="KA01AB1234"
-                    disabled={!!editingVehicle} // Disable primary key edit
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Driver Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editingVehicle ? editingVehicle.driver_name || '' : newVehicle.driver_name}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      editingVehicle 
-                        ? setEditingVehicle({...editingVehicle, driver_name: val})
-                        : setNewVehicle({...newVehicle, driver_name: val});
-                    }}
-                    className="input-field"
-                    placeholder="Driver Name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Tyre Type
-                  </label>
-                  <select
-                    value={editingVehicle ? editingVehicle.tyre_type || '' : newVehicle.tyre_type}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      editingVehicle 
-                        ? setEditingVehicle({...editingVehicle, tyre_type: val})
-                        : setNewVehicle({...newVehicle, tyre_type: val});
-                    }}
-                    className="input-field"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="6 Tyre">6 Tyre</option>
-                    <option value="10 Tyre">10 Tyre</option>
-                    <option value="12 Tyre">12 Tyre</option>
-                    <option value="14 Tyre">14 Tyre</option>
-                    <option value="16 Tyre">16 Tyre</option>
-                    <option value="18 Tyre">18 Tyre</option>
-                    <option value="22 Tyre">22 Tyre</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Truck Owner (Optional)
-                  </label>
-                  <select
-                    value={editingVehicle ? editingVehicle.truck_owner_id || '' : newVehicle.truck_owner_id}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      editingVehicle 
-                        ? setEditingVehicle({...editingVehicle, truck_owner_id: val})
-                        : setNewVehicle({...newVehicle, truck_owner_id: val});
-                    }}
-                    className="input-field"
-                  >
-                    <option value="">Select Owner</option>
-                    {truckOwners.map(owner => (
-                      <option key={owner.id} value={owner.id}>{owner.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-4 flex justify-end space-x-2 mt-2">
-                  {editingVehicle && (
-                    <button
-                      type="button"
-                      onClick={() => setEditingVehicle(null)}
-                      className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                  >
-                    {editingVehicle ? 'Update Vehicle' : 'Add Vehicle'}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Vehicles List */}
-            <div className="bg-white dark:bg-[#262626] shadow overflow-x-auto rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-[#262626]">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle Number</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Driver</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tyre Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {truckVehicles.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                        No vehicles found
-                      </td>
-                    </tr>
-                  ) : (
-                    truckVehicles.map((vehicle) => {
-                      const owner = truckOwners.find(o => o.id === vehicle.truck_owner_id);
-                      return (
-                        <tr key={vehicle.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                            {vehicle.vehicle_number}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {vehicle.driver_name || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {vehicle.tyre_type || '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {owner ? owner.name : '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => setEditingVehicle(vehicle)}
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-4"
-                            >
-                              <FiEdit2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+{/* Truck Vehicles tab removed - functionality merged into Truck Owners */}
 
         {activeTab === 'truck-owners' && (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Truck Owners Management</h3>
+            
+            <div className="mb-6 relative">
+               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="h-5 w-5 text-gray-400" />
+               </div>
+               <input
+                 type="text"
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+                 className="input-field pl-10"
+                 placeholder="Search by Owner Name or Vehicle Number..."
+               />
+            </div>
             
             {/* Add new owner */}
             <div className={`card p-6 mb-6 ${editingOwnerId ? 'border-2 border-blue-500' : ''}`}>
@@ -1011,8 +910,9 @@ const Settings = ({ settings, fetchSettings }) => {
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead>
                       <tr>
+                        <th className="px-2 py-3 w-8"></th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle Number</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicles</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Address</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deposit Balance</th>
@@ -1021,64 +921,277 @@ const Settings = ({ settings, fetchSettings }) => {
                       </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
-                      {truckOwners.map((owner) => (
-                        <tr key={owner.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{owner.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{owner.vehicle_number || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{owner.phone || owner.contact || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{owner.address || '-'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">₹{owner.deposit_balance || 0}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                             {owner.is_gst_client ? (
-                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">GST</span>
-                             ) : (
-                               <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Regular</span>
-                             )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button
-                              onClick={() => handleEditOwner(owner)}
-                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 p-2 rounded transition-colors mr-2"
-                              title="Edit Details"
-                            >
-                              <FiEdit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleToggleGst(owner)}
-                              className={`p-2 rounded transition-colors mr-2 ${owner.is_gst_client ? 'text-purple-600 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50' : 'text-gray-400 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-500 dark:hover:text-purple-400 dark:hover:bg-gray-800'}`}
-                              title={owner.is_gst_client ? "Remove GST Status" : "Mark as GST Client"}
-                            >
-                              <FiShield className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleAddDeposit(owner)}
-                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded transition-colors mr-2"
-                              title="Add deposit"
-                            >
-                              Add Balance
-                            </button>
-                            <button
-                              onClick={() => handleEditDeposit(owner)}
-                              className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 p-2 rounded transition-colors mr-2"
-                              title="Edit deposit"
-                            >
-                              Edit Balance
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTruckOwner(owner.id, owner.name)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors"
-                              title="Delete owner"
-                            >
-                              <FiTrash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredOwners.map((owner) => {
+                        const isExpanded = expandedOwnerIds.has(owner.id);
+                        const ownerVehicles = owner.vehicles || [];
+                        
+                        return (
+                          <React.Fragment key={owner.id}>
+                            <tr className={isExpanded ? 'bg-gray-50 dark:bg-gray-800' : ''}>
+                              <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <button 
+                                  onClick={() => toggleOwnerExpand(owner.id)}
+                                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                                >
+                                  {isExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                                </button>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{owner.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                {ownerVehicles.length > 0 
+                                  ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                      {ownerVehicles.length} Vehicle(s)
+                                    </span>
+                                  : (owner.vehicle_number || '-')
+                                }
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{owner.phone || owner.contact || '-'}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{owner.address || '-'}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">₹{owner.deposit_balance || 0}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                 {owner.is_gst_client ? (
+                                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">GST</span>
+                                 ) : (
+                                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Regular</span>
+                                 )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  onClick={() => handleEditOwner(owner)}
+                                  className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 p-2 rounded transition-colors mr-2"
+                                  title="Edit Details"
+                                >
+                                  <FiEdit2 className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleGst(owner)}
+                                  className={`p-2 rounded transition-colors mr-2 ${owner.is_gst_client ? 'text-purple-600 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30 dark:hover:bg-purple-900/50' : 'text-gray-400 hover:text-purple-600 hover:bg-gray-50 dark:text-gray-500 dark:hover:text-purple-400 dark:hover:bg-gray-800'}`}
+                                  title={owner.is_gst_client ? "Remove GST Status" : "Mark as GST Client"}
+                                >
+                                  <FiShield className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleAddDeposit(owner)}
+                                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded transition-colors mr-2"
+                                  title="Add deposit"
+                                >
+                                  Add Balance
+                                </button>
+                                <button
+                                  onClick={() => handleEditDeposit(owner)}
+                                  className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 p-2 rounded transition-colors mr-2"
+                                  title="Edit deposit"
+                                >
+                                  Edit Balance
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTruckOwner(owner.id, owner.name)}
+                                  className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors"
+                                  title="Delete owner"
+                                >
+                                  <FiTrash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr key={`${owner.id}-expanded`}>
+                                <td colSpan="8" className="px-0 py-0 border-t border-gray-100 dark:border-gray-700">
+                                  <div className="bg-gray-50 dark:bg-gray-900 p-4 pl-12 shadow-inner">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Linked Vehicles ({ownerVehicles.length})</h5>
+                                        <button 
+                                          className="text-xs flex items-center bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded shadow-sm transition-colors"
+                                          onClick={() => {
+                                              setAddingVehicleToOwner(owner.id);
+                                              setNewVehicle({ vehicle_number: '', driver_name: '', tyre_type: '', truck_owner_id: owner.id });
+                                              setEditingVehicle(null);
+                                          }}
+                                        >
+                                            <FiPlus className="mr-1"/> Add Vehicle
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Add Vehicle Form */}
+                                    {(addingVehicleToOwner === owner.id || (editingVehicle && editingVehicle.truck_owner_id === owner.id)) && (
+                                        <div className="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                                            <h6 className="text-xs font-semibold uppercase text-gray-500 mb-2">
+                                              {editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
+                                            </h6>
+                                            <form onSubmit={handleSaveVehicle} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                                <div>
+                                                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Vehicle No</label>
+                                                  <input
+                                                    type="text"
+                                                    value={editingVehicle ? editingVehicle.vehicle_number : newVehicle.vehicle_number}
+                                                    onChange={(e) => {
+                                                      const val = e.target.value.toUpperCase();
+                                                      editingVehicle 
+                                                        ? setEditingVehicle({...editingVehicle, vehicle_number: val})
+                                                        : setNewVehicle({...newVehicle, vehicle_number: val});
+                                                    }}
+                                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500"
+                                                    placeholder="MH04AB1234"
+                                                    disabled={!!editingVehicle}
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Driver</label>
+                                                  <input
+                                                    type="text"
+                                                    value={editingVehicle ? editingVehicle.driver_name || '' : newVehicle.driver_name}
+                                                    onChange={(e) => {
+                                                      const val = e.target.value;
+                                                      editingVehicle 
+                                                        ? setEditingVehicle({...editingVehicle, driver_name: val})
+                                                        : setNewVehicle({...newVehicle, driver_name: val});
+                                                    }}
+                                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500"
+                                                    placeholder="Driver Name"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tyre</label>
+                                                  <select
+                                                    value={editingVehicle ? editingVehicle.tyre_type || '' : newVehicle.tyre_type}
+                                                    onChange={(e) => {
+                                                      const val = e.target.value;
+                                                      editingVehicle 
+                                                        ? setEditingVehicle({...editingVehicle, tyre_type: val})
+                                                        : setNewVehicle({...newVehicle, tyre_type: val});
+                                                    }}
+                                                    className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-[#262626] text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500"
+                                                  >
+                                                    <option value="">Select</option>
+                                                    <option value="6 Tyre">6 Tyre</option>
+                                                    <option value="10 Tyre">10 Tyre</option>
+                                                    <option value="12 Tyre">12 Tyre</option>
+                                                    <option value="14 Tyre">14 Tyre</option>
+                                                    <option value="16 Tyre">16 Tyre</option>
+                                                    <option value="18 Tyre">18 Tyre</option>
+                                                    <option value="22 Tyre">22 Tyre</option>
+                                                    <option value="Other">Other</option>
+                                                  </select>
+                                                </div>
+                                                <div className="flex space-x-2">
+                                                  <button
+                                                    type="submit"
+                                                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                                                  >
+                                                    Save
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setEditingVehicle(null);
+                                                      setAddingVehicleToOwner(null);
+                                                    }}
+                                                    className="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    )}
+
+                                    {ownerVehicles.length === 0 ? (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">No vehicles linked to this owner.</p>
+                                    ) : (
+                                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                          <thead className="bg-gray-100 dark:bg-gray-800">
+                                              <tr>
+                                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Vehicle No</th>
+                                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Driver</th>
+                                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Tyre Type</th>
+                                                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                              {ownerVehicles.map(v => (
+                                                  <tr key={v.id}>
+                                                      <td className="px-4 py-2 text-gray-900 dark:text-white font-medium">{v.vehicle_number}</td>
+                                                      <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{v.driver_name || '-'}</td>
+                                                      <td className="px-4 py-2 text-gray-500 dark:text-gray-400">{v.tyre_type || '-'}</td>
+                                                      <td className="px-4 py-2 text-right space-x-2">
+                                                          <button 
+                                                            onClick={() => setEditingVehicle({ ...v, truck_owner_id: owner.id })}
+                                                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 text-xs"
+                                                          >
+                                                            Edit
+                                                          </button>
+                                                          <span className="text-gray-300 dark:text-gray-600">|</span>
+                                                          <button 
+                                                            onClick={() => handleUnlinkVehicle(v)}
+                                                            className="text-orange-600 hover:text-orange-800 dark:text-orange-400 text-xs"
+                                                            title="Remove from owner"
+                                                          >
+                                                            Unlink
+                                                          </button>
+                                                          <span className="text-gray-300 dark:text-gray-600">|</span>
+                                                          <button 
+                                                            onClick={() => handleDeleteVehicle(v.id)}
+                                                            className="text-red-600 hover:text-red-800 dark:text-red-400 text-xs"
+                                                            title="Delete permanently"
+                                                          >
+                                                            Delete
+                                                          </button>
+                                                      </td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
+
+            {/* Unlinked Vehicles Section */}
+            {displayedUnlinkedVehicles.length > 0 && (
+               <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Unlinked Vehicles (Not Assigned)</h3>
+                  <div className="card overflow-hidden">
+                     <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {displayedUnlinkedVehicles.map((vehicle) => (
+                           <li key={vehicle.id} className="px-4 py-4 sm:px-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                              <div className="flex items-center">
+                                 <div className="text-sm font-medium text-indigo-600 dark:text-indigo-400 w-32">
+                                    {vehicle.vehicle_number}
+                                 </div>
+                                 <div className="ml-4 flex-shrink-0 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                       Unlinked
+                                     </span>
+                                     <span className="text-sm text-gray-500 dark:text-gray-400">
+                                       {vehicle.driver_name ? `Driver: ${vehicle.driver_name}` : 'No Driver'}
+                                     </span>
+                                     <span className="text-sm text-gray-500 dark:text-gray-400">
+                                       {vehicle.tyre_type || '-'}
+                                     </span>
+                                 </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                 <button
+                                   onClick={() => handleDeleteVehicle(vehicle.id)}
+                                   className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium flex items-center"
+                                 >
+                                   <FiTrash2 className="mr-1 h-4 w-4"/> Delete
+                                 </button>
+                              </div>
+                           </li>
+                        ))}
+                     </ul>
+                  </div>
+               </div>
+            )}
           </div>
         )}
 

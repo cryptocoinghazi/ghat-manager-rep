@@ -197,6 +197,7 @@ GstReceipts.belongsTo(TruckOwners, { foreignKey: 'owner_id', as: 'owner', constr
 CreditPayments.belongsTo(Receipts, { foreignKey: 'receipt_id' });
 DepositTransactions.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
 TruckVehicles.belongsTo(TruckOwners, { foreignKey: 'truck_owner_id', as: 'owner' });
+TruckOwners.hasMany(TruckVehicles, { foreignKey: 'truck_owner_id', as: 'vehicles' });
 ReceiptEditHistory.belongsTo(Receipts, { foreignKey: 'receipt_id' });
 TruckOwnerEditHistory.belongsTo(TruckOwners, { foreignKey: 'owner_id' });
 VehicleImages.belongsTo(Receipts, { foreignKey: 'receipt_id' });

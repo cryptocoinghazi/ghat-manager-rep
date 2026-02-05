@@ -288,7 +288,8 @@ router.post('/photo-recognition', upload.single('image'), async (req, res) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ error: 'File too large. Max 5MB.' });
     }
-    res.status(500).json({ error: 'Photo recognition failed', details: error.message });
+    console.error('Photo recognition error:', error);
+    res.status(500).json({ error: error.message || 'Photo recognition failed' });
   }
 });
 

@@ -102,7 +102,15 @@ router.get('/truck-owners', async (req, res) => {
     const { is_partner } = req.query;
     const where = { is_active: 1 };
     if (is_partner !== undefined) where.is_partner = (is_partner === 'true' || is_partner === '1') ? 1 : 0;
-    const owners = await TruckOwners.findAll({ where, order: [['name','ASC']] });
+    const owners = await TruckOwners.findAll({ 
+      where, 
+      include: [{
+        model: TruckVehicles,
+        as: 'vehicles',
+        attributes: ['id', 'vehicle_number', 'driver_name', 'tyre_type']
+      }],
+      order: [['name','ASC']] 
+    });
     return res.json(owners);
   } catch (error) {
     console.error('Error fetching truck owners:', error);
@@ -113,8 +121,17 @@ router.get('/truck-owners', async (req, res) => {
 // Truck Vehicles lookup: list/search
 router.get('/truck-vehicles', async (req, res) => {
   try {
-    const { q } = req.query;
-    const where = q ? { vehicle_number: { [Op.like]: `%${q.toUpperCase()}%` } } : {};
+    const { q, unlinked } = req.query;
+    const where = {};
+    
+    if (q) {
+      where.vehicle_number = { [Op.like]: `%${q.toUpperCase()}%` };
+    }
+    
+    if (unlinked === 'true') {
+      where.truck_owner_id = null;
+    }
+
     const rows = await TruckVehicles.findAll({ where, order: [['vehicle_number','ASC']] });
     res.json(rows);
   } catch (error) {
@@ -127,6 +144,8 @@ router.post('/truck-vehicles', async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { vehicle_number, truck_owner_id, driver_name, tyre_type } = req.body;
+    console.log('[DEBUG] Update Vehicle:', { vehicle_number, truck_owner_id, driver_name, tyre_type });
+    
     if (!vehicle_number) return res.status(400).json({ error: 'Vehicle number is required' });
     
     const existing = await TruckVehicles.findOne({ where: { vehicle_number: vehicle_number.toUpperCase() }, transaction: t });
@@ -145,9 +164,9 @@ router.post('/truck-vehicles', async (req, res) => {
       }
 
       await existing.update({ 
-        truck_owner_id: truck_owner_id || existing.truck_owner_id, 
-        driver_name: driver_name || existing.driver_name, 
-        tyre_type: tyre_type || existing.tyre_type 
+        truck_owner_id: truck_owner_id !== undefined ? truck_owner_id : existing.truck_owner_id, 
+        driver_name: driver_name !== undefined ? driver_name : existing.driver_name, 
+        tyre_type: tyre_type !== undefined ? tyre_type : existing.tyre_type 
       }, { transaction: t });
 
       // Log history
@@ -179,6 +198,65 @@ router.post('/truck-vehicles', async (req, res) => {
     await t.rollback();
     console.error('Error saving truck vehicle:', error);
     res.status(500).json({ error: 'Failed to save truck vehicle' });
+  }
+});
+
+// Unlink truck vehicle
+router.put('/truck-vehicles/:id/unlink', async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const vehicle = await TruckVehicles.findByPk(id, { transaction: t });
+    
+    if (!vehicle) {
+        await t.rollback();
+        return res.status(404).json({ error: 'Vehicle not found' });
+    }
+
+    const oldOwnerId = vehicle.truck_owner_id;
+    await vehicle.update({ truck_owner_id: null }, { transaction: t });
+
+    // Log history
+    await VehicleEditHistory.create({
+      vehicle_number: vehicle.vehicle_number,
+      field_name: 'truck_owner_id',
+      old_value: String(oldOwnerId || ''),
+      new_value: 'null',
+      changed_by: req.user ? req.user.username : 'system',
+      reason: 'Unlinked via settings'
+    }, { transaction: t });
+
+    await t.commit();
+    res.json({ message: 'Vehicle unlinked successfully', vehicle });
+  } catch (error) {
+    await t.rollback();
+    console.error('Error unlinking vehicle:', error);
+    res.status(500).json({ error: 'Failed to unlink vehicle' });
+  }
+});
+
+// Delete truck vehicle
+router.delete('/truck-vehicles/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vehicle = await TruckVehicles.findByPk(id);
+    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' });
+    
+    // Log deletion history
+    await VehicleEditHistory.create({
+      vehicle_number: vehicle.vehicle_number,
+      field_name: 'status',
+      old_value: 'active',
+      new_value: 'deleted',
+      changed_by: req.user ? req.user.username : 'system',
+      reason: 'Deleted via settings'
+    });
+
+    await vehicle.destroy();
+    res.json({ message: 'Vehicle deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting truck vehicle:', error);
+    res.status(500).json({ error: 'Failed to delete truck vehicle' });
   }
 });
 
@@ -398,6 +476,33 @@ router.put('/truck-owners/:id', requireAdmin, async (req, res) => {
     }
 
     await t.commit();
+
+    // SYNC: Ensure TruckVehicles is updated with the new relationship
+    if (vehicle_number) {
+      try {
+        // Use a new transaction or separate operation since previous one is committed
+        const v = await TruckVehicles.findOne({ where: { vehicle_number } });
+        if (v) {
+          if (v.truck_owner_id !== owner.id) {
+             // Update owner and clear driver_name as per user request ("linked without Driver name")
+             await v.update({ 
+               truck_owner_id: owner.id,
+               driver_name: null 
+             });
+          }
+        } else {
+          await TruckVehicles.create({
+            vehicle_number,
+            truck_owner_id: owner.id,
+            driver_name: null
+          });
+        }
+      } catch (err) {
+        console.error('Error syncing TruckVehicles:', err);
+        // Don't fail the request, just log it
+      }
+    }
+
     res.json({ message: 'Truck owner updated successfully', owner });
   } catch (error) {
     await t.rollback();
