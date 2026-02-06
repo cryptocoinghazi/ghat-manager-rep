@@ -27,8 +27,8 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     driver_name: '',
     tyre_type: '',
     brass_qty: '',
-    rate: flatSettings.default_rate || '1200',
-    loading_charge: flatSettings.loading_charge || '150',
+    rate: flatSettings.default_rate || '',
+    loading_charge: flatSettings.loading_charge || '',
     cash_paid: '',
     notes: ''
   });
@@ -129,11 +129,11 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       
       // Only auto-populate rate if not overridden by user AND this is a new selection
       if (!isRateOverridden && ownerInfo) {
-        let rateToApply = flatSettings.default_rate || '1200';
+        let rateToApply = flatSettings.default_rate || '';
         
         if (ownerInfo.is_partner) {
           // Apply partner rate
-          rateToApply = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '1200';
+          rateToApply = ownerInfo.partner_rate || flatSettings.default_partner_rate || flatSettings.default_rate || '';
         }
         
         setFormData(prev => ({
@@ -213,7 +213,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setOcrError('');
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type) && !/\.(jpg|jpeg|png)$/i.test(file.name)) {
       setOcrError('Only JPEG or PNG images are supported');
       toast.error('Only JPEG or PNG images are supported');
       return;
@@ -1033,7 +1033,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                     Vehicle Number *
                   </label>
                   <div className="flex items-center space-x-2">
-                    <input id="photoUploadInput" type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhotoUploadChange} />
+                    <input id="photoUploadInput" type="file" accept="image/jpeg,image/png,image/jpg,.jpg,.jpeg,.png" className="hidden" onChange={handlePhotoUploadChange} />
                     <button
                       type="button"
                       onClick={() => document.getElementById('photoUploadInput')?.click()}
