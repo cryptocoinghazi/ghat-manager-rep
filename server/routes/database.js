@@ -203,4 +203,37 @@ router.post('/export', async (req, res) => {
   }
 });
 
+import { restoreBackup } from '../restore_backup.js';
+
+router.post('/import-legacy', upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  try {
+    console.log('Starting legacy import from:', req.file.path);
+    const result = await restoreBackup(req.file.path);
+    
+    // Read the log file to return it to the client
+    let logContent = '';
+    if (result.logFile && fs.existsSync(result.logFile)) {
+      logContent = fs.readFileSync(result.logFile, 'utf8');
+    }
+
+    res.json({
+      message: 'Import process completed',
+      details: {
+        success: result.success,
+        skipped: result.skipped,
+        errors: result.errors,
+        logFile: result.logFile
+      },
+      log: logContent
+    });
+  } catch (error) {
+    console.error('Legacy Import Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

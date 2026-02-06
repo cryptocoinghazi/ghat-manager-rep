@@ -210,6 +210,13 @@ const Settings = ({ settings, fetchSettings }) => {
   const handleDbRestore = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
+    // Confirm before full restore
+    if (!window.confirm('WARNING: This will completely REPLACE the current database with the backup. All current data will be lost. Are you sure?')) {
+      e.target.value = '';
+      return;
+    }
+
     const form = new FormData();
     form.append('file', file);
     try {
@@ -217,6 +224,61 @@ const Settings = ({ settings, fetchSettings }) => {
       toast.success('Database restored successfully');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Restore failed');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleLegacyImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Confirm import
+    if (!window.confirm('This will import data from the backup file into the current database. Existing records will be skipped (not overwritten). Continue?')) {
+      e.target.value = '';
+      return;
+    }
+
+    const loadingToast = toast.loading('Importing data... This may take a moment.');
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const response = await axios.post('/api/database/import-legacy', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.dismiss(loadingToast);
+      
+      const { success, skipped, errors } = response.data.details;
+      const logContent = response.data.log;
+
+      if (logContent) {
+        // Create a blob and download link for the log
+        const blob = new Blob([logContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `import-log-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+
+      toast((t) => (
+        <div>
+          <p className="font-bold">Import Completed</p>
+          <ul className="text-sm mt-1">
+            <li>✅ Added: {success}</li>
+            <li>⏭️ Skipped (Exists): {skipped}</li>
+            <li>❌ Errors: {errors}</li>
+          </ul>
+          {logContent && <p className="text-xs mt-2 text-blue-500">Log file downloaded automatically.</p>}
+        </div>
+      ), { duration: 8000, icon: '📋' });
+      
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error('Import error:', error);
+      toast.error(error.response?.data?.error || 'Import failed');
     } finally {
       e.target.value = '';
     }
@@ -1262,9 +1324,21 @@ const Settings = ({ settings, fetchSettings }) => {
                 </button>
                 <label className="btn-secondary w-full sm:w-auto flex items-center justify-center space-x-2 cursor-pointer">
                   <FiUpload className="h-5 w-5" />
-                  <span>Restore Database</span>
+                  <span>Restore Database (Full)</span>
                   <input type="file" accept=".sql" className="hidden" onChange={handleDbRestore} />
                 </label>
+                
+                <div className="w-full sm:w-auto border-l border-gray-300 dark:border-gray-600 pl-4 ml-2">
+                  <label className="btn-secondary w-full flex items-center justify-center space-x-2 cursor-pointer bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800">
+                    <FiPlus className="h-5 w-5" />
+                    <span>Import Legacy Data (Merge)</span>
+                    <input type="file" accept=".sql" className="hidden" onChange={handleLegacyImport} />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 text-center">
+                    Adds missing data from old backups without deleting current data.
+                  </p>
+                </div>
+
                 <button onClick={handleDbBackupList} className="btn-secondary w-full sm:w-auto">Refresh List</button>
               </div>
               <div className="mt-4">

@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "migrate": "node -e \"import('./db.js').then(db => db.runMigrations())\"",
-    "migrate:mysql": "node scripts/migrateSqliteToMysql.js"
+    "migrate:mysql": "node scripts/migrateSqliteToMysql.js",
+    "restore": "node restore_backup.js"
   },
   "dependencies": {
     "archiver": "^6.0.2",
