@@ -114,7 +114,7 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gray-50 dark:bg-[#121212] transition-colors duration-300">
         <Toaster 
           position="top-right"

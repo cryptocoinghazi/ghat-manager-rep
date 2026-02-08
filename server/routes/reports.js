@@ -187,12 +187,36 @@ router.get('/credit-report', async (req, res) => {
 // Get monthly report
 router.get('/monthly-report', async (req, res) => {
   try {
-    const { year, month } = req.query;
+    const { year, month, startDate, endDate, dailyStartTime, dailyEndTime } = req.query;
     
-    // Default to current month if not provided
-    const currentDate = new Date();
-    const yearMonth = year && month ? `${year}-${month.padStart(2, '0')}` : 
-                     `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+    let whereClause = "";
+    let replacements = [];
+    let yearMonth = null;
+
+    if (startDate && endDate) {
+       // Custom Range
+       whereClause = "date_time BETWEEN ? AND ?";
+       replacements = [startDate, endDate];
+    } else {
+       // Default to current month if not provided
+       const currentDate = new Date();
+       yearMonth = year && month ? `${year}-${month.padStart(2, '0')}` : 
+                        `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+       whereClause = "DATE_FORMAT(date_time, '%Y-%m') = ?";
+       replacements = [yearMonth];
+    }
+
+    // Apply Daily Time Window Filter if provided
+    if (dailyStartTime && dailyEndTime) {
+      if (dailyStartTime <= dailyEndTime) {
+         whereClause += " AND TIME(date_time) BETWEEN ? AND ?";
+         replacements.push(dailyStartTime, dailyEndTime);
+      } else {
+         // Cross-midnight case (e.g., 22:00 to 06:00)
+         whereClause += " AND (TIME(date_time) >= ? OR TIME(date_time) <= ?)";
+         replacements.push(dailyStartTime, dailyEndTime);
+      }
+    }
     
     const [dailyData] = await sequelize.query(`
       SELECT 
@@ -203,11 +227,11 @@ router.get('/monthly-report', async (req, res) => {
         SUM(credit_amount) as credit_given,
         SUM(brass_qty) as total_brass
       FROM receipts 
-      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+      WHERE ${whereClause}
         AND is_active = 1
       GROUP BY DATE(date_time)
       ORDER BY day
-    `, { replacements: [yearMonth] });
+    `, { replacements });
     
     const [monthlySummaryRows] = await sequelize.query(`
       SELECT 
@@ -218,9 +242,9 @@ router.get('/monthly-report', async (req, res) => {
         SUM(brass_qty) as total_brass,
         AVG(total_amount) as avg_transaction
       FROM receipts 
-      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+      WHERE ${whereClause}
         AND is_active = 1
-    `, { replacements: [yearMonth] });
+    `, { replacements });
     const monthlySummary = monthlySummaryRows[0] || null;
     
     // Get payment distribution
@@ -230,10 +254,10 @@ router.get('/monthly-report', async (req, res) => {
         COUNT(*) as count,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+      WHERE ${whereClause}
         AND is_active = 1
       GROUP BY payment_status
-    `, { replacements: [yearMonth] });
+    `, { replacements });
     
     // Get top 5 customers for the month
     const [topCustomers] = await sequelize.query(`
@@ -244,12 +268,12 @@ router.get('/monthly-report', async (req, res) => {
         SUM(cash_paid) as cash_paid,
         SUM(credit_amount) as credit_amount
       FROM receipts 
-      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+      WHERE ${whereClause}
         AND is_active = 1
       GROUP BY truck_owner
       ORDER BY total_amount DESC
       LIMIT 5
-    `, { replacements: [yearMonth] });
+    `, { replacements });
     
     res.json({
       month: yearMonth,
@@ -751,10 +775,27 @@ router.get('/export/credit-csv', async (req, res) => {
 // Export monthly report to CSV
 router.get('/export/monthly-csv', async (req, res) => {
   try {
-    const { month } = req.query;
+    const { month, startDate, endDate } = req.query;
     
-    const currentDate = new Date();
-    const yearMonth = month || `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+    let whereClause = "";
+    let replacements = [];
+    let periodLabel = "";
+    let fileName = "";
+
+    if (startDate && endDate) {
+       whereClause = "date_time BETWEEN ? AND ?";
+       replacements = [startDate, endDate];
+       periodLabel = `Custom Range: ${startDate} to ${endDate}`;
+       fileName = `custom-summary-${startDate.replace(/[:\s]/g, '-')}-to-${endDate.replace(/[:\s]/g, '-')}`;
+    } else {
+       const currentDate = new Date();
+       const yearMonth = month || `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+       whereClause = "DATE_FORMAT(date_time, '%Y-%m') = ?";
+       replacements = [yearMonth];
+       periodLabel = yearMonth;
+       const monthName = new Date(yearMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+       fileName = `monthly-report-${monthName.replace(/\s+/g, '-')}`;
+    }
     
     const [monthlyData] = await sequelize.query(`
       SELECT 
@@ -765,11 +806,11 @@ router.get('/export/monthly-csv', async (req, res) => {
         SUM(credit_amount) as "Credit Given (₹)",
         SUM(brass_qty) as "Total Brass"
       FROM receipts 
-      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+      WHERE ${whereClause}
         AND is_active = 1
       GROUP BY DATE(date_time)
       ORDER BY DATE(date_time)
-    `, { replacements: [yearMonth] });
+    `, { replacements });
     
     // Get monthly summary
     const [monthlySummaryRows] = await sequelize.query(`
@@ -781,15 +822,15 @@ router.get('/export/monthly-csv', async (req, res) => {
         SUM(brass_qty) as "Total Brass",
         AVG(total_amount) as "Average Transaction (₹)"
       FROM receipts 
-      WHERE DATE_FORMAT(date_time, '%Y-%m') = ?
+      WHERE ${whereClause}
         AND is_active = 1
-    `, { replacements: [yearMonth] });
+    `, { replacements });
     const monthlySummary = monthlySummaryRows[0] || null;
     
     // Create CSV with summary and daily data
     const summaryHeaders = ['Metric', 'Value'];
     const summaryRows = [
-      ['Month', yearMonth],
+      ['Period', periodLabel],
       ['Total Transactions', monthlySummary?.['Total Transactions'] || 0],
       ['Total Revenue (₹)', monthlySummary?.['Total Revenue (₹)'] || 0],
       ['Total Cash (₹)', monthlySummary?.['Total Cash (₹)'] || 0],
@@ -808,7 +849,7 @@ router.get('/export/monthly-csv', async (req, res) => {
       item['Total Brass'] ?? 0
     ].join(','));
     const csvData = [
-      'MONTHLY SUMMARY',
+      'SUMMARY',
       summaryHeaders.join(','),
       ...summaryRows.map(row => row.join(',')),
       '',
@@ -817,9 +858,8 @@ router.get('/export/monthly-csv', async (req, res) => {
       ...dailyRows
     ].join('\n');
     
-    const monthName = new Date(yearMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=monthly-report-${monthName.replace(/\s+/g, '-')}.csv`);
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}.csv`);
     res.send(csvData);
   } catch (error) {
     console.error('Error exporting monthly CSV:', error);
