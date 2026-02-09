@@ -1245,4 +1245,235 @@ router.get('/daily-transactions', async (req, res) => {
   }
 });
 
+// Profit & Loss Report Endpoint
+router.get('/profit-loss', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    if (!startDate || !endDate) return res.status(400).json({ error: 'startDate and endDate are required' });
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const duration = end - start;
+    const prevEnd = new Date(start.getTime() - 86400000); // 1 day before start
+    const prevStart = new Date(prevEnd.getTime() - duration);
+
+    const format = (d) => d.toISOString().split('T')[0];
+    const pStart = format(prevStart);
+    const pEnd = format(prevEnd);
+
+    // Helper to get summary metrics
+    const getSummary = async (s, e) => {
+      const revenueQ = `
+        SELECT 
+          SUM(total_amount) as total_revenue, 
+          SUM(cash_paid) as cash_collected, 
+          SUM(credit_amount) as credit_given, 
+          COUNT(*) as total_receipts 
+        FROM receipts 
+        WHERE is_active = 1 AND DATE(date_time) BETWEEN ? AND ?
+      `;
+      const expenseQ = `
+        SELECT SUM(amount) as total_expenses 
+        FROM expenses 
+        WHERE DATE(date) BETWEEN ? AND ?
+      `;
+      const depositQ = `
+        SELECT SUM(amount) as total_deposits 
+        FROM deposit_transactions 
+        WHERE type = 'add' AND DATE(createdAt) BETWEEN ? AND ?
+      `;
+      const deletedQ = `
+        SELECT COUNT(*) as deleted_receipts 
+        FROM receipts 
+        WHERE is_active = 0 AND DATE(date_time) BETWEEN ? AND ?
+      `;
+      
+      const [[revR], [expR], [depR], [delR]] = await Promise.all([
+        sequelize.query(revenueQ, { replacements: [s, e] }),
+        sequelize.query(expenseQ, { replacements: [s, e] }),
+        sequelize.query(depositQ, { replacements: [s, e] }),
+        sequelize.query(deletedQ, { replacements: [s, e] })
+      ]);
+      
+      const revenue = parseFloat(revR[0]?.total_revenue || 0);
+      const expenses = parseFloat(expR[0]?.total_expenses || 0);
+      const cashCollected = parseFloat(revR[0]?.cash_collected || 0);
+      const deposits = parseFloat(depR[0]?.total_deposits || 0);
+
+      return {
+        revenue,
+        cashCollected,
+        creditGiven: parseFloat(revR[0]?.credit_given || 0),
+        receiptCount: parseInt(revR[0]?.total_receipts || 0),
+        expenses,
+        deposits,
+        deletedReceipts: parseInt(delR[0]?.deleted_receipts || 0),
+        netProfit: revenue - expenses,
+        cashPosition: cashCollected + deposits - expenses
+      };
+    };
+
+    const [current, previous] = await Promise.all([
+      getSummary(startDate, endDate),
+      getSummary(pStart, pEnd)
+    ]);
+
+    // Charts: Daily Trends (Revenue vs Expenses)
+    const dailyTrendQ = `
+      SELECT 
+        DATE(d) as date, 
+        SUM(revenue) as revenue, 
+        SUM(expenses) as expenses 
+      FROM (
+        SELECT DATE(date_time) as d, total_amount as revenue, 0 as expenses 
+        FROM receipts 
+        WHERE is_active = 1 AND DATE(date_time) BETWEEN ? AND ?
+        UNION ALL
+        SELECT DATE(date) as d, 0 as revenue, amount as expenses 
+        FROM expenses 
+        WHERE DATE(date) BETWEEN ? AND ?
+      ) as combined 
+      GROUP BY DATE(d) 
+      ORDER BY DATE(d)
+    `;
+    const [dailyTrends] = await sequelize.query(dailyTrendQ, { replacements: [startDate, endDate, startDate, endDate] });
+
+    // Charts: Expense Breakdown
+    const expBreakdownQ = `
+      SELECT category, SUM(amount) as value 
+      FROM expenses 
+      WHERE DATE(date) BETWEEN ? AND ? 
+      GROUP BY category 
+      ORDER BY value DESC
+    `;
+    const [expenseBreakdown] = await sequelize.query(expBreakdownQ, { replacements: [startDate, endDate] });
+
+    // Charts: Cash vs Credit (Monthly if range > 31 days, else just summary)
+    // For simplicity, let's just use the summary data for the period for the pie/bar chart
+
+    // Top Clients (Revenue & Credit) - Expanded to 10
+    const topClientsQ = `
+      SELECT 
+        truck_owner as name, 
+        SUM(total_amount) as revenue, 
+        SUM(credit_amount) as credit, 
+        COUNT(*) as count 
+      FROM receipts 
+      WHERE is_active = 1 AND DATE(date_time) BETWEEN ? AND ? 
+      GROUP BY truck_owner 
+      ORDER BY revenue DESC 
+      LIMIT 10
+    `;
+    const [topClients] = await sequelize.query(topClientsQ, { replacements: [startDate, endDate] });
+
+    // Transaction Ledger (Recent 100)
+    const ledgerQ = `
+      SELECT * FROM (
+        SELECT 
+          date_time as date, 
+          'Income' as type, 
+          truck_owner as party, 
+          total_amount as amount, 
+          payment_status as status, 
+          'Sale' as category
+        FROM receipts 
+        WHERE is_active = 1 AND DATE(date_time) BETWEEN ? AND ?
+        UNION ALL
+        SELECT 
+          date, 
+          'Expense' as type, 
+          COALESCE(vendor_name, category) as party, 
+          amount, 
+          'paid' as status, 
+          category
+        FROM expenses 
+        WHERE DATE(date) BETWEEN ? AND ?
+      ) as combined
+      ORDER BY date DESC 
+      LIMIT 100
+    `;
+    const [ledger] = await sequelize.query(ledgerQ, { replacements: [startDate, endDate, startDate, endDate] });
+
+    // Receipts Stats (Daily Generated vs Deleted)
+    const receiptStatsQ = `
+      SELECT 
+        DATE(date_time) as date,
+        SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as generated,
+        SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as deleted
+      FROM receipts
+      WHERE DATE(date_time) BETWEEN ? AND ?
+      GROUP BY DATE(date_time)
+      ORDER BY DATE(date_time)
+    `;
+    const [receiptStats] = await sequelize.query(receiptStatsQ, { replacements: [startDate, endDate] });
+
+    // Receipt Value Distribution
+    const receiptValueDistQ = `
+      SELECT 
+        CASE 
+          WHEN total_amount < 500 THEN '0-500'
+          WHEN total_amount BETWEEN 500 AND 1000 THEN '500-1000'
+          WHEN total_amount BETWEEN 1000 AND 5000 THEN '1000-5000'
+          ELSE '5000+'
+        END as range_label,
+        COUNT(*) as count
+      FROM receipts
+      WHERE is_active = 1 AND DATE(date_time) BETWEEN ? AND ?
+      GROUP BY range_label
+      ORDER BY MIN(total_amount)
+    `;
+    const [receiptValueDist] = await sequelize.query(receiptValueDistQ, { replacements: [startDate, endDate] });
+
+    // New vs Returning Clients
+    const newVsReturningQ = `
+      SELECT
+        SUM(CASE WHEN first_seen >= ? THEN 1 ELSE 0 END) as new_clients,
+        SUM(CASE WHEN first_seen < ? THEN 1 ELSE 0 END) as returning_clients
+      FROM (
+        SELECT truck_owner, MIN(date_time) as first_seen
+        FROM receipts
+        WHERE is_active = 1
+        GROUP BY truck_owner
+        HAVING MAX(date_time) BETWEEN ? AND ?
+      ) as client_activity
+    `;
+    const [newVsReturning] = await sequelize.query(newVsReturningQ, { replacements: [startDate, startDate, startDate, endDate] });
+
+    // Aging Receivables (Snapshot of current outstanding credit)
+    const agingReceivablesQ = `
+      SELECT 
+        CASE 
+          WHEN DATEDIFF(NOW(), date_time) <= 30 THEN '0-30 Days'
+          WHEN DATEDIFF(NOW(), date_time) <= 60 THEN '31-60 Days'
+          WHEN DATEDIFF(NOW(), date_time) <= 90 THEN '61-90 Days'
+          ELSE '90+ Days'
+        END as age_group,
+        SUM(credit_amount) as amount
+      FROM receipts
+      WHERE is_active = 1 AND payment_status = 'credit'
+      GROUP BY age_group
+      ORDER BY MIN(DATEDIFF(NOW(), date_time))
+    `;
+    const [agingReceivables] = await sequelize.query(agingReceivablesQ);
+
+    res.json({
+      period: { startDate, endDate, prevStartDate: pStart, prevEndDate: pEnd },
+      summary: current,
+      previousSummary: previous,
+      trends: dailyTrends,
+      expenses: expenseBreakdown,
+      topClients,
+      ledger,
+      receiptStats,
+      receiptValueDist,
+      newVsReturning: newVsReturning[0],
+      agingReceivables
+    });
+
+  } catch (error) {
+    console.error('Error generating Profit & Loss report:', error);
+    res.status(500).json({ error: 'Failed to generate Profit & Loss report' });
+  }
+});
+
 export default router;
