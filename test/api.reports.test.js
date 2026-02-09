@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import axios from 'axios';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const axios = require('axios');
 import { apiBase, getAdminToken } from './utils.js';
 
 describe('API - Reports', () => {
@@ -33,5 +35,12 @@ describe('API - Reports', () => {
     const res = await axios.get(`${apiBase}/reports/expense-summary?startDate=2025-12-01&endDate=2025-12-17`, { headers: { Authorization: `Bearer ${token}` } });
     expect(res.status).to.equal(200);
     expect(res.data).to.have.property('summary');
+  });
+
+  it('financial summary', async () => {
+    const res = await axios.get(`${apiBase}/reports/financial-summary?startDate=2025-12-01&endDate=2025-12-17`, { headers: { Authorization: `Bearer ${token}` } });
+    expect(res.status).to.equal(200);
+    expect(res.data).to.have.property('recentTransactions');
+    expect(res.data.recentTransactions).to.be.an('array');
   });
 });

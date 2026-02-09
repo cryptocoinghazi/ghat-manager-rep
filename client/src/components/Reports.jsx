@@ -517,8 +517,11 @@ const Reports = ({ initialTab }) => {
           break;
           
         case 'financial':
-          response = await axios.get('/api/reports/daily-summary', {
-            params: { date: financialFilters.endDate || dateRange.endDate }
+          response = await axios.get('/api/reports/financial-summary', {
+            params: {
+              startDate: dateRange.startDate,
+              endDate: dateRange.endDate
+            }
           });
           
           // Convert times in recent transactions to IST
@@ -652,7 +655,7 @@ const Reports = ({ initialTab }) => {
           break;
         case 'financial':
           endpoint = '/api/reports/export/financial-csv';
-          params = { startDate: financialFilters.startDate || dateRange.startDate, endDate: financialFilters.endDate || dateRange.endDate };
+          params = { startDate: dateRange.startDate, endDate: dateRange.endDate };
           break;
         case 'expense':
           endpoint = '/api/reports/export/expense-csv';
@@ -781,6 +784,14 @@ const Reports = ({ initialTab }) => {
             return;
           }
           generateDailyTransactionsPDF(reportsData.dailyTransactions, appliedDailyTxnFilters);
+          break;
+
+        case 'partnerRoyalty':
+          if (!reportsData.partnerRoyalty) {
+            toast.error('No partner royalty data available');
+            return;
+          }
+          generatePartnerRoyaltyPDF(reportsData.partnerRoyalty);
           break;
           
         default:
@@ -1340,7 +1351,21 @@ const Reports = ({ initialTab }) => {
 
     return (
       <div className="space-y-6">
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end mt-4 space-x-2">
+          <button
+            onClick={() => handleExportPDF('financial')}
+            className="flex items-center space-x-2 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <FiFileText className="h-4 w-4" />
+            <span>Export PDF</span>
+          </button>
+          <button
+            onClick={() => handleExportCSV('financial')}
+            className="flex items-center space-x-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FiDownload className="h-4 w-4" />
+            <span>Export CSV</span>
+          </button>
           <button
             onClick={fetchReportData}
             className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
@@ -1934,11 +1959,20 @@ const Reports = ({ initialTab }) => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Partner Royalty Report</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
-            </p>
+          <div className="flex items-center space-x-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Partner Royalty Report</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                From {formatDate(period?.startDate)} to {formatDate(period?.endDate)}
+              </p>
+            </div>
+            <button
+              onClick={() => handleExportPDF('partnerRoyalty')}
+              className="flex items-center space-x-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm"
+            >
+              <FiFileText className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
           </div>
           <div className="w-full md:w-80 relative">
             <input
