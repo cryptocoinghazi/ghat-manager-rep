@@ -383,6 +383,25 @@ router.get('/financial-summary', async (req, res) => {
         AND is_active = 1
       GROUP BY payment_status
     `, { replacements: [start, end, start, end] });
+
+    // Get recent transactions (limit 20)
+    const [recentTransactions] = await sequelize.query(`
+      SELECT 
+        receipt_no,
+        truck_owner,
+        vehicle_number,
+        date_time,
+        brass_qty,
+        total_amount,
+        cash_paid,
+        credit_amount,
+        payment_status
+      FROM receipts 
+      WHERE DATE(date_time) BETWEEN ? AND ?
+        AND is_active = 1
+      ORDER BY date_time DESC
+      LIMIT 20
+    `, { replacements: [start, end] });
     
     res.json({
       period: { startDate: start, endDate: end },
@@ -397,7 +416,8 @@ router.get('/financial-summary', async (req, res) => {
       dailyTrends,
       customerSummary,
       vehicleSummary,
-      paymentTrends
+      paymentTrends,
+      recentTransactions
     });
   } catch (error) {
     console.error('Error generating financial summary:', error);
@@ -514,11 +534,11 @@ router.get('/daily-summary', async (req, res) => {
         COUNT(*) as transactions,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE DATE(date_time) = ?
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY DATE_FORMAT(date_time, '%H')
       ORDER BY hour
-    `, { replacements: [targetDate] });
+    `, { replacements: [start, end] });
     
     // Get top customers of the day
     const [topCustomers] = await sequelize.query(`
@@ -529,12 +549,12 @@ router.get('/daily-summary', async (req, res) => {
         SUM(cash_paid) as cash_paid,
         SUM(credit_amount) as credit_amount
       FROM receipts 
-      WHERE DATE(date_time) = ?
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY truck_owner
       ORDER BY total_amount DESC
       LIMIT 10
-    `, { replacements: [targetDate] });
+    `, { replacements: [start, end] });
     
     // Get payment method distribution
     const [paymentDistribution] = await sequelize.query(`
@@ -543,10 +563,10 @@ router.get('/daily-summary', async (req, res) => {
         COUNT(*) as count,
         SUM(total_amount) as amount
       FROM receipts 
-      WHERE DATE(date_time) = ?
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       GROUP BY payment_status
-    `, { replacements: [targetDate] });
+    `, { replacements: [start, end] });
     
     // Get recent transactions for the day
     const [recentTransactions] = await sequelize.query(`
@@ -561,14 +581,14 @@ router.get('/daily-summary', async (req, res) => {
         credit_amount,
         payment_status
       FROM receipts 
-      WHERE DATE(date_time) = ?
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
       ORDER BY date_time DESC
       LIMIT 20
-    `, { replacements: [targetDate] });
+    `, { replacements: [start, end] });
     
     res.json({
-      date: targetDate,
+      date: start === end ? start : `${start} to ${end}`,
       summary: summary || {
         total_transactions: 0,
         total_amount: 0,

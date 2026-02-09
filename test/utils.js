@@ -1,4 +1,6 @@
-import axios from 'axios';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const axios = require('axios');
 
 export const apiBase = process.env.API_BASE || 'http://localhost:3000/api';
 
