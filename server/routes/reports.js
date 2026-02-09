@@ -1,5 +1,5 @@
 import express from 'express';
-import { sequelize, Settings } from '../models/index.js';
+import { sequelize, Settings, DepositTransactions } from '../models/index.js';
 
 const router = express.Router();
 const csvEscape = (v) => {
@@ -1288,12 +1288,26 @@ router.get('/profit-loss', async (req, res) => {
         WHERE is_active = 0 AND DATE(date_time) BETWEEN ? AND ?
       `;
       
-      const [[revR], [expR], [depR], [delR]] = await Promise.all([
-        sequelize.query(revenueQ, { replacements: [s, e] }),
-        sequelize.query(expenseQ, { replacements: [s, e] }),
-        sequelize.query(depositQ, { replacements: [s, e] }),
-        sequelize.query(deletedQ, { replacements: [s, e] })
-      ]);
+      let revR, expR, depR, delR;
+      
+      try {
+        [revR] = await sequelize.query(revenueQ, { replacements: [s, e] });
+      } catch (e) { console.error('Revenue query failed:', e.message); revR = [{}]; }
+
+      try {
+        [expR] = await sequelize.query(expenseQ, { replacements: [s, e] });
+      } catch (e) { console.error('Expense query failed:', e.message); expR = [{}]; }
+
+      try {
+        [depR] = await sequelize.query(depositQ, { replacements: [s, e] });
+      } catch (e) { 
+        console.error('Deposit query failed:', e.message); 
+        depR = [{ total_deposits: 0 }];
+      }
+
+      try {
+        [delR] = await sequelize.query(deletedQ, { replacements: [s, e] });
+      } catch (e) { console.error('Deleted query failed:', e.message); delR = [{}]; }
       
       const revenue = parseFloat(revR[0]?.total_revenue || 0);
       const expenses = parseFloat(expR[0]?.total_expenses || 0);
@@ -1336,7 +1350,10 @@ router.get('/profit-loss', async (req, res) => {
       GROUP BY DATE(d) 
       ORDER BY DATE(d)
     `;
-    const [dailyTrends] = await sequelize.query(dailyTrendQ, { replacements: [startDate, endDate, startDate, endDate] });
+    let dailyTrends = [];
+    try {
+      [dailyTrends] = await sequelize.query(dailyTrendQ, { replacements: [startDate, endDate, startDate, endDate] });
+    } catch (e) { console.error('Daily Trends query failed:', e.message); }
 
     // Charts: Expense Breakdown
     const expBreakdownQ = `
@@ -1346,7 +1363,10 @@ router.get('/profit-loss', async (req, res) => {
       GROUP BY category 
       ORDER BY value DESC
     `;
-    const [expenseBreakdown] = await sequelize.query(expBreakdownQ, { replacements: [startDate, endDate] });
+    let expenseBreakdown = [];
+    try {
+      [expenseBreakdown] = await sequelize.query(expBreakdownQ, { replacements: [startDate, endDate] });
+    } catch (e) { console.error('Expense Breakdown query failed:', e.message); }
 
     // Charts: Cash vs Credit (Monthly if range > 31 days, else just summary)
     // For simplicity, let's just use the summary data for the period for the pie/bar chart
@@ -1364,7 +1384,10 @@ router.get('/profit-loss', async (req, res) => {
       ORDER BY revenue DESC 
       LIMIT 10
     `;
-    const [topClients] = await sequelize.query(topClientsQ, { replacements: [startDate, endDate] });
+    let topClients = [];
+    try {
+      [topClients] = await sequelize.query(topClientsQ, { replacements: [startDate, endDate] });
+    } catch (e) { console.error('Top Clients query failed:', e.message); }
 
     // Transaction Ledger (Recent 100)
     const ledgerQ = `
@@ -1392,7 +1415,10 @@ router.get('/profit-loss', async (req, res) => {
       ORDER BY date DESC 
       LIMIT 100
     `;
-    const [ledger] = await sequelize.query(ledgerQ, { replacements: [startDate, endDate, startDate, endDate] });
+    let ledger = [];
+    try {
+      [ledger] = await sequelize.query(ledgerQ, { replacements: [startDate, endDate, startDate, endDate] });
+    } catch (e) { console.error('Ledger query failed:', e.message); }
 
     // Receipts Stats (Daily Generated vs Deleted)
     const receiptStatsQ = `
@@ -1405,7 +1431,10 @@ router.get('/profit-loss', async (req, res) => {
       GROUP BY DATE(date_time)
       ORDER BY DATE(date_time)
     `;
-    const [receiptStats] = await sequelize.query(receiptStatsQ, { replacements: [startDate, endDate] });
+    let receiptStats = [];
+    try {
+      [receiptStats] = await sequelize.query(receiptStatsQ, { replacements: [startDate, endDate] });
+    } catch (e) { console.error('Receipt Stats query failed:', e.message); }
 
     // Receipt Value Distribution
     const receiptValueDistQ = `
@@ -1422,7 +1451,10 @@ router.get('/profit-loss', async (req, res) => {
       GROUP BY range_label
       ORDER BY MIN(total_amount)
     `;
-    const [receiptValueDist] = await sequelize.query(receiptValueDistQ, { replacements: [startDate, endDate] });
+    let receiptValueDist = [];
+    try {
+      [receiptValueDist] = await sequelize.query(receiptValueDistQ, { replacements: [startDate, endDate] });
+    } catch (e) { console.error('Receipt Value Dist query failed:', e.message); }
 
     // New vs Returning Clients
     const newVsReturningQ = `
@@ -1437,7 +1469,10 @@ router.get('/profit-loss', async (req, res) => {
         HAVING MAX(date_time) BETWEEN ? AND ?
       ) as client_activity
     `;
-    const [newVsReturning] = await sequelize.query(newVsReturningQ, { replacements: [startDate, startDate, startDate, endDate] });
+    let newVsReturning = [{ new_clients: 0, returning_clients: 0 }];
+    try {
+      [newVsReturning] = await sequelize.query(newVsReturningQ, { replacements: [startDate, startDate, startDate, endDate] });
+    } catch (e) { console.error('New vs Returning query failed:', e.message); }
 
     // Aging Receivables (Snapshot of current outstanding credit)
     const agingReceivablesQ = `
@@ -1454,7 +1489,10 @@ router.get('/profit-loss', async (req, res) => {
       GROUP BY age_group
       ORDER BY MIN(DATEDIFF(NOW(), date_time))
     `;
-    const [agingReceivables] = await sequelize.query(agingReceivablesQ);
+    let agingReceivables = [];
+    try {
+      [agingReceivables] = await sequelize.query(agingReceivablesQ);
+    } catch (e) { console.error('Aging Receivables query failed:', e.message); }
 
     res.json({
       period: { startDate, endDate, prevStartDate: pStart, prevEndDate: pEnd },
@@ -1466,7 +1504,7 @@ router.get('/profit-loss', async (req, res) => {
       ledger,
       receiptStats,
       receiptValueDist,
-      newVsReturning: newVsReturning[0],
+      newVsReturning: newVsReturning[0] || {},
       agingReceivables
     });
 
