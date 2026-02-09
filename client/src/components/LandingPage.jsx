@@ -356,7 +356,7 @@ const LandingPage = () => {
               {
                 icon: <XCircle className="w-10 h-10 text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.7)]" />,
                 title: "Calculation Errors",
-                desc: "Manual Brass/Bharai calculations lead to losses on every trip.",
+                desc: "Manual Quantity calculations lead to losses on every trip.",
                 border: "hover:border-orange-500/40",
                 glow: "hover:shadow-[0_0_50px_rgba(249,115,22,0.15)]",
                 bg: "bg-gradient-to-br from-orange-500/[0.03] to-transparent"

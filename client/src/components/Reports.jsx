@@ -772,7 +772,7 @@ const Reports = ({ initialTab, settings }) => {
             toast.error('No daily transactions data available');
             return;
           }
-          generateDailyTransactionsPDF(reportsData.dailyTransactions, appliedDailyTxnFilters);
+          generateDailyTransactionsPDF(reportsData.dailyTransactions, unit);
           break;
 
         case 'partnerRoyalty':
@@ -1094,6 +1094,7 @@ const Reports = ({ initialTab, settings }) => {
         formatCurrency={formatCurrency} 
         formatDate={formatDate}
         formatToIST={formatToIST}
+        settings={settings}
       />
     );
   };

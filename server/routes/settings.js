@@ -574,13 +574,15 @@ router.get('/partner-stats', requireAdmin, async (req, res) => {
         count: partnerCount || 0,
         transactions: p.transactions || 0,
         totalAmount: p.total_amount || 0,
-        totalBrass: p.total_brass || 0
+        totalBrass: p.total_brass || 0,
+        totalQuantity: p.total_brass || 0
       },
       regular: {
         count: regularCount || 0,
         transactions: r.transactions || 0,
         totalAmount: r.total_amount || 0,
-        totalBrass: r.total_brass || 0
+        totalBrass: r.total_brass || 0,
+        totalQuantity: r.total_brass || 0
       }
     });
   } catch (error) {

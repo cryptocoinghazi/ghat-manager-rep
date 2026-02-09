@@ -109,7 +109,7 @@ const Login = ({ onLogin }) => {
         <div className="space-y-6">
            {[
              'Real-time Revenue Tracking',
-             'Automated Brass Calculations', 
+             'Automated Quantity Calculations', 
              'Secure Cloud Backups',
              'Role-Based Access Control'
            ].map((feature, idx) => (

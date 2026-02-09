@@ -6,7 +6,8 @@ import { generatePDF } from '../utils/pdfGenerator';
 import { printThermalReceipt } from '../utils/thermalPrinter';
 import { generateReceiptMessage, openWhatsAppChat } from '../utils/whatsappUtils';
 
-const GstReports = () => {
+const GstReports = ({ settings }) => {
+  const flatSettings = settings?.flat || settings || {};
   const [dateRange, setDateRange] = useState({
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
@@ -19,10 +20,8 @@ const GstReports = () => {
   const [clientFilter, setClientFilter] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [truckOwners, setTruckOwners] = useState([]);
-  const [settings, setSettings] = useState({});
 
   useEffect(() => {
-    fetchSettings();
     fetchTruckOwners();
   }, []);
 
@@ -33,15 +32,6 @@ const GstReports = () => {
   useEffect(() => {
     filterTransactions();
   }, [transactions, clientFilter]);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await axios.get('/api/settings');
-      setSettings(response.data);
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    }
-  };
 
   const fetchTruckOwners = async () => {
     try {
@@ -97,7 +87,6 @@ const GstReports = () => {
 
   const handlePrint = (receipt) => {
     toast.success('Printing Thermal Receipt...');
-    const flatSettings = settings.flat || settings || {};
     printThermalReceipt(receipt, flatSettings);
   };
 
@@ -108,14 +97,12 @@ const GstReports = () => {
       o.truck_owner === receipt.truck_owner
     );
     
-    const flatSettings = settings.flat || settings || {};
     const message = generateReceiptMessage(receipt, 'GST Receipt', flatSettings.unit || 'Brass');
     openWhatsAppChat(owner?.phone, message);
   };
 
   const handlePreview = (receipt) => {
     toast.loading('Generating Tax Invoice PDF...');
-    const flatSettings = settings.flat || settings || {};
     generatePDF(receipt, flatSettings);
   };
 

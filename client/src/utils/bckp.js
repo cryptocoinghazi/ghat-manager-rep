@@ -74,7 +74,7 @@ export function generatePDF(receiptData) {
     ['Quantity:', `${receiptData.brass_qty} ${receiptData.unit || 'Brass'}`],
     ['Rate:', `${receiptData.currency || '₹'}${receiptData.rate} per ${receiptData.unit || 'Brass'}`],
     ['Material Cost:', `${receiptData.currency || '₹'}${(receiptData.brass_qty * receiptData.rate).toFixed(2)}`],
-    ['Loading Charge:', `${receiptData.currency || '₹'}${receiptData.loading_charge}`],
+    ['Loading Charge:', `${receiptData.currency || '₹'}${Number(receiptData.loading_charge).toFixed(2)}`],
   ];
 
   details.forEach(([label, value]) => {

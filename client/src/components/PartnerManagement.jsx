@@ -315,7 +315,7 @@ const PartnerManagement = () => {
                         </td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                           {owner.is_partner && owner.partner_rate 
-                            ? formatCurrency(owner.partner_rate) + '/Brass'
+                            ? formatCurrency(owner.partner_rate) + '/' + (flatSettings.unit || 'Brass')
                             : '-'
                           }
                         </td>

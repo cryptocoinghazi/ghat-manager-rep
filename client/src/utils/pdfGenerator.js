@@ -61,7 +61,7 @@ const addFooter = (doc) => {
   }
 };
 
-export function generatePDF(receiptData) {
+export function generatePDF(receiptData, settings = {}) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -69,7 +69,7 @@ export function generatePDF(receiptData) {
   });
 
   // Dynamic unit
-  const unit = receiptData.unit || 'Brass';
+  const unit = receiptData.unit || settings.unit || 'Brass';
 
   // Add watermark
   doc.setTextColor(200, 200, 200);
@@ -219,11 +219,10 @@ export function generatePDF(receiptData) {
   window.open(doc.output('bloburl'), '_blank');
 }
 
-export function generateDailyTransactionsPDF(data) {
+export function generateDailyTransactionsPDF(data, unit = 'Qty') {
   try {
     const doc = new jsPDF('l', 'mm', 'a4');
     const transactions = data.transactions || [];
-    const unit = transactions.length > 0 && transactions[0].unit ? transactions[0].unit : 'Qty';
     
     // Title
     doc.setFontSize(18);
@@ -354,7 +353,7 @@ export function generateDisplayedExpensesPDF(expenses, filters) {
   }
 }
 
-export function generateOwnerLedgerPDF(ledgerData, ownerName) {
+export function generateOwnerLedgerPDF(ledgerData, ownerName, unit = 'Brass') {
   try {
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -362,39 +361,20 @@ export function generateOwnerLedgerPDF(ledgerData, ownerName) {
       format: 'a4'
     });
 
-    // Title
-    doc.setFontSize(18);
-    doc.text(`Owner Ledger: ${ownerName}`, 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Generated on: ${formatDateIST(new Date())}`, 14, 32);
+    const margin = 14;
+    let yPos = addHeader(doc, `Owner Ledger: ${ownerName}`, `Generated on: ${formatDateIST(new Date())}`);
 
     // Summary
     if (ledgerData.summary) {
-        doc.setFillColor(66, 139, 202);
-        doc.rect(14, 40, 60, 20, 'F');
-        doc.setTextColor(255);
-        doc.text('Total Billed', 44, 48, { align: 'center' });
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text(formatCurrencyPDF(ledgerData.summary.totalAmount || 0), 44, 56, { align: 'center' });
-        doc.setFont(undefined, 'normal');
-        
-        doc.setFillColor(128, 0, 128); // Purple
-        doc.rect(80, 40, 60, 20, 'F');
-        doc.text('Deposit Balance', 110, 48, { align: 'center' });
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text(formatCurrencyPDF(ledgerData.owner?.deposit_balance || 0), 110, 56, { align: 'center' });
-        doc.setFont(undefined, 'normal');
-        
-        doc.setTextColor(0);
-        doc.setFontSize(11);
+        addSummaryBox(doc, 'Total Billed', formatCurrencyPDF(ledgerData.summary.totalAmount || 0), margin, yPos, 60, [66, 139, 202]);
+        addSummaryBox(doc, 'Deposit Balance', formatCurrencyPDF(ledgerData.owner?.deposit_balance || 0), margin + 66, yPos, 60, [128, 0, 128]);
     }
 
     const tableData = (ledgerData.receipts || []).map(r => [
       formatDateIST(r.date_time),
       r.receipt_no,
       r.vehicle_number,
+      r.brass_qty,
       formatCurrencyPDF(r.total_amount),
       formatCurrencyPDF(r.cash_paid),
       formatCurrencyPDF(r.credit_amount),
@@ -403,15 +383,16 @@ export function generateOwnerLedgerPDF(ledgerData, ownerName) {
 
     doc.autoTable({
       startY: 70,
-      head: [['Date', 'Receipt No', 'Vehicle', 'Total Amount', 'Paid', 'Pending', 'Status']],
+      head: [['Date', 'Receipt No', 'Vehicle', unit, 'Total Amount', 'Paid', 'Pending', 'Status']],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [66, 139, 202] },
       styles: { fontSize: 9 },
       columnStyles: {
         3: { halign: 'right' },
-        4: { halign: 'right', textColor: [0, 128, 0] },
-        5: { halign: 'right', textColor: [255, 0, 0] }
+        4: { halign: 'right' },
+        5: { halign: 'right', textColor: [0, 128, 0] },
+        6: { halign: 'right', textColor: [255, 0, 0] }
       }
     });
 

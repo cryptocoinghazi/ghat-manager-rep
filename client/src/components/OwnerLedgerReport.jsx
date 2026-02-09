@@ -4,7 +4,8 @@ import { FiSearch, FiUser, FiDollarSign, FiCreditCard, FiCheckCircle, FiAlertCir
 import toast from 'react-hot-toast';
 import { generateOwnerLedgerPDF } from '../utils/pdfGenerator';
 
-const OwnerLedgerReport = ({ owners, formatCurrency, formatDate, formatToIST }) => {
+const OwnerLedgerReport = ({ owners, formatCurrency, formatDate, formatToIST, settings }) => {
+  const unit = settings?.unit || 'Brass';
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -133,7 +134,7 @@ const OwnerLedgerReport = ({ owners, formatCurrency, formatDate, formatToIST }) 
         toast.error('No ledger data to export');
         return;
       }
-      generateOwnerLedgerPDF(ledgerData, selectedOwner.name);
+      generateOwnerLedgerPDF(ledgerData, selectedOwner.name, unit);
       toast.success('PDF exported successfully!');
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -282,6 +283,7 @@ const OwnerLedgerReport = ({ owners, formatCurrency, formatDate, formatToIST }) 
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receipt No</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{unit}</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Paid</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending</th>
@@ -300,6 +302,9 @@ const OwnerLedgerReport = ({ owners, formatCurrency, formatDate, formatToIST }) 
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                         {receipt.vehicle_number}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        {receipt.brass_qty}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                         {formatCurrency(receipt.total_amount)}

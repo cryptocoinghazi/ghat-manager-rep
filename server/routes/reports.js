@@ -26,6 +26,7 @@ router.get('/partner-royalty', async (req, res) => {
         t.partner_rate,
         COUNT(*) as total_trips,
         SUM(r.brass_qty) as total_brass,
+        SUM(r.brass_qty) as total_quantity,
         SUM(r.total_amount) as total_amount,
         SUM(r.cash_paid) as total_cash,
         SUM(r.credit_amount) as total_credit,
@@ -44,6 +45,7 @@ router.get('/partner-royalty', async (req, res) => {
       SELECT 
         COUNT(*) as total_trips,
         SUM(brass_qty) as total_brass,
+        SUM(brass_qty) as total_quantity,
         SUM(total_amount) as total_amount,
         SUM(cash_paid) as total_cash,
         SUM(credit_amount) as total_credit
@@ -89,6 +91,7 @@ router.get('/partner-royalty', async (req, res) => {
         owner_type,
         COUNT(*) as trips,
         SUM(brass_qty) as brass,
+        SUM(brass_qty) as quantity,
         SUM(total_amount) as amount
       FROM receipts
       WHERE DATE(date_time) BETWEEN ? AND ?
@@ -105,6 +108,7 @@ router.get('/partner-royalty', async (req, res) => {
       partnerTotals: {
         trips: partnerTotals?.total_trips || 0,
         brass: partnerTotals?.total_brass || 0,
+        quantity: partnerTotals?.total_brass || 0,
         amount: partnerTotals?.total_amount || 0,
         cash: partnerTotals?.total_cash || 0,
         credit: partnerTotals?.total_credit || 0
@@ -112,6 +116,7 @@ router.get('/partner-royalty', async (req, res) => {
       regularTotals: {
         trips: regularTotals?.total_trips || 0,
         brass: regularTotals?.total_brass || 0,
+        quantity: regularTotals?.total_quantity || 0,
         amount: regularTotals?.total_amount || 0,
         cash: regularTotals?.total_cash || 0,
         credit: regularTotals?.total_credit || 0
@@ -193,6 +198,10 @@ router.get('/monthly-report', async (req, res) => {
     let replacements = [];
     let yearMonth = null;
 
+    // Get unit setting
+    const appSettings = await Settings.findOne({ where: { key: 'app_settings' } });
+    const unit = appSettings?.value?.unit || 'Brass';
+
     if (startDate && endDate) {
        // Custom Range
        whereClause = "date_time BETWEEN ? AND ?";
@@ -240,6 +249,7 @@ router.get('/monthly-report', async (req, res) => {
         SUM(cash_paid) as total_cash,
         SUM(credit_amount) as total_credit,
         SUM(brass_qty) as total_brass,
+        SUM(brass_qty) as total_quantity,
         AVG(total_amount) as avg_transaction
       FROM receipts 
       WHERE ${whereClause}
@@ -284,6 +294,7 @@ router.get('/monthly-report', async (req, res) => {
         total_cash: 0,
         total_credit: 0,
         total_brass: 0,
+        total_quantity: 0,
         avg_transaction: 0
       },
       paymentDistribution,
@@ -520,7 +531,8 @@ router.get('/daily-summary', async (req, res) => {
         SUM(total_amount) as total_amount,
         SUM(cash_paid) as total_cash,
         SUM(credit_amount) as total_credit,
-        SUM(brass_qty) as total_brass
+        SUM(brass_qty) as total_brass,
+        SUM(brass_qty) as total_quantity
       FROM receipts 
       WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
@@ -594,7 +606,8 @@ router.get('/daily-summary', async (req, res) => {
         total_amount: 0,
         total_cash: 0,
         total_credit: 0,
-        total_brass: 0
+        total_brass: 0,
+        total_quantity: 0
       },
       hourly,
       topCustomers,
@@ -832,7 +845,7 @@ router.get('/export/monthly-csv', async (req, res) => {
         SUM(total_amount) as "Total Amount (₹)",
         SUM(cash_paid) as "Cash Collected (₹)",
         SUM(credit_amount) as "Credit Given (₹)",
-        SUM(brass_qty) as "Total Brass"
+        SUM(brass_qty) as "Total ${unit}"
       FROM receipts 
       WHERE ${whereClause}
         AND is_active = 1
@@ -847,7 +860,7 @@ router.get('/export/monthly-csv', async (req, res) => {
         SUM(total_amount) as "Total Revenue (₹)",
         SUM(cash_paid) as "Total Cash (₹)",
         SUM(credit_amount) as "Total Credit (₹)",
-        SUM(brass_qty) as "Total Brass",
+        SUM(brass_qty) as "Total ${unit}",
         AVG(total_amount) as "Average Transaction (₹)"
       FROM receipts 
       WHERE ${whereClause}
@@ -863,18 +876,19 @@ router.get('/export/monthly-csv', async (req, res) => {
       ['Total Revenue (₹)', monthlySummary?.['Total Revenue (₹)'] || 0],
       ['Total Cash (₹)', monthlySummary?.['Total Cash (₹)'] || 0],
       ['Total Credit (₹)', monthlySummary?.['Total Credit (₹)'] || 0],
-      ['Total Brass', monthlySummary?.['Total Brass'] || 0],
+      ['Total Credit (₹)', monthlySummary?.['Total Credit (₹)'] || 0],
+      [`Total ${unit}`, monthlySummary?.[`Total ${unit}`] || 0],
       ['Average Transaction (₹)', monthlySummary?.['Average Transaction (₹)'] || 0]
     ];
     
-    const dailyHeaders = ['Date','Transactions','Total Amount (₹)','Cash Collected (₹)','Credit Given (₹)','Total Brass'];
+    const dailyHeaders = ['Date','Transactions','Total Amount (₹)','Cash Collected (₹)','Credit Given (₹)',`Total ${unit}`];
     const dailyRows = (monthlyData || []).map(item => [
       csvEscape(item['Date']),
       item['Transactions'] ?? 0,
       item['Total Amount (₹)'] ?? 0,
       item['Cash Collected (₹)'] ?? 0,
       item['Credit Given (₹)'] ?? 0,
-      item['Total Brass'] ?? 0
+      item[`Total ${unit}`] ?? 0
     ].join(','));
     const csvData = [
       'SUMMARY',

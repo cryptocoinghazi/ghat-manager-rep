@@ -186,7 +186,7 @@ function App() {
               } />
               <Route path="partners" element={
                 <AdminRoute user={user}>
-                  <PartnerManagement />
+                  <PartnerManagement settings={settings} />
                 </AdminRoute>
               } />
               <Route path="gst-billing" element={
@@ -200,7 +200,7 @@ function App() {
               } />
               <Route path="gst-reports" element={
                 <AdminRoute user={user}>
-                  <GstReports />
+                  <GstReports settings={settings} />
                 </AdminRoute>
               } />
             </Route>
