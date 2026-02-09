@@ -10,6 +10,7 @@ import {
   generateDailyTransactionsPDF,
   generatePartnerRoyaltyPDF
 } from '../utils/pdfGenerator';
+import { formatCurrency, formatDate, formatToIST } from '../utils/formatUtils';
 import {
   FiFilter,
   FiDownload,
@@ -30,10 +31,12 @@ import {
   FiEye,
   FiTruck,
   FiClock,
-  FiEdit
+  FiEdit,
+  FiActivity
 } from 'react-icons/fi';
 import { FaCalendarAlt, FaRupeeSign } from 'react-icons/fa';
 import OwnerLedgerReport from './OwnerLedgerReport';
+import ProfitLossReport from './ProfitLossReport';
 
 const Reports = ({ initialTab }) => {
   const [activeReport, setActiveReport] = useState('monthly');
@@ -73,7 +76,8 @@ const Reports = ({ initialTab }) => {
     { id: 'expense', label: 'Expense Report', icon: FiTrendingDown },
     { id: 'partnerRoyalty', label: 'Partner Royalty', icon: FiUsers },
     { id: 'dailyTransactions', label: 'Daily Transactions', icon: FiTruck },
-    { id: 'ownerLedger', label: 'Owner Ledger', icon: FiFileText }
+    { id: 'ownerLedger', label: 'Owner Ledger', icon: FiFileText },
+    { id: 'profitLoss', label: 'Profit & Loss', icon: FiActivity }
   ];
   
   // Get current date in IST
@@ -440,27 +444,6 @@ const Reports = ({ initialTab }) => {
     setByPreset(dailyTxnFilters.preset, setDailyTxnFilters);
   }, [dailyTxnFilters.preset]);
 
-  // Format time to IST
-  const formatToIST = (dateString, includeDate = false) => {
-    if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    
-    const options = {
-      timeZone: 'Asia/Kolkata',
-      hour12: true,
-      hour: '2-digit',
-      minute: '2-digit'
-    };
-    
-    if (includeDate) {
-      options.year = 'numeric';
-      options.month = 'short';
-      options.day = '2-digit';
-    }
-    
-    return date.toLocaleString('en-IN', options);
-  };
 
   // Convert UTC date to IST date string (YYYY-MM-DD)
   const convertUTCToISTDate = (utcDateString) => {
@@ -593,7 +576,12 @@ const Reports = ({ initialTab }) => {
           });
           setReportsData(prev => ({ ...prev, dailyTransactions: response.data }));
           break;
-          
+
+        case 'profitLoss':
+          // ProfitLossReport handles its own data fetching
+          setLoading(false);
+          return;
+
         case 'partnerRoyalty':
           if (!reportsData.partnerRoyalty) {
             toast.error('No partner royalty data available');
@@ -807,27 +795,6 @@ const Reports = ({ initialTab }) => {
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
-  // Format date as DD-MM-YYYY
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'Asia/Kolkata'
-    });
-  };
 
   // Get month name
   const getMonthName = (monthStr) => {
@@ -2188,7 +2155,7 @@ const Reports = ({ initialTab }) => {
           </select>
         </div>
         {/* Report Controls */}
-        {activeReport !== 'dailyTransactions' && activeReport !== 'ownerLedger' && activeReport !== 'deposit' && activeReport !== 'client' && activeReport !== 'expense' && (
+        {activeReport !== 'dailyTransactions' && activeReport !== 'ownerLedger' && activeReport !== 'deposit' && activeReport !== 'client' && activeReport !== 'expense' && activeReport !== 'profitLoss' && (
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeReport === 'monthly' ? (
@@ -2331,12 +2298,14 @@ const Reports = ({ initialTab }) => {
                   formatToIST={formatToIST} 
                 />
               )}
+              {activeReport === 'profitLoss' && <ProfitLossReport />}
             </>
           )}
         </div>
       </div>
 
       {/* Quick Stats Summary */}
+      {activeReport !== 'profitLoss' && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
@@ -2380,6 +2349,7 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

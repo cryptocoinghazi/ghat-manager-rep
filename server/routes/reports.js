@@ -1245,4 +1245,140 @@ router.get('/daily-transactions', async (req, res) => {
   }
 });
 
+// Profit & Loss Report Endpoint
+router.get('/profit-loss', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'startDate and endDate are required' });
+    }
+
+    // 1. Revenue Metrics (from Receipts)
+    // We count only active receipts for revenue
+    const revenueQuery = `
+      SELECT 
+        SUM(total_amount) as total_revenue,
+        SUM(cash_paid) as cash_collected,
+        SUM(credit_amount) as credit_given,
+        COUNT(*) as total_receipts
+      FROM receipts 
+      WHERE is_active = 1 
+      AND DATE(date_time) >= ? 
+      AND DATE(date_time) <= ?
+    `;
+
+    // Count deleted receipts for operational metrics
+    const deletedReceiptsQuery = `
+      SELECT COUNT(*) as deleted_receipts
+      FROM receipts
+      WHERE is_active = 0
+      AND DATE(date_time) >= ?
+      AND DATE(date_time) <= ?
+    `;
+
+    // 2. Expenses Metrics
+    const expenseQuery = `
+      SELECT 
+        SUM(amount) as total_expenses,
+        category,
+        COUNT(*) as count
+      FROM expenses
+      WHERE DATE(date) >= ? 
+      AND DATE(date) <= ?
+      GROUP BY category
+    `;
+
+    // 3. Deposit Metrics
+    // 'add' increases company cash (from owner), 'deduct' is usage (irrelevant for P&L cash flow unless refunded)
+    // Here we track cash inflow from deposits
+    const depositQuery = `
+      SELECT 
+        SUM(amount) as total_deposits
+      FROM deposit_transactions
+      WHERE type = 'add'
+      AND DATE(createdAt) >= ?
+      AND DATE(createdAt) <= ?
+    `;
+
+    // 4. Top Clients by Credit (Liability)
+    const topClientsQuery = `
+      SELECT 
+        truck_owner as client_name,
+        SUM(credit_amount) as total_credit,
+        COUNT(*) as receipt_count
+      FROM receipts
+      WHERE is_active = 1
+      AND credit_amount > 0
+      AND DATE(date_time) >= ?
+      AND DATE(date_time) <= ?
+      GROUP BY truck_owner
+      ORDER BY total_credit DESC
+      LIMIT 5
+    `;
+
+    // Execute queries in parallel
+    const [
+      [revenueRows],
+      [deletedRows],
+      [expenseRows],
+      [depositRows],
+      [topClientRows]
+    ] = await Promise.all([
+      sequelize.query(revenueQuery, { replacements: [startDate, endDate] }),
+      sequelize.query(deletedReceiptsQuery, { replacements: [startDate, endDate] }),
+      sequelize.query(expenseQuery, { replacements: [startDate, endDate] }),
+      sequelize.query(depositQuery, { replacements: [startDate, endDate] }),
+      sequelize.query(topClientsQuery, { replacements: [startDate, endDate] })
+    ]);
+
+    const revenueData = revenueRows[0] || {};
+    const deletedData = deletedRows[0] || {};
+    const depositData = depositRows[0] || {};
+
+    const totalRevenue = parseFloat(revenueData.total_revenue || 0);
+    const totalExpenses = expenseRows.reduce((sum, item) => sum + parseFloat(item.total_expenses || 0), 0);
+    const totalDeposits = parseFloat(depositData.total_deposits || 0);
+    const cashCollected = parseFloat(revenueData.cash_collected || 0);
+
+    // Derived Calculations
+    const netProfit = totalRevenue - totalExpenses;
+    const cashPosition = cashCollected + totalDeposits - totalExpenses; // Simplified cash flow
+
+    res.json({
+      period: { startDate, endDate },
+      summary: {
+        totalRevenue,
+        totalExpenses,
+        netProfit,
+        cashPosition,
+        cashCollected,
+        creditGiven: parseFloat(revenueData.credit_given || 0),
+        totalDeposits
+      },
+      operational: {
+        totalReceipts: parseInt(revenueData.total_receipts || 0),
+        deletedReceipts: parseInt(deletedData.deleted_receipts || 0)
+      },
+      expenses: {
+        total: totalExpenses,
+        breakdown: expenseRows.map(row => ({
+          category: row.category,
+          amount: parseFloat(row.total_expenses),
+          count: row.count
+        }))
+      },
+      topClients: topClientRows.map(row => ({
+        name: row.client_name,
+        credit: parseFloat(row.total_credit),
+        receiptCount: row.receipt_count
+      }))
+    });
+
+  } catch (error) {
+    console.error('Error generating Profit & Loss report:', error);
+    res.status(500).json({ error: 'Failed to generate Profit & Loss report' });
+  }
+});
+
 export default router;
