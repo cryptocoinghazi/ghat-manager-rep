@@ -7,7 +7,8 @@ import {
   generateFinancialSummaryPDF,
   generateExpenseReportPDF,
   generateDepositReportPDF,
-  generateDailyTransactionsPDF
+  generateDailyTransactionsPDF,
+  generatePartnerRoyaltyPDF
 } from '../utils/pdfGenerator';
 import {
   FiFilter,
@@ -590,6 +591,27 @@ const Reports = ({ initialTab }) => {
           setReportsData(prev => ({ ...prev, dailyTransactions: response.data }));
           break;
           
+        case 'partnerRoyalty':
+          if (!reportsData.partnerRoyalty) {
+            toast.error('No partner royalty data available');
+            return;
+          }
+          // Filter data if needed based on partnerOwnerQuery
+          const prData = reportsData.partnerRoyalty;
+          let filteredPrData = { ...prData };
+          
+          if (partnerOwnerQuery) {
+            const query = partnerOwnerQuery.toLowerCase();
+            if (filteredPrData.partnerSummary) {
+              filteredPrData.partnerSummary = filteredPrData.partnerSummary.filter(p => 
+                p.truck_owner.toLowerCase().includes(query)
+              );
+            }
+          }
+          
+          generatePartnerRoyaltyPDF(filteredPrData);
+          break;
+          
         default:
           break;
       }
@@ -874,45 +896,6 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
 
-        {/* Credit Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Customers with Credit</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                  {totalCustomers || 0}
-                </p>
-              </div>
-              <FiUsers className="h-8 w-8 text-blue-400" />
-            </div>
-          </div>
-          
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 dark:text-red-400">Total Credit Outstanding</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
-                  {formatCurrency(totalCredit)}
-                </p>
-              </div>
-              <FiCreditCard className="h-8 w-8 text-red-400" />
-            </div>
-          </div>
-          
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-yellow-600 dark:text-yellow-400">Avg Credit per Customer</p>
-                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
-                  {formatCurrency(totalCustomers > 0 ? totalCredit / totalCustomers : 0)}
-                </p>
-              </div>
-              <FiBarChart2 className="h-8 w-8 text-yellow-400" />
-            </div>
-          </div>
-        </div>
-
         {/* Credit Details Table */}
         {creditReport && creditReport.length > 0 ? (
           <div className="overflow-x-auto">
@@ -962,18 +945,46 @@ const Reports = ({ initialTab }) => {
           </div>
         )}
 
-        {(!dailyData || dailyData.length === 0) && (
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-8 rounded-lg shadow-sm text-center">
-            <p className="text-gray-500 dark:text-gray-400 mb-4 text-lg">No transactions found for the selected period.</p>
-            <button
-              onClick={() => setIsFilterModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-            >
-              <FiEdit className="-ml-1 mr-2 h-5 w-5" />
-              Edit Filters
-            </button>
+        {/* Credit Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-indigo-600 dark:bg-indigo-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-indigo-100">Customers with Credit</p>
+                <p className="text-2xl font-bold text-white">
+                  {totalCustomers || 0}
+                </p>
+              </div>
+              <FiUsers className="h-8 w-8 text-indigo-200" />
+            </div>
           </div>
-        )}
+          
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-100">Total Credit Outstanding</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(totalCredit)}
+                </p>
+              </div>
+              <FiCreditCard className="h-8 w-8 text-purple-200" />
+            </div>
+          </div>
+          
+          <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-100">Avg Credit per Customer</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(totalCustomers > 0 ? totalCredit / totalCustomers : 0)}
+                </p>
+              </div>
+              <FiBarChart2 className="h-8 w-8 text-blue-200" />
+            </div>
+          </div>
+        </div>
+
+
       </div>
     );
   };
@@ -1012,34 +1023,6 @@ const Reports = ({ initialTab }) => {
               <FiDownload className="h-4 w-4" />
               <span>Export CSV</span>
             </button>
-          </div>
-        </div>
-
-        {/* Monthly Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {summary?.total_transactions || 0}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(summary?.total_amount)}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Cash Collected</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(summary?.total_cash)}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Credit Given</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {formatCurrency(summary?.total_credit)}
-            </p>
           </div>
         </div>
 
@@ -1092,6 +1075,34 @@ const Reports = ({ initialTab }) => {
             </p>
           </div>
         )}
+
+        {/* Monthly Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-indigo-600 dark:bg-indigo-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-indigo-100">Total Transactions</p>
+            <p className="text-2xl font-bold text-white">
+              {summary?.total_transactions || 0}
+            </p>
+          </div>
+          <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-blue-100">Total Amount</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(summary?.total_amount)}
+            </p>
+          </div>
+          <div className="bg-green-600 dark:bg-green-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-green-100">Cash Collected</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(summary?.total_cash)}
+            </p>
+          </div>
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-purple-100">Credit Given</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(summary?.total_credit)}
+            </p>
+          </div>
+        </div>
       </div>
     );
   };
@@ -1217,7 +1228,7 @@ const Reports = ({ initialTab }) => {
 
         {appliedDailyTxnFilters && reportsData.dailyTransactions ? (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Transaction Results ({reportsData.dailyTransactions.transactions?.length || 0})
               </h3>
@@ -1239,7 +1250,7 @@ const Reports = ({ initialTab }) => {
               </div>
             </div>
 
-            <div className="overflow-x-auto bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-[#262626]">
                   <tr>
@@ -1248,7 +1259,7 @@ const Reports = ({ initialTab }) => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Owner</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Driver</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-900 dark:text-white uppercase tracking-wider">Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mode</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                   </tr>
@@ -1278,6 +1289,33 @@ const Reports = ({ initialTab }) => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-indigo-600 dark:bg-indigo-700 p-4 rounded-lg shadow-sm">
+                <p className="text-sm text-indigo-100">Total Trips</p>
+                <p className="text-2xl font-bold text-white">
+                  {reportsData.dailyTransactions.totals?.trips || 0}
+                </p>
+              </div>
+              <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+                <p className="text-sm text-blue-100">Total Revenue</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(reportsData.dailyTransactions.totals?.totalAmount)}
+                </p>
+              </div>
+              <div className="bg-green-600 dark:bg-green-700 p-4 rounded-lg shadow-sm">
+                <p className="text-sm text-green-100">Cash Collected</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(reportsData.dailyTransactions.totals?.cash)}
+                </p>
+              </div>
+              <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+                <p className="text-sm text-purple-100">Credit Amount</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(reportsData.dailyTransactions.totals?.credit)}
+                </p>
+              </div>
             </div>
           </>
         ) : (
@@ -1310,34 +1348,6 @@ const Reports = ({ initialTab }) => {
             <FiRefreshCw className="h-4 w-4" />
             <span>Generate Report</span>
           </button>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Transactions</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {summary?.total_transactions || 0}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {formatCurrency(summary?.total_amount)}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Cash Collected</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(summary?.total_cash)}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Credit Outstanding</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {formatCurrency(summary?.total_credit)}
-            </p>
-          </div>
         </div>
 
         {/* Recent Transactions */}
@@ -1396,6 +1406,34 @@ const Reports = ({ initialTab }) => {
             </div>
           </div>
         )}
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-indigo-600 dark:bg-indigo-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-indigo-100">Total Transactions</p>
+            <p className="text-2xl font-bold text-white">
+              {summary?.total_transactions || 0}
+            </p>
+          </div>
+          <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-blue-100">Total Revenue</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(summary?.total_amount)}
+            </p>
+          </div>
+          <div className="bg-green-600 dark:bg-green-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-green-100">Cash Collected</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(summary?.total_cash)}
+            </p>
+          </div>
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-purple-100">Credit Outstanding</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(summary?.total_credit)}
+            </p>
+          </div>
+        </div>
       </div>
     );
   };
@@ -1466,45 +1504,6 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
 
-        {/* Expense Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 dark:text-red-400">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">
-                  {formatCurrency(summary?.totalAmount)}
-                </p>
-              </div>
-              <FiTrendingDown className="h-8 w-8 text-red-400 dark:text-red-500" />
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Total Entries</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                  {summary?.totalCount || 0}
-                </p>
-              </div>
-              <FiFileText className="h-8 w-8 text-blue-400 dark:text-blue-500" />
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 dark:text-purple-400">Categories</p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                  {categoryBreakdown?.length || 0}
-                </p>
-              </div>
-              <FiPieChart className="h-8 w-8 text-purple-400 dark:text-purple-500" />
-            </div>
-          </div>
-        </div>
-
         {/* Category Breakdown */}
         {categoryBreakdown && categoryBreakdown.length > 0 && (
           <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
@@ -1564,6 +1563,45 @@ const Reports = ({ initialTab }) => {
             </p>
           </div>
         )}
+
+        {/* Expense Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-red-600 dark:bg-red-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-100">Total Expenses</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(summary?.totalAmount)}
+                </p>
+              </div>
+              <FiTrendingDown className="h-8 w-8 text-red-200" />
+            </div>
+          </div>
+          
+          <div className="bg-indigo-600 dark:bg-indigo-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-indigo-100">Total Entries</p>
+                <p className="text-2xl font-bold text-white">
+                  {summary?.totalCount || 0}
+                </p>
+              </div>
+              <FiFileText className="h-8 w-8 text-indigo-200" />
+            </div>
+          </div>
+          
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-100">Categories</p>
+                <p className="text-2xl font-bold text-white">
+                  {categoryBreakdown?.length || 0}
+                </p>
+              </div>
+              <FiPieChart className="h-8 w-8 text-purple-200" />
+            </div>
+          </div>
+        </div>
 
         {/* Empty State */}
         {(!categoryBreakdown || categoryBreakdown.length === 0) && (!dailyTotals || dailyTotals.length === 0) && (
@@ -1637,45 +1675,6 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 dark:text-green-400">Total Additions</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(summary?.totalAdditions)}</p>
-              </div>
-              <FiTrendingUp className="h-8 w-8 text-green-400" />
-            </div>
-          </div>
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 dark:text-red-400">Total Deductions</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-300">{formatCurrency(summary?.totalDeductions)}</p>
-              </div>
-              <FiTrendingDown className="h-8 w-8 text-red-400" />
-            </div>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Net Change</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(summary?.netChange)}</p>
-              </div>
-              <FiDollarSign className="h-8 w-8 text-blue-400" />
-            </div>
-          </div>
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 dark:text-purple-400">Ending Balance</p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{formatCurrency(summary?.endingBalance)}</p>
-              </div>
-              <FiDollarSign className="h-8 w-8 text-purple-400" />
-            </div>
-          </div>
-        </div>
-
         <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -1714,6 +1713,45 @@ const Reports = ({ initialTab }) => {
             <div className="flex items-center space-x-2">
               <button onClick={() => setDepositFilters(prev => ({ ...prev, page: Math.max(1, (prev.page || 1) - 1) }))} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Prev</button>
               <button onClick={() => setDepositFilters(prev => ({ ...prev, page: (prev.page || 1) + 1 }))} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Next</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-green-600 dark:bg-green-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-100">Total Additions</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(summary?.totalAdditions)}</p>
+              </div>
+              <FiTrendingUp className="h-8 w-8 text-green-200" />
+            </div>
+          </div>
+          <div className="bg-red-600 dark:bg-red-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-100">Total Deductions</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(summary?.totalDeductions)}</p>
+              </div>
+              <FiTrendingDown className="h-8 w-8 text-red-200" />
+            </div>
+          </div>
+          <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-100">Net Change</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(summary?.netChange)}</p>
+              </div>
+              <FiDollarSign className="h-8 w-8 text-blue-200" />
+            </div>
+          </div>
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-100">Ending Balance</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(summary?.endingBalance)}</p>
+              </div>
+              <FiDollarSign className="h-8 w-8 text-purple-200" />
             </div>
           </div>
         </div>
@@ -1787,45 +1825,6 @@ const Reports = ({ initialTab }) => {
           </div>
         </div>
 
-        {/* Client Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Total Clients</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                  {totalCustomers || 0}
-                </p>
-              </div>
-              <FiUsers className="h-8 w-8 text-blue-400" />
-            </div>
-          </div>
-          
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 dark:text-green-400">Active with Credit</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                  {creditReport?.length || 0}
-                </p>
-              </div>
-              <FiCreditCard className="h-8 w-8 text-green-400" />
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 dark:text-purple-400">Total Outstanding</p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                  {formatCurrency(totalCredit)}
-                </p>
-              </div>
-              <FiDollarSign className="h-8 w-8 text-purple-400" />
-            </div>
-          </div>
-        </div>
-
         {/* Clients List */}
         {creditReport && creditReport.length > 0 ? (
           <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
@@ -1880,6 +1879,45 @@ const Reports = ({ initialTab }) => {
             <p className="text-gray-500 dark:text-gray-400">No client data found for selected date range</p>
           </div>
         )}
+
+        {/* Client Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-100">Total Clients</p>
+                <p className="text-2xl font-bold text-white">
+                  {totalCustomers || 0}
+                </p>
+              </div>
+              <FiUsers className="h-8 w-8 text-blue-200" />
+            </div>
+          </div>
+          
+          <div className="bg-green-600 dark:bg-green-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-100">Active with Credit</p>
+                <p className="text-2xl font-bold text-white">
+                  {creditReport?.length || 0}
+                </p>
+              </div>
+              <FiCreditCard className="h-8 w-8 text-green-200" />
+            </div>
+          </div>
+          
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-100">Total Outstanding</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(totalCredit)}
+                </p>
+              </div>
+              <FiDollarSign className="h-8 w-8 text-purple-200" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -1932,72 +1970,6 @@ const Reports = ({ initialTab }) => {
                 )}
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Royalty Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 dark:text-green-400">Partner Trips</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{partnerTotals?.trips || 0}</p>
-                <p className="text-xs text-green-600 dark:text-green-400">{partnerTotals?.brass?.toFixed(2) || 0} Brass</p>
-              </div>
-              <FiUsers className="h-8 w-8 text-green-400 dark:text-green-500" />
-            </div>
-          </div>
-          
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400">Regular Trips</p>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{regularTotals?.trips || 0}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">{regularTotals?.brass?.toFixed(2) || 0} Brass</p>
-              </div>
-              <FiTruck className="h-8 w-8 text-blue-400 dark:text-blue-500" />
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 dark:text-purple-400">Rate Difference</p>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{formatCurrency(royalty?.rateDifference || 0)}</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">per Brass</p>
-              </div>
-              <FiTrendingDown className="h-8 w-8 text-purple-400 dark:text-purple-500" />
-            </div>
-          </div>
-          
-          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border-2 border-orange-200 dark:border-orange-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600 dark:text-orange-400 font-semibold">Partner Royalty</p>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(royalty?.royaltyAmount || 0)}</p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">Total Savings</p>
-              </div>
-              <FaRupeeSign className="h-8 w-8 text-orange-400 dark:text-orange-500" />
-            </div>
-          </div>
-        </div>
-
-        {/* Rate Comparison */}
-        <div className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-gray-700 p-6 rounded-lg shadow-sm">
-          <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Rate Comparison</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-center">
-              <p className="text-sm text-blue-600 dark:text-blue-400">Regular Rate</p>
-              <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(royalty?.regularRate || 0)}/Brass</p>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg text-center">
-              <p className="text-sm text-green-600 dark:text-green-400">Partner Rate</p>
-              <p className="text-xl font-bold text-green-700 dark:text-green-300">{formatCurrency(royalty?.partnerRate || 0)}/Brass</p>
-            </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg text-center">
-              <p className="text-sm text-orange-600 dark:text-orange-400">Partner Discount</p>
-              <p className="text-xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(royalty?.rateDifference || 0)}/Brass</p>
-            </div>
           </div>
         </div>
 
@@ -2085,6 +2057,55 @@ const Reports = ({ initialTab }) => {
           </div>
         )}
 
+        {/* Royalty Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-green-600 dark:bg-green-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-100">Partner Trips</p>
+                <p className="text-2xl font-bold text-white">{partnerTotals?.trips || 0}</p>
+                <p className="text-xs text-green-200">{partnerTotals?.brass?.toFixed(2) || 0} Brass</p>
+              </div>
+              <FiUsers className="h-8 w-8 text-green-200" />
+            </div>
+          </div>
+          
+          <div className="bg-blue-600 dark:bg-blue-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-100">Regular Trips</p>
+                <p className="text-2xl font-bold text-white">{regularTotals?.trips || 0}</p>
+                <p className="text-xs text-blue-200">{regularTotals?.brass?.toFixed(2) || 0} Brass</p>
+              </div>
+              <FiTruck className="h-8 w-8 text-blue-200" />
+            </div>
+          </div>
+          
+          <div className="bg-purple-600 dark:bg-purple-700 p-4 rounded-lg shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-purple-100">Rate Difference</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(royalty?.rateDifference || 0)}</p>
+                <p className="text-xs text-purple-200">per Brass</p>
+              </div>
+              <FiTrendingDown className="h-8 w-8 text-purple-200" />
+            </div>
+          </div>
+          
+          <div className="bg-orange-600 dark:bg-orange-700 p-4 rounded-lg shadow-sm border-2 border-orange-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-100 font-semibold">Partner Royalty</p>
+                <p className="text-2xl font-bold text-white">{formatCurrency(royalty?.royaltyAmount || 0)}</p>
+                <p className="text-xs text-orange-200">Total Savings</p>
+              </div>
+              <FaRupeeSign className="h-8 w-8 text-orange-200" />
+            </div>
+          </div>
+        </div>
+
+        {/* Rate Comparison - REMOVED as per user request */}
+
         {(!partnerSummary || partnerSummary.length === 0) && (!regularSummary || regularSummary.length === 0) && (
           <div className="text-center py-12">
             <FiUsers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -2133,7 +2154,7 @@ const Reports = ({ initialTab }) => {
           </select>
         </div>
         {/* Report Controls */}
-        {activeReport !== 'dailyTransactions' && activeReport !== 'ownerLedger' && (
+        {activeReport !== 'dailyTransactions' && activeReport !== 'ownerLedger' && activeReport !== 'deposit' && activeReport !== 'client' && activeReport !== 'expense' && (
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeReport === 'monthly' ? (

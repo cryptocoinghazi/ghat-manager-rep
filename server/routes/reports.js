@@ -477,13 +477,21 @@ router.get('/client-report', async (req, res) => {
   }
 });
 
-// Get daily summary (existing route - enhanced)
+// Get daily summary (enhanced for date range)
 router.get('/daily-summary', async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date, startDate, endDate } = req.query;
     
-    // Default to today if no date provided
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    let start, end;
+    
+    if (startDate && endDate) {
+      start = startDate;
+      end = endDate;
+    } else {
+      // Fallback to date parameter or today
+      start = date || new Date().toISOString().split('T')[0];
+      end = date || new Date().toISOString().split('T')[0];
+    }
     
     // Get daily totals
     const [summaryRows] = await sequelize.query(`
@@ -494,9 +502,9 @@ router.get('/daily-summary', async (req, res) => {
         SUM(credit_amount) as total_credit,
         SUM(brass_qty) as total_brass
       FROM receipts 
-      WHERE DATE(date_time) = ?
+      WHERE DATE(date_time) BETWEEN ? AND ?
         AND is_active = 1
-    `, { replacements: [targetDate] });
+    `, { replacements: [start, end] });
     const summary = summaryRows[0] || null;
     
     // Get hourly distribution

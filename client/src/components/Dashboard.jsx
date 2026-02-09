@@ -148,71 +148,63 @@ const Dashboard = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
+        <div className="bg-blue-600 dark:bg-blue-700 rounded-lg shadow-sm p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Today's Receipts</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <p className="text-sm text-blue-100">Today's Receipts</p>
+              <p className="text-2xl font-bold text-white">
                 {dailySummary?.summary?.total_transactions || 0}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              <p className="text-sm text-blue-100 mt-1">
                 {formatCurrency(dailySummary?.summary?.total_amount)}
               </p>
             </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-              <FiTruck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
+            <FiTruck className="h-10 w-10 text-blue-200" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
+        <div className="bg-red-600 dark:bg-red-700 rounded-lg shadow-sm p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Today's Expenses</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              <p className="text-sm text-red-100">Today's Expenses</p>
+              <p className="text-2xl font-bold text-white">
                 {formatCurrency(expenseSummary?.todayTotal)}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              <p className="text-sm text-red-100 mt-1">
                 This month: {formatCurrency(expenseSummary?.monthTotal)}
               </p>
             </div>
-            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-              <FiDollarSign className="h-6 w-6 text-red-600 dark:text-red-400" />
-            </div>
+            <FiDollarSign className="h-10 w-10 text-red-200" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
+        <div className="bg-orange-600 dark:bg-orange-700 rounded-lg shadow-sm p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Pending Credit</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              <p className="text-sm text-orange-100">Pending Credit</p>
+              <p className="text-2xl font-bold text-white">
                 {formatCurrency(creditReport?.totalCredit)}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              <p className="text-sm text-orange-100 mt-1">
                 {creditReport?.totalCustomers || 0} customers
               </p>
             </div>
-            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-              <FiCreditCard className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-            </div>
+            <FiCreditCard className="h-10 w-10 text-orange-200" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-white/5 p-5 transition-colors duration-300">
+        <div className="bg-green-600 dark:bg-green-700 rounded-lg shadow-sm p-5 transition-colors duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Monthly Revenue</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <p className="text-sm text-green-100">Monthly Revenue</p>
+              <p className="text-2xl font-bold text-white">
                 {formatCurrency(monthlyReport?.summary?.total_amount)}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              <p className="text-sm text-green-100 mt-1">
                 {monthlyReport?.summary?.total_transactions || 0} transactions
               </p>
             </div>
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-              <FiTrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
+            <FiTrendingUp className="h-10 w-10 text-green-200" />
           </div>
         </div>
       </div>
