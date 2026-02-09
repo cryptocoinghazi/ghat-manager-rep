@@ -354,7 +354,11 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
     }
   };
 
-  const formatCurrency = (amount) => `${flatSettings.currency || '₹'}${parseFloat(amount).toFixed(2)}`;
+  const formatCurrency = (amount) => {
+    let symbol = flatSettings.currency || '₹';
+    if (symbol === '?' || symbol === 'undefined') symbol = '₹';
+    return `${symbol}${parseFloat(amount).toFixed(2)}`;
+  };
   
   const formatToIST = (dateString) => {
     if (!dateString) return '';

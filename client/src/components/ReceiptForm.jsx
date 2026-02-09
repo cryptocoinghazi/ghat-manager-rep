@@ -861,7 +861,10 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
   }, [formData, calculations, errors, receiptNumber, selectedOwnerInfo]);
 
   const formatCurrency = (amount) => {
-    return `${flatSettings.currency || '₹'}${parseFloat(amount).toFixed(2)}`;
+    let symbol = flatSettings.currency || '₹';
+    // Handle case where currency might be misconfigured as '?' or empty
+    if (symbol === '?' || symbol === 'undefined') symbol = '₹';
+    return `${symbol}${parseFloat(amount).toFixed(2)}`;
   };
 
   // Format time to IST

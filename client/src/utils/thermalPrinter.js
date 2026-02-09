@@ -56,7 +56,8 @@ const barcodeImg = (receiptNo) => {
 };
 
 export const generateThermalReceiptHTML = (receipt, settings = {}) => {
-  const currency = settings.currency || '₹';
+  let currency = settings.currency || '₹';
+  if (currency === '?' || currency === 'undefined') currency = '₹';
   const unit = settings.unit || 'Brass';
   const widthOpt = settings.printer_width === '80mm' ? '80mm' : '58mm';
   const widthChars = widthOpt === '80mm' ? 48 : 32;
