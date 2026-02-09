@@ -165,7 +165,7 @@ const PartnerManagement = () => {
           <div className="bg-orange-600 dark:bg-orange-700 rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-orange-100">Partner Brass Total</p>
+                <p className="text-sm text-orange-100">Partner {settings.unit || 'Brass'} Total</p>
                 <p className="text-2xl font-bold text-white">{stats.partners?.totalBrass?.toFixed(2) || 0}</p>
               </div>
               <FiDollarSign className="h-6 w-6 text-orange-200" />

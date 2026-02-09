@@ -14,7 +14,8 @@ import {
 } from 'react-icons/fi';
 import { format } from 'date-fns';
 
-const Dashboard = ({ user }) => {
+const Dashboard = ({ user, settings }) => {
+  const unit = settings?.unit || 'Brass';
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({
     dailySummary: null,
@@ -283,7 +284,7 @@ const Dashboard = ({ user }) => {
                         {formatCurrency(receipt.total_amount)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {receipt.brass_qty} Brass
+                        {receipt.brass_qty} {unit}
                       </p>
                     </div>
                   </div>

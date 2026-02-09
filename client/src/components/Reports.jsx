@@ -38,7 +38,8 @@ import { FaCalendarAlt, FaRupeeSign } from 'react-icons/fa';
 import OwnerLedgerReport from './OwnerLedgerReport';
 import ProfitLossReport from './ProfitLossReport';
 
-const Reports = ({ initialTab }) => {
+const Reports = ({ initialTab, settings }) => {
+  const unit = settings?.unit || 'Brass';
   const [activeReport, setActiveReport] = useState('monthly');
   const [loading, setLoading] = useState(false);
   const [creditFilters, setCreditFilters] = useState({ preset: 'This Month', startDate: '', endDate: '' });
@@ -666,7 +667,7 @@ const Reports = ({ initialTab }) => {
           
           // Client-side CSV generation
           const dailyTxns = reportsData.dailyTransactions.transactions;
-          const headers = ['Date', 'Time', 'Receipt No', 'Owner', 'Driver', 'Vehicle', 'Tyre Type', 'Brass', 'Amount', 'Payment Mode', 'Status'];
+          const headers = ['Date', 'Time', 'Receipt No', 'Owner', 'Driver', 'Vehicle', 'Tyre Type', unit, 'Amount', 'Payment Mode', 'Status'];
           const csvRows = [headers.join(',')];
           
           dailyTxns.forEach(txn => {
@@ -1028,7 +1029,7 @@ const Reports = ({ initialTab }) => {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Credit</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{unit}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-[#1A1A1A] divide-y divide-gray-200 dark:divide-gray-700">
@@ -1986,7 +1987,7 @@ const Reports = ({ initialTab }) => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Owner</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trips</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{unit}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Rate</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cash Paid</th>
@@ -2028,7 +2029,7 @@ const Reports = ({ initialTab }) => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Owner</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trips</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Brass</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{unit}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Avg Rate</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cash Paid</th>
@@ -2065,7 +2066,7 @@ const Reports = ({ initialTab }) => {
               <div>
                 <p className="text-sm text-green-100">Partner Trips</p>
                 <p className="text-2xl font-bold text-white">{partnerTotals?.trips || 0}</p>
-                <p className="text-xs text-green-200">{partnerTotals?.brass?.toFixed(2) || 0} Brass</p>
+                <p className="text-xs text-green-200">{partnerTotals?.brass?.toFixed(2) || 0} {unit}</p>
               </div>
               <FiUsers className="h-8 w-8 text-green-200" />
             </div>
@@ -2076,7 +2077,7 @@ const Reports = ({ initialTab }) => {
               <div>
                 <p className="text-sm text-blue-100">Regular Trips</p>
                 <p className="text-2xl font-bold text-white">{regularTotals?.trips || 0}</p>
-                <p className="text-xs text-blue-200">{regularTotals?.brass?.toFixed(2) || 0} Brass</p>
+                <p className="text-xs text-blue-200">{regularTotals?.brass?.toFixed(2) || 0} {unit}</p>
               </div>
               <FiTruck className="h-8 w-8 text-blue-200" />
             </div>
@@ -2087,7 +2088,7 @@ const Reports = ({ initialTab }) => {
               <div>
                 <p className="text-sm text-purple-100">Rate Difference</p>
                 <p className="text-2xl font-bold text-white">{formatCurrency(royalty?.rateDifference || 0)}</p>
-                <p className="text-xs text-purple-200">per Brass</p>
+                <p className="text-xs text-purple-200">per {unit}</p>
               </div>
               <FiTrendingDown className="h-8 w-8 text-purple-200" />
             </div>

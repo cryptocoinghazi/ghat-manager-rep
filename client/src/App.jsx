@@ -150,7 +150,7 @@ function App() {
           {/* Protected Routes */}
           {user && (
             <Route element={<Layout user={user} onLogout={handleLogout} />}>
-              <Route path="dashboard" element={<Dashboard user={user} />} />
+              <Route path="dashboard" element={<Dashboard user={user} settings={settings} />} />
               <Route path="receipt" element={
                 <ReceiptForm 
                   settings={settings}
@@ -158,16 +158,16 @@ function App() {
                   fetchTruckOwners={fetchTruckOwners}
                 />
               } />
-              <Route path="register" element={<DailyRegister />} />
+              <Route path="register" element={<DailyRegister settings={settings} />} />
               <Route path="expenses" element={<ExpenseManager />} />
               <Route path="reports" element={
                 <AdminRoute user={user}>
-                  <Reports />
+                  <Reports settings={settings} />
                 </AdminRoute>
               } />
               <Route path="reports/deposit" element={
                 <AdminRoute user={user}>
-                  <Reports initialTab="deposit" />
+                  <Reports initialTab="deposit" settings={settings} />
                 </AdminRoute>
               } />
               <Route path="settings" element={

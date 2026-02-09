@@ -370,7 +370,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       o.truck_owner === receipt.truck_owner
     );
     
-    const message = generateReceiptMessage(receipt, 'GST Receipt');
+    const message = generateReceiptMessage(receipt, 'GST Receipt', flatSettings.unit || 'Brass');
     openWhatsAppChat(owner?.phone, message);
   };
 
@@ -489,7 +489,7 @@ const GstReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Rate per Unit *
+                    Rate per {flatSettings.unit || 'Brass'} *
                   </label>
                   <input
                     type="number"

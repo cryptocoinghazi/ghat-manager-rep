@@ -903,7 +903,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
       o.truck_owner === receipt.truck_owner
     );
     
-    const message = generateReceiptMessage(receipt);
+    const message = generateReceiptMessage(receipt, 'Receipt', flatSettings.unit || 'Brass');
     openWhatsAppChat(owner?.phone, message);
   };
 
@@ -1388,7 +1388,7 @@ const ReceiptForm = ({ settings, truckOwners, fetchTruckOwners }) => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Time</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Vehicle</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Qty</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Qty ({flatSettings.unit || 'Brass'})</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Rate</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">Status</th>

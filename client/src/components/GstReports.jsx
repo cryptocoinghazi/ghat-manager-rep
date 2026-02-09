@@ -108,7 +108,8 @@ const GstReports = () => {
       o.truck_owner === receipt.truck_owner
     );
     
-    const message = generateReceiptMessage(receipt, 'GST Receipt');
+    const flatSettings = settings.flat || settings || {};
+    const message = generateReceiptMessage(receipt, 'GST Receipt', flatSettings.unit || 'Brass');
     openWhatsAppChat(owner?.phone, message);
   };
 
@@ -342,7 +343,7 @@ const GstReports = () => {
                               <FaEdit className="h-4 w-4" />
                             </button>
                             <button 
-                              onClick={() => handleThermalPrint(tx)}
+                              onClick={() => handlePrint(tx)}
                               className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
                               title="Print Thermal"
                             >

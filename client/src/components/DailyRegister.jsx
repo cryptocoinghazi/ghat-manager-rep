@@ -18,7 +18,8 @@ import { format, subDays, parseISO } from 'date-fns';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-const DailyRegister = () => {
+const DailyRegister = ({ settings }) => {
+  const unit = settings?.unit || 'Brass';
   const [dateRange, setDateRange] = useState({
     startDate: format(new Date(), "yyyy-MM-dd'T'00:00"),
     endDate: format(new Date(), "yyyy-MM-dd'T'23:59")
@@ -269,7 +270,7 @@ const DailyRegister = () => {
         quarry_name: 'Mukindpur Sand Quarry',
         quarry_address: 'Mukindpur, District Office',
         currency: '₹',
-        unit: 'Brass'
+        unit: unit
       };
       
       const { generatePDF } = await import('../utils/pdfGenerator');
@@ -323,7 +324,7 @@ const DailyRegister = () => {
       ]);
       
       doc.autoTable({
-        head: [['#', 'Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre', 'Mode', 'Qty', 'Total', 'Cash', 'Credit', 'Status']],
+        head: [['#', 'Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre', 'Mode', `Qty (${unit})`, 'Total', 'Cash', 'Credit', 'Status']],
         body: tableData,
         startY: 75,
         theme: 'grid',
@@ -342,7 +343,7 @@ const DailyRegister = () => {
   const handleExportExcel = () => {
     try {
       const filename = `daily-register-${dateRange.startDate.replace(/[:.]/g, '-')}-to-${dateRange.endDate.replace(/[:.]/g, '-')}.csv`;
-      const headers = ['Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre Type', 'Payment Mode', 'Qty', 'Rate', 'Total', 'Cash', 'Credit', 'Status'];
+      const headers = ['Receipt No', 'Time', 'Date', 'Owner', 'Vehicle', 'Tyre Type', 'Payment Mode', `Qty (${unit})`, `Rate (/${unit})`, 'Total', 'Cash', 'Credit', 'Status'];
       const csvData = filteredReceipts.map(receipt => {
         const date = format(new Date(receipt.date_time), 'dd-MM-yyyy', { timeZone: 'Asia/Kolkata' });
         const time = getLocalTime(receipt.date_time);
@@ -620,7 +621,7 @@ const DailyRegister = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tyre Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Mode</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty ({unit})</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cash</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Credit</th>
@@ -759,11 +760,11 @@ const DailyRegister = () => {
               
               <div className="grid grid-cols-2 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Quantity (Brass)</label>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Quantity ({unit})</label>
                   <p className="text-lg dark:text-white">{selectedReceipt.brass_qty}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Rate per Brass</label>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Rate per {unit}</label>
                   <p className="text-lg dark:text-white">₹{selectedReceipt.rate}</p>
                 </div>
               </div>
@@ -889,7 +890,7 @@ const DailyRegister = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Quantity (Brass)
+                      Quantity ({unit})
                     </label>
                     <input
                       type="number"
@@ -901,7 +902,7 @@ const DailyRegister = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Rate per Brass
+                      Rate per {unit}
                     </label>
                     <input
                       type="number"
@@ -933,7 +934,7 @@ const DailyRegister = () => {
                   <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">₹{editableReceipt.total_amount}</span>
                 </div>
                 <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-                  (Qty × Rate) + Loading Charge
+                  ({unit} × Rate) + Loading Charge
                 </div>
               </div>
 

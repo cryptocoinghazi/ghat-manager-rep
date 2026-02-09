@@ -9,7 +9,7 @@ export const formatPhoneNumber = (phone) => {
   return clean;
 };
 
-export const generateReceiptMessage = (receipt, type = 'Receipt') => {
+export const generateReceiptMessage = (receipt, type = 'Receipt', unit = 'Brass') => {
   const date = new Date(receipt.date_time).toLocaleDateString('en-IN');
   const time = new Date(receipt.date_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   const amount = parseFloat(receipt.total_amount || receipt.totalBill || 0).toFixed(2);
@@ -21,7 +21,7 @@ Receipt No: ${receipt.receipt_no}
 Date: ${date} ${time}
 Vehicle: ${receipt.vehicle_number}
 Owner: ${receipt.truck_owner}
-Quantity: ${qty} Brass
+Quantity: ${qty} ${unit}
 Rate: ₹${rate}
 Total Amount: ₹${amount}
 Status: ${receipt.payment_status || 'Pending'}
