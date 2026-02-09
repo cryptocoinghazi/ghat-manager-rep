@@ -131,52 +131,44 @@ const PartnerManagement = () => {
 
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-green-600 dark:bg-green-700 rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total Partners</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.partners?.count || 0}</p>
+                <p className="text-sm text-green-100">Total Partners</p>
+                <p className="text-2xl font-bold text-white">{stats.partners?.count || 0}</p>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <FiUserCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
+              <FiUserCheck className="h-6 w-6 text-green-200" />
             </div>
           </div>
           
-          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-blue-600 dark:bg-blue-700 rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Regular Owners</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.regular?.count || 0}</p>
+                <p className="text-sm text-blue-100">Regular Owners</p>
+                <p className="text-2xl font-bold text-white">{stats.regular?.count || 0}</p>
               </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <FiUsers className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
+              <FiUsers className="h-6 w-6 text-blue-200" />
             </div>
           </div>
           
-          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-purple-600 dark:bg-purple-700 rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Partner Transactions</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.partners?.transactions || 0}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{formatCurrency(stats.partners?.totalAmount)}</p>
+                <p className="text-sm text-purple-100">Partner Transactions</p>
+                <p className="text-2xl font-bold text-white">{stats.partners?.transactions || 0}</p>
+                <p className="text-sm text-purple-100">{formatCurrency(stats.partners?.totalAmount)}</p>
               </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                <FiTruck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
+              <FiTruck className="h-6 w-6 text-purple-200" />
             </div>
           </div>
           
-          <div className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+          <div className="bg-orange-600 dark:bg-orange-700 rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Partner Brass Total</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.partners?.totalBrass?.toFixed(2) || 0}</p>
+                <p className="text-sm text-orange-100">Partner Brass Total</p>
+                <p className="text-2xl font-bold text-white">{stats.partners?.totalBrass?.toFixed(2) || 0}</p>
               </div>
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                <FiDollarSign className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
+              <FiDollarSign className="h-6 w-6 text-orange-200" />
             </div>
           </div>
         </div>
@@ -359,14 +351,7 @@ const PartnerManagement = () => {
         </div>
       </div>
 
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">About Partner Rates</h3>
-        <p className="text-sm text-blue-800 dark:text-blue-200">
-          Partners receive a special discounted rate of <strong>{formatCurrency(settings.default_partner_rate || 1000)}/Brass</strong> compared 
-          to the regular rate of <strong>{formatCurrency(settings.default_rate || 1200)}/Brass</strong>. 
-          You can set custom rates for individual partners or they will use the default partner rate.
-        </p>
-      </div>
+      {/* About Partner Rates section removed as per user request */}
     </div>
   );
 };

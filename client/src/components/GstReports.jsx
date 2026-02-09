@@ -201,45 +201,37 @@ const GstReports = () => {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-blue-600 dark:bg-blue-700 p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Taxable Value</h3>
-                <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                  <FaChartPie className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
+                <h3 className="text-sm font-medium text-blue-100">Total Taxable Value</h3>
+                <FaChartPie className="h-5 w-5 text-blue-200" />
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_taxable_value)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_taxable_value)}</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-purple-600 dark:bg-purple-700 p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total CGST</h3>
-                <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
-                  <FaRupeeSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
+                <h3 className="text-sm font-medium text-purple-100">Total CGST</h3>
+                <FaRupeeSign className="h-5 w-5 text-purple-200" />
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_cgst)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_cgst)}</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-purple-600 dark:bg-purple-700 p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total SGST</h3>
-                <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
-                  <FaRupeeSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
+                <h3 className="text-sm font-medium text-purple-100">Total SGST</h3>
+                <FaRupeeSign className="h-5 w-5 text-purple-200" />
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_sgst)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_sgst)}</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1A1A1A] p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-green-600 dark:bg-green-700 p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total GST Collected</h3>
-                <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
-                  <FaRupeeSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
+                <h3 className="text-sm font-medium text-green-100">Total GST Collected</h3>
+                <FaRupeeSign className="h-5 w-5 text-green-200" />
               </div>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(summary.total_gst_collected)}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{summary.total_receipts} Invoices</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(summary.total_gst_collected)}</p>
+              <p className="text-xs text-green-100 mt-1">{summary.total_receipts} Invoices</p>
             </div>
           </div>
 

@@ -849,3 +849,155 @@ export function generatePDF(receiptData, settings = {}) {
     alert('Failed to generate PDF. Please check the data and try again.');
   }
 }
+
+export function generatePartnerRoyaltyPDF(data) {
+  try {
+    if (!data) {
+      throw new Error('No partner royalty data available');
+    }
+    
+    const { period, partnerSummary, partnerTotals, royalty } = data;
+    
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const margin = 15;
+    
+    let yPos = addHeader(doc, 'Partner Royalty Report', `${formatDateIST(period?.startDate)} to ${formatDateIST(period?.endDate)}`);
+    
+    // Partner Stats
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Partner Summary', margin, yPos);
+    yPos += 5;
+
+    addSummaryBox(doc, 'Total Trips', partnerTotals?.trips || 0, margin, yPos, 40, [139, 92, 246]);
+    addSummaryBox(doc, 'Total Brass', (partnerTotals?.brass || 0).toFixed(2), margin + 45, yPos, 40, [245, 158, 11]);
+    addSummaryBox(doc, 'Total Amount', formatCurrencyPDF(partnerTotals?.amount), margin + 90, yPos, 50, [59, 130, 246]);
+    addSummaryBox(doc, 'Royalty', formatCurrencyPDF(royalty?.royaltyAmount), margin + 145, yPos, 50, [34, 197, 94]);
+    
+    yPos += 30;
+
+    // Partner Details Table
+    if (partnerSummary && partnerSummary.length > 0) {
+      doc.text('Partner Details', margin, yPos);
+      yPos += 5;
+      
+      const tableData = partnerSummary.map(p => [
+        p.truck_owner,
+        p.total_trips,
+        Number(p.total_brass).toFixed(2),
+        formatCurrencyPDF(p.total_amount),
+        formatCurrencyPDF(p.total_cash),
+        formatCurrencyPDF(p.total_credit)
+      ]);
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [['Partner', 'Trips', 'Brass', 'Amount', 'Cash', 'Credit']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [139, 92, 246], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 20, halign: 'center' },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 30, halign: 'right' },
+          5: { cellWidth: 30, halign: 'right' }
+        },
+        margin: { left: margin, right: margin }
+      });
+      
+      yPos = doc.lastAutoTable.finalY + 15;
+    }
+    
+    addFooter(doc);
+    
+    const fileName = `partner-royalty-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    return fileName;
+    
+  } catch (error) {
+    console.error('Error generating partner royalty PDF:', error);
+    throw error;
+  }
+}
+
+export function generateOwnerLedgerPDF(data, ownerName) {
+  try {
+    if (!data) {
+      throw new Error('No ledger data available');
+    }
+    
+    const { summary, receipts } = data;
+    
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const margin = 15;
+    
+    let yPos = addHeader(doc, 'Owner Ledger', `Ledger for ${ownerName}`);
+    
+    addSummaryBox(doc, 'Total Billed', formatCurrencyPDF(summary?.totalAmount), margin, yPos, 55, [59, 130, 246]);
+    addSummaryBox(doc, 'Total Paid', formatCurrencyPDF(summary?.totalPaid), margin + 60, yPos, 60, [34, 197, 94]);
+    addSummaryBox(doc, 'Pending Due', formatCurrencyPDF(summary?.totalPending), margin + 125, yPos, 55, [239, 68, 68]);
+    
+    yPos += 32;
+    
+    if (receipts && receipts.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Transaction History', margin, yPos);
+      yPos += 5;
+      
+      const tableData = receipts.map(r => [
+        formatDateIST(r.date_time),
+        r.receipt_no,
+        r.vehicle_number,
+        formatCurrencyPDF(r.total_amount),
+        formatCurrencyPDF(r.cash_paid),
+        formatCurrencyPDF(r.credit_amount),
+        r.payment_status.toUpperCase()
+      ]);
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [['Date', 'Receipt', 'Vehicle', 'Total', 'Paid', 'Pending', 'Status']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 25, halign: 'right' },
+          4: { cellWidth: 25, halign: 'right', textColor: [34, 197, 94] },
+          5: { cellWidth: 25, halign: 'right', textColor: [239, 68, 68] },
+          6: { cellWidth: 25, halign: 'center' }
+        },
+        margin: { left: margin, right: margin }
+      });
+    }
+    
+    addFooter(doc);
+    
+    const fileName = `owner-ledger-${ownerName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    return fileName;
+    
+  } catch (error) {
+    console.error('Error generating owner ledger PDF:', error);
+    throw error;
+  }
+}
